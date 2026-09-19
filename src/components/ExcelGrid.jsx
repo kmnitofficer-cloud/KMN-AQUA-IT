@@ -253,8 +253,10 @@ export default function ExcelGrid({
         </td>
 
         {/* Item Name */}
-        <td>
-          <div style={{ fontWeight: 600 }}>{machine.item_name}</div>
+        <td style={{ maxWidth: '190px' }}>
+          <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={machine.item_name}>
+            {machine.item_name}
+          </div>
         </td>
 
         {/* Category Badge */}
@@ -268,14 +270,14 @@ export default function ExcelGrid({
         {/* Office Branch */}
         <td>
           <span className="badge-office">
-            <Building size={13} />
+            <Building size={12} />
             <span>{machine.office}</span>
           </span>
         </td>
 
         {/* Assigned User */}
-        <td>
-          <div style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>
+        <td style={{ maxWidth: '130px' }}>
+          <div style={{ fontWeight: 600, color: 'var(--brand-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={machine.assigned_to || 'Unassigned'}>
             {machine.assigned_to || 'Unassigned'}
           </div>
         </td>
@@ -294,15 +296,15 @@ export default function ExcelGrid({
         </td>
 
         {/* Remarks / Specs */}
-        <td>
+        <td style={{ maxWidth: '170px' }}>
           <span style={{ 
             color: machine.remarks ? 'var(--text-secondary)' : 'var(--text-muted)',
-            fontSize: '0.82rem',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden'
-          }}>
+            fontSize: '0.8rem',
+            display: 'block',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }} title={machine.remarks || ''}>
             {machine.remarks || '—'}
           </span>
         </td>
@@ -310,38 +312,38 @@ export default function ExcelGrid({
         {/* Row Actions */}
         <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
           {role === 'admin' ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
               <button
                 type="button"
                 className="btn-icon"
-                style={{ width: '28px', height: '28px' }}
+                style={{ width: '26px', height: '26px' }}
                 onClick={() => onViewMachine(machine)}
                 title="View Full Profile"
               >
-                <Eye size={14} />
+                <Eye size={13} />
               </button>
               <button
                 type="button"
                 className="btn-icon"
-                style={{ width: '28px', height: '28px' }}
+                style={{ width: '26px', height: '26px' }}
                 onClick={() => onEditMachine(machine)}
                 title="Edit Record"
               >
-                <Edit size={14} />
+                <Edit size={13} />
               </button>
               <button
                 type="button"
                 className="btn-icon"
-                style={{ width: '28px', height: '28px' }}
+                style={{ width: '26px', height: '26px' }}
                 onClick={() => onAddServiceForMachine(machine)}
                 title="Log Service / Repair"
               >
-                <Wrench size={14} />
+                <Wrench size={13} />
               </button>
               <button
                 type="button"
                 className="btn-icon"
-                style={{ width: '28px', height: '28px', color: 'var(--accent-rose)' }}
+                style={{ width: '26px', height: '26px', color: 'var(--accent-rose)' }}
                 onClick={() => {
                   if (window.confirm(`Delete ${machine.item_name} (${machine.verified_no || 'No tag'})?`)) {
                     onDeleteMachine(machine.id);
@@ -349,18 +351,18 @@ export default function ExcelGrid({
                 }}
                 title="Delete Record"
               >
-                <Trash2 size={14} />
+                <Trash2 size={13} />
               </button>
             </div>
           ) : (
             <button
               type="button"
               className="btn-icon"
-              style={{ width: '30px', height: '30px', margin: '0 auto' }}
+              style={{ width: '28px', height: '28px', margin: '0 auto' }}
               onClick={() => onViewMachine(machine)}
               title="View Details"
             >
-              <Eye size={15} />
+              <Eye size={14} />
             </button>
           )}
         </td>
@@ -506,7 +508,7 @@ export default function ExcelGrid({
           <thead>
             <tr>
               {role === 'admin' && (
-                <th style={{ width: '40px', textAlign: 'center' }}>
+                <th style={{ width: '36px', textAlign: 'center' }}>
                   <span 
                     onClick={toggleSelectAll} 
                     style={{ cursor: 'pointer', display: 'inline-flex', verticalAlign: 'middle' }}
@@ -519,48 +521,48 @@ export default function ExcelGrid({
                   </span>
                 </th>
               )}
-              <th style={{ width: '50px', textAlign: 'center' }}>#</th>
-              <th className="sortable" onClick={() => handleSort('verified_no')} style={{ width: '160px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>Verified No / Tag</span>
+              <th style={{ width: '38px', textAlign: 'center' }}>#</th>
+              <th className="sortable" onClick={() => handleSort('verified_no')} style={{ width: '120px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>Verified No</span>
                   {getSortIcon('verified_no')}
                 </div>
               </th>
-              <th className="sortable" onClick={() => handleSort('item_name')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <th className="sortable" onClick={() => handleSort('item_name')} style={{ minWidth: '130px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Item / Computer Name</span>
                   {getSortIcon('item_name')}
                 </div>
               </th>
-              <th className="sortable" onClick={() => handleSort('category')} style={{ width: '170px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <th className="sortable" onClick={() => handleSort('category')} style={{ width: '115px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span>Category</span>
                   {getSortIcon('category')}
                 </div>
               </th>
-              <th className="sortable" onClick={() => handleSort('office')} style={{ width: '150px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>Office / Branch</span>
+              <th className="sortable" onClick={() => handleSort('office')} style={{ width: '110px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>Office</span>
                   {getSortIcon('office')}
                 </div>
               </th>
-              <th className="sortable" onClick={() => handleSort('assigned_to')} style={{ width: '170px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>Assigned User / Room</span>
+              <th className="sortable" onClick={() => handleSort('assigned_to')} style={{ width: '120px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>Assigned User</span>
                   {getSortIcon('assigned_to')}
                 </div>
               </th>
-              <th className="sortable" onClick={() => handleSort('status')} style={{ width: '140px', textAlign: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+              <th className="sortable" onClick={() => handleSort('status')} style={{ width: '105px', textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                   <span>Status</span>
                   {getSortIcon('status')}
                 </div>
               </th>
-              <th>Remarks / Specs</th>
+              <th style={{ minWidth: '110px' }}>Remarks / Specs</th>
               {role === 'admin' ? (
-                <th style={{ width: '140px', textAlign: 'center' }}>Actions</th>
+                <th style={{ width: '110px', textAlign: 'center' }}>Actions</th>
               ) : (
-                <th style={{ width: '80px', textAlign: 'center' }}>Details</th>
+                <th style={{ width: '70px', textAlign: 'center' }}>Details</th>
               )}
             </tr>
           </thead>

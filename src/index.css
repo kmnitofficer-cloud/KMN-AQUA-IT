@@ -658,31 +658,59 @@ body {
 .table-container {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-bottom-left-radius: var(--radius-lg);
-  border-bottom-right-radius: var(--radius-lg);
+  border-bottom: none;
+  max-height: calc(100vh - 240px);
+  min-height: 440px;
   overflow-x: auto;
+  overflow-y: auto;
   box-shadow: var(--shadow-sm);
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--bg-surface-elevated);
+}
+
+.table-container::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--bg-surface-elevated);
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
 }
 
 .excel-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.84rem;
   text-align: left;
 }
 
 .excel-table th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   background: var(--table-header-bg);
   color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.78rem;
+  font-weight: 700;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--table-border);
+  letter-spacing: 0.03em;
+  padding: 0.62rem 0.75rem;
+  border-bottom: 2px solid var(--table-border);
   border-right: 1px solid var(--table-border);
   white-space: nowrap;
   user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .excel-table th.sortable {
@@ -699,7 +727,7 @@ body {
 }
 
 .excel-table td {
-  padding: 0.85rem 1rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--table-border);
   border-right: 1px solid var(--table-border);
   color: var(--text-primary);
@@ -825,9 +853,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.85rem 1.25rem;
-  border-top: 1px solid var(--border-subtle);
+  padding: 0.75rem 1.25rem;
   background: var(--table-header-bg);
+  border: 1px solid var(--border-subtle);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
   font-size: 0.82rem;
   color: var(--text-secondary);
 }
@@ -2842,10 +2872,11 @@ body {
 /* ==========================================================
    USER GROUP HEADER BANNERS IN EXCEL SPREADSHEET TABLE
    ========================================================== */
-.user-group-header-row {
+.user-group-header-row td {
   background: linear-gradient(90deg, rgba(124, 58, 237, 0.09) 0%, rgba(99, 102, 241, 0.03) 100%) !important;
   border-top: 2px solid rgba(124, 58, 237, 0.28) !important;
   border-bottom: 1px solid rgba(124, 58, 237, 0.15) !important;
+  padding: 0.4rem 0.65rem !important;
 }
 
 .user-group-banner {
