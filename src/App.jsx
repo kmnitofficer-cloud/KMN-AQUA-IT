@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import DashboardHome from './components/DashboardHome';
+import WorkstationsView from './components/WorkstationsView';
 import StatsCards from './components/StatsCards';
 import ExcelGrid from './components/ExcelGrid';
 import MachineModal from './components/MachineModal';
@@ -8,6 +11,7 @@ import ServiceLogsModal from './components/ServiceLogsModal';
 import SupabaseSettingsModal from './components/SupabaseSettingsModal';
 import ExcelImportModal from './components/ExcelImportModal';
 import AdminPinModal from './components/AdminPinModal';
+import { Database } from 'lucide-react';
 
 import { initialMachines, initialServices } from './data/seedData';
 import { 
@@ -44,8 +48,8 @@ export default function App() {
     return localStorage.getItem(STORAGE_ROLE) || 'viewer';
   });
 
-  // Active Main Tab: 'machines' or 'services'
-  const [activeTab, setActiveTab] = useState('machines');
+  // Active Main Tab: 'dashboard', 'workstations', 'machines', or 'services'
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Filters
   const [officeFilter, setOfficeFilter] = useState('All');
@@ -275,9 +279,18 @@ export default function App() {
   };
 
   return (
-    <div className="app-layout">
-      {/* Top Navbar */}
-      <Navbar
+    <div className="app-shell">
+      {/* Modern HireWise Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={(tab) => {
+          if (tab === 'services') {
+            setServicePrefillMachine(null);
+            setIsServiceModalOpen(true);
+          } else {
+            setActiveTab(tab);
+          }
+        }}
         role={role}
         onSwitchRole={handleSwitchRole}
         theme={theme}
@@ -285,64 +298,132 @@ export default function App() {
         isCloudConnected={isCloudConnected}
         onOpenCloudSettings={() => setIsCloudSettingsOpen(true)}
         onOpenAdminPin={() => setIsAdminPinOpen(true)}
+        machinesCount={machines.length}
+        servicesCount={services.length}
       />
 
       {/* Main Content Area */}
-      <main className="main-content">
-        {/* KPI / Stats Overview */}
-        <StatsCards
-          machines={machines}
-          services={services}
-          onFilterByStatus={(status) => setStatusFilter(status)}
-          onFilterByOffice={(office) => setOfficeFilter(office)}
-        />
-
-        {/* Dashboard Header & Tab Navigation */}
-        <div className="dashboard-header">
-          <div className="dashboard-title-group">
-            <h1>
-              <span>IT Asset Inventory</span>
-              {role === 'viewer' ? (
-                <span className="badge-viewer">Viewer Display Mode</span>
-              ) : (
-                <span className="badge-admin">Admin Mode Active</span>
-              )}
-            </h1>
+      <div className="main-wrapper">
+        {/* Top Header Bar */}
+        <header className="top-header-bar">
+          <div>
+            <h1 className="header-greeting-title">IT Asset Operations Hub</h1>
+            <span className="header-date-badge">Saturday, September 19, 2026 &bull; KMN Aqua Services (Pvt) Ltd</span>
           </div>
 
-          {/* Quick buttons */}
-          <div className="header-action-group">
+          <div className="header-actions-right">
+            {/* Supabase Status Pill */}
+            <button 
+              type="button" 
+              className="cloud-status-pill"
+              onClick={() => setIsCloudSettingsOpen(true)}
+              title="Configure Supabase Database"
+            >
+              <span className={`status-dot ${isCloudConnected ? 'connected' : 'disconnected'}`}></span>
+              <Database size={14} />
+              <span>{isCloudConnected ? 'Cloud Synced' : 'Local Mode'}</span>
+            </button>
+
+            {/* Quick Service / Bill Log button */}
             <button
               type="button"
-              className={`btn ${activeTab === 'services' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+              className="btn btn-secondary btn-sm"
               onClick={() => {
                 setServicePrefillMachine(null);
                 setIsServiceModalOpen(true);
               }}
+              title="Log new maintenance bill / update"
             >
               <Wrench size={14} />
-              <span>Maintenance Logs ({services.length})</span>
+              <span>Service Bill</span>
             </button>
-          </div>
-        </div>
 
-        {/* Excel Spreadsheet Interactive Grid */}
-        <ExcelGrid
-          machines={machines}
-          role={role}
-          onAddMachine={handleOpenAddMachine}
-          onEditMachine={handleOpenEditMachine}
-          onDeleteMachine={handleDeleteMachine}
-          onViewMachine={handleViewMachine}
-          onAddServiceForMachine={handleAddServiceForMachine}
-          onOpenImportModal={() => setIsImportModalOpen(true)}
-          officeFilter={officeFilter}
-          setOfficeFilter={setOfficeFilter}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          showToast={showToast}
-        />
-      </main>
+            {role === 'admin' ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleOpenAddMachine}
+                title="Add new computer / equipment"
+              >
+                <span>+ Add Asset</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsAdminPinOpen(true)}
+                title="Unlock Admin Privileges"
+              >
+                <span>Unlock Admin</span>
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* View Switching */}
+        {activeTab === 'dashboard' && (
+          <DashboardHome
+            machines={machines}
+            services={services}
+            onSelectTab={(tab) => {
+              if (tab === 'services') {
+                setServicePrefillMachine(null);
+                setIsServiceModalOpen(true);
+              } else {
+                setActiveTab(tab);
+              }
+            }}
+            onOpenServiceModal={(serviceOrData) => {
+              setServicePrefillMachine(serviceOrData);
+              setIsServiceModalOpen(true);
+            }}
+            onViewMachine={handleViewMachine}
+            role={role}
+          />
+        )}
+
+        {activeTab === 'workstations' && (
+          <WorkstationsView
+            machines={machines}
+            services={services}
+            onOpenServiceModal={(prefill) => {
+              setServicePrefillMachine(prefill);
+              setIsServiceModalOpen(true);
+            }}
+            onViewMachine={handleViewMachine}
+            onAddMachine={handleOpenAddMachine}
+            role={role}
+          />
+        )}
+
+        {activeTab === 'machines' && (
+          <div style={{ padding: '0 2.25rem 3rem' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <StatsCards
+                machines={machines}
+                services={services}
+                onFilterByStatus={(status) => setStatusFilter(status)}
+                onFilterByOffice={(office) => setOfficeFilter(office)}
+              />
+            </div>
+            <ExcelGrid
+              machines={machines}
+              role={role}
+              onAddMachine={handleOpenAddMachine}
+              onEditMachine={handleOpenEditMachine}
+              onDeleteMachine={handleDeleteMachine}
+              onViewMachine={handleViewMachine}
+              onAddServiceForMachine={handleAddServiceForMachine}
+              onOpenImportModal={() => setIsImportModalOpen(true)}
+              officeFilter={officeFilter}
+              setOfficeFilter={setOfficeFilter}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              showToast={showToast}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Modals & Drawers */}
       <MachineModal
