@@ -12,7 +12,8 @@ import {
   Lock, 
   Zap, 
   ArrowUpRight,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -26,27 +27,56 @@ export default function Sidebar({
   onOpenCloudSettings,
   onOpenAdminPin,
   machinesCount = 0,
-  servicesCount = 0
+  servicesCount = 0,
+  isMobileOpen = false,
+  onCloseMobile
 }) {
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
+    if (onCloseMobile) onCloseMobile();
+  };
+
   return (
-    <aside className="app-sidebar">
-      {/* Brand Header */}
-      <div className="sidebar-brand">
-        <div className="brand-icon-gem">
-          <Sparkles size={18} className="gem-svg" />
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="sidebar-mobile-backdrop" 
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`app-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
+        {/* Brand Header */}
+        <div className="sidebar-brand">
+          <div className="brand-icon-gem">
+            <Sparkles size={18} className="gem-svg" />
+          </div>
+          <div className="brand-text">
+            <span className="brand-title-primary">HireWise</span>
+            <span className="brand-title-badge">IT ASSET</span>
+          </div>
+
+          {/* Close button for mobile view */}
+          {onCloseMobile && (
+            <button 
+              type="button" 
+              className="mobile-sidebar-close-btn"
+              onClick={onCloseMobile}
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
-        <div className="brand-text">
-          <span className="brand-title-primary">HireWise</span>
-          <span className="brand-title-badge">IT ASSET</span>
-        </div>
-      </div>
 
       {/* Main Navigation Links */}
       <nav className="sidebar-nav">
         <button
           type="button"
           className={`sidebar-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
+          onClick={() => handleTabClick('dashboard')}
           id="nav-overview"
         >
           <div className="nav-item-icon">
@@ -59,7 +89,7 @@ export default function Sidebar({
         <button
           type="button"
           className={`sidebar-nav-item ${activeTab === 'workstations' ? 'active' : ''}`}
-          onClick={() => setActiveTab('workstations')}
+          onClick={() => handleTabClick('workstations')}
           id="nav-workstations"
         >
           <div className="nav-item-icon">
@@ -72,7 +102,7 @@ export default function Sidebar({
         <button
           type="button"
           className={`sidebar-nav-item ${activeTab === 'machines' ? 'active' : ''}`}
-          onClick={() => setActiveTab('machines')}
+          onClick={() => handleTabClick('machines')}
           id="nav-machines"
         >
           <div className="nav-item-icon">
@@ -86,7 +116,7 @@ export default function Sidebar({
         <button
           type="button"
           className={`sidebar-nav-item ${activeTab === 'services' ? 'active' : ''}`}
-          onClick={() => setActiveTab('services')}
+          onClick={() => handleTabClick('services')}
           id="nav-services"
         >
           <div className="nav-item-icon">
@@ -100,7 +130,10 @@ export default function Sidebar({
         <button
           type="button"
           className="sidebar-nav-item"
-          onClick={onOpenCloudSettings}
+          onClick={() => {
+            onOpenCloudSettings();
+            if (onCloseMobile) onCloseMobile();
+          }}
           id="nav-cloud"
         >
           <div className="nav-item-icon">
@@ -123,7 +156,10 @@ export default function Sidebar({
         <button
           type="button"
           className="promo-btn"
-          onClick={onOpenCloudSettings}
+          onClick={() => {
+            onOpenCloudSettings();
+            if (onCloseMobile) onCloseMobile();
+          }}
         >
           <span>{isCloudConnected ? 'CONNECTED' : 'SYNC NOW'}</span>
           <ArrowUpRight size={14} />
@@ -165,5 +201,6 @@ export default function Sidebar({
         </button>
       </div>
     </aside>
+  </>
   );
 }

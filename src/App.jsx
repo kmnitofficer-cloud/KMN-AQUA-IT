@@ -11,7 +11,7 @@ import ServiceLogsModal from './components/ServiceLogsModal';
 import SupabaseSettingsModal from './components/SupabaseSettingsModal';
 import ExcelImportModal from './components/ExcelImportModal';
 import AdminPinModal from './components/AdminPinModal';
-import { Database } from 'lucide-react';
+import { Database, Menu } from 'lucide-react';
 
 import { initialMachines, initialServices } from './data/seedData';
 import { 
@@ -92,6 +92,7 @@ export default function App() {
   const [isCloudSettingsOpen, setIsCloudSettingsOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAdminPinOpen, setIsAdminPinOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Toast notifications
   const [toasts, setToasts] = useState([]);
@@ -300,15 +301,28 @@ export default function App() {
         onOpenAdminPin={() => setIsAdminPinOpen(true)}
         machinesCount={machines.length}
         servicesCount={services.length}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
       {/* Main Content Area */}
       <div className="main-wrapper">
         {/* Top Header Bar */}
         <header className="top-header-bar">
-          <div>
-            <h1 className="header-greeting-title">IT Asset Operations Hub</h1>
-            <span className="header-date-badge">Saturday, September 19, 2026 &bull; KMN Aqua Services (Pvt) Ltd</span>
+          <div className="header-left-group">
+            <button
+              type="button"
+              className="mobile-menu-toggle-btn"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              aria-label="Open navigation menu"
+              title="Open Navigation Menu"
+            >
+              <Menu size={22} />
+            </button>
+            <div className="header-title-block">
+              <h1 className="header-greeting-title">IT Asset Operations Hub</h1>
+              <span className="header-date-badge">Saturday, September 19, 2026 &bull; KMN Aqua Services (Pvt) Ltd</span>
+            </div>
           </div>
 
           <div className="header-actions-right">
@@ -399,7 +413,7 @@ export default function App() {
         )}
 
         {activeTab === 'machines' && (
-          <div style={{ padding: '0 2.25rem 3rem' }}>
+          <div className="machines-view-wrapper">
             <div style={{ marginBottom: '1.25rem' }}>
               <StatsCards
                 machines={machines}
