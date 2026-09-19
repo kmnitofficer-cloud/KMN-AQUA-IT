@@ -20,7 +20,8 @@ import {
   Printer,
   MousePointer,
   Keyboard as KeyboardIcon,
-  BatteryCharging
+  BatteryCharging,
+  Users
 } from 'lucide-react';
 import { exportMachinesToExcel } from '../utils/excelHelper';
 
@@ -41,6 +42,8 @@ export default function ExcelGrid({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [userFilter, setUserFilter] = useState('All');
+  const [groupByUser, setGroupByUser] = useState(true);
   const [sortField, setSortField] = useState('verified_no');
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -49,6 +52,12 @@ export default function ExcelGrid({
   const categories = useMemo(() => {
     const set = new Set(machines.map(m => m.category).filter(Boolean));
     return ['All', ...Array.from(set)];
+  }, [machines]);
+
+  // Distinct assigned users from data
+  const distinctUsers = useMemo(() => {
+    const set = new Set(machines.map(m => (m.assigned_to || '').trim()).filter(Boolean));
+    return ['All', ...Array.from(set).sort()];
   }, [machines]);
 
   // Filtering
@@ -82,14 +91,27 @@ export default function ExcelGrid({
         return false;
       }
 
+      // Assigned User Filter
+      if (userFilter !== 'All' && (m.assigned_to || '').trim() !== userFilter) {
+        return false;
+      }
+
       return true;
     });
-  }, [machines, searchQuery, officeFilter, statusFilter, categoryFilter]);
+  }, [machines, searchQuery, officeFilter, statusFilter, categoryFilter, userFilter]);
 
-  // Sorting
+  // Sorting & Group Clustering
   const sortedMachines = useMemo(() => {
     const list = [...filteredMachines];
     list.sort((a, b) => {
+      // When grouped by user, cluster by assigned_to first
+      if (groupByUser) {
+        const uA = (a.assigned_to || 'zzz').toLowerCase();
+        const uB = (b.assigned_to || 'zzz').toLowerCase();
+        if (uA < uB) return -1;
+        if (uA > uB) return 1;
+      }
+
       let valA = a[sortField] || '';
       let valB = b[sortField] || '';
 
@@ -102,7 +124,25 @@ export default function ExcelGrid({
       return 0;
     });
     return list;
-  }, [filteredMachines, sortField, sortDirection]);
+  }, [filteredMachines, sortField, sortDirection, groupByUser]);
+
+  // Grouped by Assigned User
+  const groupedMachines = useMemo(() => {
+    if (!groupByUser) return [];
+    const groups = new Map();
+    sortedMachines.forEach(m => {
+      const user = (m.assigned_to || 'Unassigned / Spare Assets').trim() || 'Unassigned / Spare Assets';
+      if (!groups.has(user)) {
+        groups.set(user, {
+          user,
+          office: m.office || 'Main Branch',
+          items: []
+        });
+      }
+      groups.get(user).items.push(m);
+    });
+    return Array.from(groups.values());
+  }, [sortedMachines, groupByUser]);
 
   // Handle Sort header click
   const handleSort = (field) => {
@@ -172,6 +212,162 @@ export default function ExcelGrid({
     return 'not-working';
   };
 
+  const renderRow = (machine, index) => {
+    const isSelected = selectedIds.has(machine.id);
+    return (
+      <tr 
+        key={machine.id || index}
+        className="clickable-row"
+        onClick={() => {
+          if (role === 'viewer') onViewMachine(machine);
+        }}
+      >
+        {/* Admin Checkbox */}
+        {role === 'admin' && (
+          <td 
+            style={{ textAlign: 'center' }} 
+            onClick={(e) => { e.stopPropagation(); toggleSelectOne(machine.id); }}
+          >
+            <span style={{ cursor: 'pointer', display: 'inline-flex' }}>
+              {isSelected ? (
+                <CheckSquare size={16} color="var(--brand-primary)" />
+              ) : (
+                <Square size={16} />
+              )}
+            </span>
+          </td>
+        )}
+
+        {/* Row Index */}
+        <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+          {index + 1}
+        </td>
+
+        {/* Verified No (Asset Tag) */}
+        <td>
+          {machine.verified_no ? (
+            <span className="tag-verified">{machine.verified_no}</span>
+          ) : (
+            <span className="tag-verified empty">—</span>
+          )}
+        </td>
+
+        {/* Item Name */}
+        <td>
+          <div style={{ fontWeight: 600 }}>{machine.item_name}</div>
+        </td>
+
+        {/* Category Badge */}
+        <td>
+          <span className="badge-cat">
+            {getCategoryIcon(machine.category)}
+            <span>{machine.category || 'Accessory'}</span>
+          </span>
+        </td>
+
+        {/* Office Branch */}
+        <td>
+          <span className="badge-office">
+            <Building size={13} />
+            <span>{machine.office}</span>
+          </span>
+        </td>
+
+        {/* Assigned User */}
+        <td>
+          <div style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>
+            {machine.assigned_to || 'Unassigned'}
+          </div>
+        </td>
+
+        {/* Status Badge */}
+        <td style={{ textAlign: 'center' }}>
+          <span className={`badge-status ${getStatusClass(machine.status)}`}>
+            <span className="status-dot connected" style={{ 
+              width: '6px', 
+              height: '6px',
+              background: machine.status === 'Working' ? 'var(--accent-emerald)' : 
+                          machine.status === 'Under Service' ? 'var(--accent-amber)' : 'var(--text-muted)'
+            }}></span>
+            {machine.status || 'Working'}
+          </span>
+        </td>
+
+        {/* Remarks / Specs */}
+        <td>
+          <span style={{ 
+            color: machine.remarks ? 'var(--text-secondary)' : 'var(--text-muted)',
+            fontSize: '0.82rem',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
+          }}>
+            {machine.remarks || '—'}
+          </span>
+        </td>
+
+        {/* Row Actions */}
+        <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          {role === 'admin' ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              <button
+                type="button"
+                className="btn-icon"
+                style={{ width: '28px', height: '28px' }}
+                onClick={() => onViewMachine(machine)}
+                title="View Full Profile"
+              >
+                <Eye size={14} />
+              </button>
+              <button
+                type="button"
+                className="btn-icon"
+                style={{ width: '28px', height: '28px' }}
+                onClick={() => onEditMachine(machine)}
+                title="Edit Record"
+              >
+                <Edit size={14} />
+              </button>
+              <button
+                type="button"
+                className="btn-icon"
+                style={{ width: '28px', height: '28px' }}
+                onClick={() => onAddServiceForMachine(machine)}
+                title="Log Service / Repair"
+              >
+                <Wrench size={14} />
+              </button>
+              <button
+                type="button"
+                className="btn-icon"
+                style={{ width: '28px', height: '28px', color: 'var(--accent-rose)' }}
+                onClick={() => {
+                  if (window.confirm(`Delete ${machine.item_name} (${machine.verified_no || 'No tag'})?`)) {
+                    onDeleteMachine(machine.id);
+                  }
+                }}
+                title="Delete Record"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn-icon"
+              style={{ width: '30px', height: '30px', margin: '0 auto' }}
+              onClick={() => onViewMachine(machine)}
+              title="View Details"
+            >
+              <Eye size={15} />
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <div className="table-wrapper">
       {/* Table Toolbar */}
@@ -226,10 +422,34 @@ export default function ExcelGrid({
             <option value="Not in use">Not in Use / Scrap</option>
             <option value="Not Working">Not Working</option>
           </select>
+
+          {/* Assigned User Dropdown */}
+          <select
+            className="select-filter"
+            value={userFilter}
+            onChange={(e) => setUserFilter(e.target.value)}
+            title="Filter machines by assigned user"
+          >
+            <option value="All">All Users ({distinctUsers.length - 1})</option>
+            {distinctUsers.filter(u => u !== 'All').map(u => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
         </div>
 
         {/* Toolbar Right: Action Buttons */}
         <div className="toolbar-right">
+          {/* Group by User Toggle */}
+          <button
+            type="button"
+            className={`btn ${groupByUser ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            onClick={() => setGroupByUser(prev => !prev)}
+            title="Organize all machines grouped under their assigned user"
+          >
+            <Users size={14} />
+            <span>{groupByUser ? 'Grouped by User' : 'Group by User'}</span>
+          </button>
+
           {/* Bulk actions for admin */}
           {role === 'admin' && selectedIds.size > 0 && (
             <button
@@ -353,160 +573,34 @@ export default function ExcelGrid({
                   <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>Try clearing filters or search query</p>
                 </td>
               </tr>
-            ) : (
-              sortedMachines.map((machine, index) => {
-                const isSelected = selectedIds.has(machine.id);
-                return (
-                  <tr 
-                    key={machine.id || index}
-                    className="clickable-row"
-                    onClick={() => {
-                      if (role === 'viewer') onViewMachine(machine);
-                    }}
-                  >
-                    {/* Admin Checkbox */}
-                    {role === 'admin' && (
-                      <td 
-                        style={{ textAlign: 'center' }} 
-                        onClick={(e) => { e.stopPropagation(); toggleSelectOne(machine.id); }}
-                      >
-                        <span style={{ cursor: 'pointer', display: 'inline-flex' }}>
-                          {isSelected ? (
-                            <CheckSquare size={16} color="var(--brand-primary)" />
-                          ) : (
-                            <Square size={16} />
-                          )}
-                        </span>
-                      </td>
-                    )}
-
-                    {/* Row Index */}
-                    <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                      {index + 1}
-                    </td>
-
-                    {/* Verified No (Asset Tag) */}
-                    <td>
-                      {machine.verified_no ? (
-                        <span className="tag-verified">{machine.verified_no}</span>
-                      ) : (
-                        <span className="tag-verified empty">—</span>
-                      )}
-                    </td>
-
-                    {/* Item Name */}
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{machine.item_name}</div>
-                    </td>
-
-                    {/* Category Badge */}
-                    <td>
-                      <span className="badge-cat">
-                        {getCategoryIcon(machine.category)}
-                        <span>{machine.category || 'Accessory'}</span>
-                      </span>
-                    </td>
-
-                    {/* Office Branch */}
-                    <td>
-                      <span className="badge-office">
-                        <Building size={13} />
-                        <span>{machine.office}</span>
-                      </span>
-                    </td>
-
-                    {/* Assigned User */}
-                    <td>
-                      <div style={{ fontWeight: 500 }}>{machine.assigned_to || 'Unassigned'}</div>
-                    </td>
-
-                    {/* Status Badge */}
-                    <td style={{ textAlign: 'center' }}>
-                      <span className={`badge-status ${getStatusClass(machine.status)}`}>
-                        <span className="status-dot connected" style={{ 
-                          width: '6px', 
-                          height: '6px',
-                          background: machine.status === 'Working' ? 'var(--accent-emerald)' : 
-                                      machine.status === 'Under Service' ? 'var(--accent-amber)' : 'var(--text-muted)'
-                        }}></span>
-                        {machine.status || 'Working'}
-                      </span>
-                    </td>
-
-                    {/* Remarks / Specs */}
-                    <td>
-                      <span style={{ 
-                        color: machine.remarks ? 'var(--text-secondary)' : 'var(--text-muted)',
-                        fontSize: '0.82rem',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
-                        {machine.remarks || '—'}
-                      </span>
-                    </td>
-
-                    {/* Row Actions */}
-                    <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                      {role === 'admin' ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            style={{ width: '28px', height: '28px' }}
-                            onClick={() => onViewMachine(machine)}
-                            title="View Full Profile"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            style={{ width: '28px', height: '28px' }}
-                            onClick={() => onEditMachine(machine)}
-                            title="Edit Record"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            style={{ width: '28px', height: '28px' }}
-                            onClick={() => onAddServiceForMachine(machine)}
-                            title="Log Service / Repair"
-                          >
-                            <Wrench size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            style={{ width: '28px', height: '28px', color: 'var(--accent-rose)' }}
-                            onClick={() => {
-                              if (window.confirm(`Delete ${machine.item_name} (${machine.verified_no || 'No tag'})?`)) {
-                                onDeleteMachine(machine.id);
-                              }
-                            }}
-                            title="Delete Record"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+            ) : groupByUser ? (
+              groupedMachines.map((group, gIdx) => (
+                <React.Fragment key={group.user || gIdx}>
+                  {/* User Section Header Row */}
+                  <tr className="user-group-header-row">
+                    <td colSpan={role === 'admin' ? 10 : 9}>
+                      <div className="user-group-banner">
+                        <div className="user-group-left">
+                          <div className="user-group-avatar">
+                            <Users size={14} />
+                          </div>
+                          <span className="user-group-name">{group.user}</span>
+                          <span className="user-group-office">{group.office}</span>
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn-icon"
-                          style={{ width: '30px', height: '30px', margin: '0 auto' }}
-                          onClick={() => onViewMachine(machine)}
-                          title="View Details"
-                        >
-                          <Eye size={15} />
-                        </button>
-                      )}
+                        <div className="user-group-right">
+                          <span className="user-group-count-badge">
+                            {group.items.length} {group.items.length === 1 ? 'Asset' : 'Assets'} Assigned
+                          </span>
+                        </div>
+                      </div>
                     </td>
                   </tr>
-                );
-              })
+                  {/* Items for this user */}
+                  {group.items.map((machine, mIdx) => renderRow(machine, mIdx))}
+                </React.Fragment>
+              ))
+            ) : (
+              sortedMachines.map((machine, index) => renderRow(machine, index))
             )}
           </tbody>
         </table>
