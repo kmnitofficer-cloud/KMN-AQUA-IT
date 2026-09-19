@@ -2624,3 +2624,186 @@ body {
     padding-right: 1rem;
   }
 }
+
+/* ==========================================================
+   USER SHOWCASE CARD ACTIONS & CHECKUP COUNTDOWN STYLES
+   ========================================================== */
+.hw-spec-item.full-width-spec {
+  grid-column: span 2;
+  background: rgba(2, 132, 199, 0.04);
+  border-color: rgba(2, 132, 199, 0.25);
+}
+
+.hw-spec-item.full-width-spec.due-soon {
+  background: rgba(245, 158, 11, 0.06);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.hw-countdown-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hw-status-pill-mini {
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 12px;
+}
+
+.hw-status-pill-mini.ok {
+  background: var(--accent-emerald-bg);
+  color: var(--accent-emerald);
+}
+
+.hw-status-pill-mini.warn {
+  background: var(--accent-amber-bg);
+  color: var(--accent-amber);
+}
+
+.hw-user-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.hw-user-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hw-user-btn.edit {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.hw-user-btn.edit:hover {
+  background: #2563eb;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.hw-user-btn.service {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+  color: #7c3aed;
+  border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+.hw-user-btn.service:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+}
+
+/* ==========================================================
+   BLUE TRENDLINE & AREA CHART (MATCHING USER REFERENCE IMAGE)
+   ========================================================== */
+.hw-trendline-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 22px;
+  padding: 1.35rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.hw-card-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.hw-trend-badges-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.hw-trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.hw-trend-pill.cyan {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.2);
+}
+
+.hw-trend-pill.purple {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.hw-trendline-chart-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hw-trend-svg {
+  width: 100%;
+  height: 160px;
+  filter: drop-shadow(0 4px 10px rgba(2, 132, 199, 0.12));
+}
+
+.hw-trend-x-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.hw-axis-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  gap: 0.1rem;
+}
+
+.hw-axis-node small {
+  font-size: 0.65rem;
+  opacity: 0.85;
+}
+
+.hw-axis-node.active {
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.hw-axis-node.active small {
+  font-weight: 700;
+}
+
+.hw-axis-node.future {
+  color: #7c3aed;
+  font-weight: 700;
+}

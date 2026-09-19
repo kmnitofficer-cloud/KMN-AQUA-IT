@@ -378,6 +378,8 @@ export default function App() {
               setIsServiceModalOpen(true);
             }}
             onViewMachine={handleViewMachine}
+            onEditMachine={handleOpenEditMachine}
+            onOpenAdminPin={() => setIsAdminPinOpen(true)}
             role={role}
           />
         )}

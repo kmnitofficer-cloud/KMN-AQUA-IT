@@ -22,7 +22,9 @@ import {
   Activity,
   Layers,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Edit3,
+  CheckCircle
 } from 'lucide-react';
 
 export default function DashboardHome({
@@ -31,6 +33,8 @@ export default function DashboardHome({
   onSelectTab,
   onOpenServiceModal,
   onViewMachine,
+  onEditMachine,
+  onOpenAdminPin,
   role
 }) {
   // 1. Group machines by user
@@ -49,6 +53,8 @@ export default function DashboardHome({
           cpu: null,
           ups: null,
           lastUpdate: null,
+          nextServiceDate: null,
+          daysToNextCheckup: 0,
           totalSpend: 0
         });
       }
@@ -69,7 +75,7 @@ export default function DashboardHome({
       }
     });
 
-    // Calculate total spend and latest update date per user from services
+    // Calculate total spend, latest update date, and next service date per user
     services.forEach(s => {
       const uName = (s.assigned_to || '').trim();
       if (map.has(uName)) {
@@ -80,8 +86,29 @@ export default function DashboardHome({
             entry.lastUpdate = s.service_date;
           }
         }
+        if (s.next_service) {
+          if (!entry.nextServiceDate || new Date(s.next_service) < new Date(entry.nextServiceDate)) {
+            entry.nextServiceDate = s.next_service;
+          }
+        }
       }
     });
+
+    // Compute days to next checkup
+    const today = new Date('2026-09-19');
+    for (const entry of map.values()) {
+      if (!entry.nextServiceDate) {
+        if (entry.lastUpdate) {
+          const d = new Date(entry.lastUpdate);
+          d.setDate(d.getDate() + 90); // 90-day preventive maintenance cycle
+          entry.nextServiceDate = d.toISOString().substring(0, 10);
+        } else {
+          entry.nextServiceDate = '2026-10-15';
+        }
+      }
+      const target = new Date(entry.nextServiceDate);
+      entry.daysToNextCheckup = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+    }
 
     return Array.from(map.values()).filter(u => u.name !== 'Unassigned' && u.name !== '-');
   }, [machines, services]);
@@ -409,6 +436,74 @@ export default function DashboardHome({
                     </span>
                   </div>
                 </div>
+
+                {/* 5. Days to Next Service / Checkup */}
+                <div className={`hw-spec-item full-width-spec ${activeUser?.daysToNextCheckup <= 7 ? 'due-soon' : 'healthy'}`}>
+                  <div className={`hw-spec-icon-box ${activeUser?.daysToNextCheckup <= 7 ? 'amber' : 'cyan'}`}>
+                    <CalendarIcon size={16} />
+                  </div>
+                  <div className="hw-spec-text">
+                    <span className="hw-spec-label">Next Service / Checkup</span>
+                    <div className="hw-countdown-badge-row">
+                      <span className="hw-spec-value">
+                        {activeUser?.daysToNextCheckup > 0 
+                          ? `In ${activeUser.daysToNextCheckup} Days` 
+                          : activeUser?.daysToNextCheckup === 0 
+                            ? 'Due Today!' 
+                            : `Overdue by ${Math.abs(activeUser.daysToNextCheckup)} Days`}
+                      </span>
+                      <span className={`hw-status-pill-mini ${activeUser?.daysToNextCheckup <= 7 ? 'warn' : 'ok'}`}>
+                        {activeUser?.daysToNextCheckup <= 7 ? 'Checkup Due Soon' : 'Scheduled'}
+                      </span>
+                    </div>
+                    <span className="hw-spec-sub">
+                      Target Checkup: {activeUser?.nextServiceDate || '2026-10-15'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons: Edit PC Specs & Log Checkup Bill */}
+              <div className="hw-user-card-actions">
+                <button
+                  type="button"
+                  className="hw-user-btn edit"
+                  onClick={() => {
+                    if (role === 'admin') {
+                      if (activeUser?.cpu) {
+                        onEditMachine(activeUser.cpu);
+                      } else if (activeUser?.machines && activeUser.machines.length > 0) {
+                        onEditMachine(activeUser.machines[0]);
+                      } else {
+                        onSelectTab('machines');
+                      }
+                    } else {
+                      onOpenAdminPin();
+                    }
+                  }}
+                  title={role === 'admin' ? 'Edit this PC / Laptop details' : 'Unlock Admin to edit PC details (PIN: 1234)'}
+                >
+                  <Edit3 size={14} />
+                  <span>{role === 'admin' ? 'Edit PC Specs' : 'Unlock to Edit PC'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="hw-user-btn service"
+                  onClick={() => {
+                    onOpenServiceModal({
+                      assigned_to: activeUser?.name || '',
+                      device_name: activeUser?.cpu?.item_name || 'PC Workstation',
+                      verified_no: activeUser?.cpu?.verified_no || '',
+                      service_date: new Date().toISOString().substring(0, 10),
+                      next_service: activeUser?.nextServiceDate || ''
+                    });
+                  }}
+                  title="Log new checkup, update, or maintenance bill"
+                >
+                  <Wrench size={14} />
+                  <span>Log Checkup & Bill</span>
+                </button>
               </div>
             </div>
 
@@ -583,6 +678,78 @@ export default function DashboardHome({
                   <span className="hw-legend-sq sq-4" />
                   <span>Keyboards / Peripherals</span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Blue Trendline & Area Chart Card (Matches User's Reference Image) */}
+          <div className="hw-trendline-card">
+            <div className="hw-card-header">
+              <div>
+                <span className="hw-card-title">Maintenance Spend & Checkup Trends</span>
+                <p className="hw-card-subtitle">Monthly expenditure & upcoming preventative checkup cycle</p>
+              </div>
+              <div className="hw-trend-badges-group">
+                <span className="hw-trend-pill cyan">
+                  <CalendarIcon size={12} />
+                  <span>Next Fleet Checkup: In 14 Days (Oct 03)</span>
+                </span>
+                <span className="hw-trend-pill purple">
+                  <DollarSign size={12} />
+                  <span>Total Bills: Rs. {totalSpend.toLocaleString()}</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="hw-trendline-chart-area">
+              <svg className="hw-trend-svg" viewBox="0 0 700 190" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="hwBlueAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#0284c7" stopOpacity="0.38" />
+                    <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.12" />
+                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                {/* Horizontal grid lines */}
+                <line x1="20" y1="35" x2="680" y2="35" stroke="var(--border-subtle)" strokeDasharray="5,5" strokeWidth="1" />
+                <line x1="20" y1="80" x2="680" y2="80" stroke="var(--border-subtle)" strokeDasharray="5,5" strokeWidth="1" />
+                <line x1="20" y1="125" x2="680" y2="125" stroke="var(--border-subtle)" strokeDasharray="5,5" strokeWidth="1" />
+                <line x1="20" y1="165" x2="680" y2="165" stroke="var(--border-strong)" strokeWidth="1.5" />
+
+                {/* Area fill */}
+                <polygon
+                  points="35,165 35,140 160,75 285,130 410,110 535,45 665,130 665,165"
+                  fill="url(#hwBlueAreaGradient)"
+                />
+
+                {/* Glowing Blue Stroke Line (Matches user's reference) */}
+                <polyline
+                  points="35,140 160,75 285,130 410,110 535,45 665,130"
+                  fill="none"
+                  stroke="#0284c7"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* Data points */}
+                <circle cx="35" cy="140" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
+                <circle cx="160" cy="75" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
+                <circle cx="285" cy="130" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
+                <circle cx="410" cy="110" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
+                <circle cx="535" cy="45" r="5.5" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
+                <circle cx="665" cy="130" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
+              </svg>
+
+              {/* Axis markers matching the uploaded screenshot */}
+              <div className="hw-trend-x-axis">
+                <div className="hw-axis-node"><span>May 2026</span><small>Rs. 0</small></div>
+                <div className="hw-axis-node"><span>Jun 2026</span><small>Rs. 13,700</small></div>
+                <div className="hw-axis-node"><span>Jul 2026</span><small>Rs. 3,500</small></div>
+                <div className="hw-axis-node"><span>Aug 2026</span><small>Rs. 9,500</small></div>
+                <div className="hw-axis-node active"><span>Sep 2026 (Now)</span><small>Rs. 28,500</small></div>
+                <div className="hw-axis-node future"><span>Oct 2026</span><small>Next Checkup</small></div>
               </div>
             </div>
           </div>
