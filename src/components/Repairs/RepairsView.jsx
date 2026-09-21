@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wrench, Plus, Search, Filter, ShieldCheck, Cpu } from 'lucide-react';
+import { Wrench, Plus, Search, Filter, ShieldCheck, Cpu, FileText } from 'lucide-react';
 import { repairService } from '../../services/repairService';
 import RepairModal from './RepairModal';
 
@@ -13,7 +13,8 @@ export default function RepairsView({ onOpenAsset }) {
 
   const filteredRepairs = repairs.filter(r => {
     if (filter === 'Completed' && r.Status !== 'Completed') return false;
-    if (filter === 'Under Repair' && r.Status === 'Completed') return false;
+    if (filter === 'Warnings' && !r.Status.includes('Warning') && !r.Status.includes('Observation')) return false;
+    if (filter === 'Under Repair' && (r.Status === 'Completed' || r.Status.includes('Warning'))) return false;
 
     const q = search.toLowerCase();
     return (
@@ -40,7 +41,7 @@ export default function RepairsView({ onOpenAsset }) {
         </div>
         <div className="view-header-actions">
           <button className="btn btn-primary" onClick={() => { setSelectedAssetId(null); setIsModalOpen(true); }}>
-            <Plus size={16} /> Log Repair Record
+            <Plus size={16} /> Log Repair / Issue
           </button>
         </div>
       </div>
@@ -55,6 +56,12 @@ export default function RepairsView({ onOpenAsset }) {
             All Services ({repairs.length})
           </button>
           <button
+            className={`filter-tab ${filter === 'Warnings' ? 'active' : ''}`}
+            onClick={() => setFilter('Warnings')}
+          >
+            ⚠️ Warnings & Checks ({repairs.filter(r => r.Status && (r.Status.includes('Warning') || r.Status.includes('Observation'))).length})
+          </button>
+          <button
             className={`filter-tab ${filter === 'Completed' ? 'active' : ''}`}
             onClick={() => setFilter('Completed')}
           >
@@ -64,7 +71,7 @@ export default function RepairsView({ onOpenAsset }) {
             className={`filter-tab ${filter === 'Under Repair' ? 'active' : ''}`}
             onClick={() => setFilter('Under Repair')}
           >
-            Active In Repair ({repairs.filter(r => r.Status !== 'Completed').length})
+            Active In Repair ({repairs.filter(r => r.Status !== 'Completed' && !r.Status.includes('Warning')).length})
           </button>
         </div>
 
@@ -104,6 +111,7 @@ export default function RepairsView({ onOpenAsset }) {
                 <th>Problem Description</th>
                 <th>Resolution / Action</th>
                 <th>Parts Replaced</th>
+                <th>Invoice / Bill</th>
                 <th>Supplier / Tech</th>
                 <th>Cost (LKR)</th>
                 <th>Status</th>
@@ -112,7 +120,7 @@ export default function RepairsView({ onOpenAsset }) {
             <tbody>
               {filteredRepairs.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-8 text-muted">
+                  <td colSpan="11" className="text-center py-8 text-muted">
                     No repair records found matching this criteria.
                   </td>
                 </tr>
@@ -131,9 +139,26 @@ export default function RepairsView({ onOpenAsset }) {
                     <td><strong className="text-rose">{r.ProblemDescription}</strong></td>
                     <td>{r.ActionTaken}</td>
                     <td>
-                      <span className="text-xs bg-surface-elevated px-2 py-1 rounded">
-                        {r.PartsReplaced || 'None'}
-                      </span>
+                      {r.PartsReplaced && r.PartsReplaced !== 'N/A' && r.PartsReplaced !== 'None' ? (
+                        <div className="flex flex-col gap-1 max-w-xs">
+                          {r.PartsReplaced.split('; ').map((pt, i) => (
+                            <span key={i} className="text-xs bg-violet/10 text-violet border border-violet/20 px-2 py-0.5 rounded">
+                              {pt}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted italic">None</span>
+                      )}
+                    </td>
+                    <td>
+                      {r.InvoiceID ? (
+                        <span className="id-pill bg-cyan/15 text-cyan border border-cyan/30 flex items-center gap-1 font-mono text-xs">
+                          <FileText size={12} /> {r.InvoiceID}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted italic">N/A</span>
+                      )}
                     </td>
                     <td>
                       <div>{r.RepairSupplier}</div>
@@ -143,7 +168,11 @@ export default function RepairsView({ onOpenAsset }) {
                       <strong className="text-emerald">Rs. {Number(r.RepairCost).toLocaleString()}</strong>
                     </td>
                     <td>
-                      <span className={`badge ${r.Status === 'Completed' ? 'badge-success' : 'badge-danger'}`}>
+                      <span className={`badge ${
+                        r.Status === 'Completed' ? 'badge-success' :
+                        (r.Status && (r.Status.includes('Warning') || r.Status.includes('Observation'))) ? 'badge-warning font-semibold' :
+                        'badge-danger'
+                      }`}>
                         {r.Status}
                       </span>
                     </td>

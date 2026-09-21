@@ -90,6 +90,7 @@ export default function AssetsView({ onSelectUser }) {
             { id: 'Printers', label: 'Printers', count: assetService.getAssets('Printers').length },
             { id: 'Accessories', label: 'Accessories', count: assetService.getAssets('Accessories').length },
             { id: 'Unassigned', label: 'Unassigned (Storage)', count: assetService.getAssets('Unassigned').length },
+            { id: 'Warnings', label: '⚠️ Daily Warnings', count: assetService.getAssets('Warnings').length },
             { id: 'Under Repair', label: 'Under Repair', count: assetService.getAssets('Under Repair').length },
           ].map(tab => (
             <button
@@ -146,7 +147,7 @@ export default function AssetsView({ onSelectUser }) {
                   >
                     <td>
                       <div>
-                        <span className="font-semibold text-primary">{a.Brand} {a.Model}</span>
+                        <span className="font-semibold text-primary">{assetService.getCleanHardwareName(a)}</span>
                         {a.SerialNumber && (
                           <div className="text-muted text-xs font-mono">S/N: {a.SerialNumber}</div>
                         )}
@@ -173,13 +174,20 @@ export default function AssetsView({ onSelectUser }) {
                       <span className="location-pill">{a.LocationName}</span>
                     </td>
                     <td>
-                      <span className={`badge ${
-                        a.Status === 'Assigned' ? 'badge-success' :
-                        a.Status === 'Under Repair' ? 'badge-danger' :
-                        a.Status === 'Available' || a.Status === 'In Storage' ? 'badge-warning' : 'badge-neutral'
-                      }`}>
-                        {a.Status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`badge ${
+                          a.Status === 'Assigned' ? 'badge-success' :
+                          a.Status === 'Under Repair' ? 'badge-danger' :
+                          a.Status === 'Available' || a.Status === 'In Storage' ? 'badge-warning' : 'badge-neutral'
+                        }`}>
+                          {a.Status}
+                        </span>
+                        {(a.HealthStatus === 'Warning' || a.WarningNote || (a.Notes && (a.Notes.toLowerCase().includes('warning') || a.Notes.toLowerCase().includes('low performance') || a.Notes.toLowerCase().includes('beep') || a.Notes.toLowerCase().includes('error')))) && (
+                          <span className="badge badge-warning flex items-center gap-1 font-semibold" title={a.WarningNote || a.Notes}>
+                            <AlertCircle size={10} /> Needs Daily Check
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="text-right" onClick={e => e.stopPropagation()}>
                       <div className="table-actions">

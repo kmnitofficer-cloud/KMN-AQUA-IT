@@ -179,11 +179,15 @@ export default function ExpenseModal({ isOpen, onClose, onSaved }) {
                   value={targetAssetId}
                   onChange={e => setTargetAssetId(e.target.value)}
                 >
-                  <option value="">-- Choose Asset --</option>
-                  {assets.map(a => (
-                    <option key={a.AssetID} value={a.AssetID}>
-                      {a.Brand} {a.Model} ({a.VerifiedNo}) - {a.AssignedUserName}
-                    </option>
+                  <option value="">-- Choose Hardware Asset --</option>
+                  {assetService.groupAssetsByUser(assets).map(group => (
+                    <optgroup key={group.groupKey} label={group.groupLabel}>
+                      {group.items.map(a => (
+                        <option key={a.AssetID} value={a.AssetID}>
+                          {assetService.formatAssetLabel(a)}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

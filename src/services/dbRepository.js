@@ -85,6 +85,50 @@ class DBRepository {
     TABLE_NAMES.forEach(table => {
       normalized[table] = Array.isArray(db[table]) ? db[table] : [];
     });
+
+    // Automatically cleanse any legacy 'NONE' brand/model records
+    if (Array.isArray(normalized.Assets)) {
+      normalized.Assets = normalized.Assets.map(a => {
+        let brand = String(a.Brand || '').trim();
+        let model = String(a.Model || '').trim();
+        const type = String(a.AssetType || 'Device').trim();
+
+        if (brand.toUpperCase() === 'NONE' || !brand) {
+          if (type === 'UPS') brand = 'Office Standard';
+          else if (type === 'Mouse' || type === 'Keyboard') brand = 'Standard';
+          else brand = 'Generic';
+        }
+
+        if (model.toUpperCase() === 'NONE' || !model || model.toUpperCase() === brand.toUpperCase()) {
+          if (type === 'UPS') {
+            model = a.VerifiedNo ? `Office UPS Backup Unit (${a.VerifiedNo})` : 'Office UPS Backup Unit';
+          } else if (type === 'Mouse') {
+            model = 'Optical USB Mouse';
+          } else if (type === 'Keyboard') {
+            model = 'Standard Keyboard';
+          } else if (type === 'Monitor') {
+            model = `${brand !== 'Generic' && brand !== 'Standard' ? brand + ' ' : ''}Display Monitor`;
+          } else if (type === 'Desktop' || type === 'CPU') {
+            model = `${brand !== 'Generic' && brand !== 'Standard' ? brand + ' ' : ''}Desktop PC Workstation`;
+          } else if (type === 'Laptop') {
+            model = `${brand !== 'Generic' && brand !== 'Standard' ? brand + ' ' : ''}Business Laptop`;
+          } else {
+            model = `${brand !== 'Generic' ? brand + ' ' : ''}${type}`;
+          }
+        }
+
+        if (brand && model.toLowerCase().startsWith(brand.toLowerCase() + ' ')) {
+          model = model.slice(brand.length + 1).trim();
+        }
+
+        return {
+          ...a,
+          Brand: brand,
+          Model: model
+        };
+      });
+    }
+
     return normalized;
   }
 

@@ -5,14 +5,17 @@ export const assetService = {
     const assets = dbRepository.getTable('Assets');
     const users = dbRepository.getTable('Users');
     const locations = dbRepository.getTable('Locations');
+    const departments = dbRepository.getTable('Departments');
 
     // Enrich with User & Location info
     const enriched = assets.map(a => {
       const user = users.find(u => u.UserID === a.CurrentUserID);
       const loc = locations.find(l => l.LocationID === a.CurrentLocationID);
+      const dept = user ? departments.find(d => d.DepartmentID === user.DepartmentID) : null;
       return {
         ...a,
         AssignedUserName: user ? user.Name : 'Unassigned',
+        AssignedUserDepartment: dept ? dept.DepartmentName : '',
         LocationName: loc ? loc.OfficeName : 'General Storage'
       };
     });
@@ -25,6 +28,7 @@ export const assetService = {
     if (filter === 'Accessories') return enriched.filter(a => ['Keyboard', 'Mouse', 'UPS', 'Accessory', 'Other'].includes(a.AssetType));
     if (filter === 'Unassigned') return enriched.filter(a => !a.CurrentUserID || a.Status === 'Available' || a.Status === 'In Storage');
     if (filter === 'Under Repair') return enriched.filter(a => a.Status === 'Under Repair');
+    if (filter === 'Warnings') return enriched.filter(a => a.HealthStatus === 'Warning' || (a.Status && a.Status.includes('Warning')) || (a.Notes && (a.Notes.toLowerCase().includes('warning') || a.Notes.toLowerCase().includes('low performance') || a.Notes.toLowerCase().includes('error'))));
     return enriched;
   },
 
@@ -205,5 +209,137 @@ export const assetService = {
       return a;
     });
     await dbRepository.updateTable('Assets', updated);
+  },
+
+  async setAssetHealth(assetId, healthStatus = 'Warning', warningNote = '') {
+    const assets = dbRepository.getTable('Assets');
+    const today = new Date().toISOString().split('T')[0];
+    const updated = assets.map(a => {
+      if (a.AssetID === assetId) {
+        return {
+          ...a,
+          HealthStatus: healthStatus,
+          WarningNote: warningNote,
+          LastCheckedDate: today,
+          Notes: warningNote ? `${a.Notes || ''} [Warning logged ${today}: ${warningNote}]`.trim() : a.Notes
+        };
+      }
+      return a;
+    });
+    await dbRepository.updateTable('Assets', updated);
+  },
+
+  async clearAssetWarning(assetId) {
+    const assets = dbRepository.getTable('Assets');
+    const today = new Date().toISOString().split('T')[0];
+    const updated = assets.map(a => {
+      if (a.AssetID === assetId) {
+        return {
+          ...a,
+          HealthStatus: 'Healthy',
+          WarningNote: '',
+          LastCheckedDate: today,
+          Notes: `${a.Notes || ''} [Warning cleared on ${today}]`.trim()
+        };
+      }
+      return a;
+    });
+    await dbRepository.updateTable('Assets', updated);
+  },
+
+  getCleanHardwareName(a) {
+    if (!a) return '';
+    let brand = String(a.Brand || '').trim();
+    let model = String(a.Model || '').trim();
+    const type = String(a.AssetType || 'Device').trim();
+
+    if (brand.toUpperCase() === 'NONE' || brand.toLowerCase() === 'generic' || brand.toLowerCase() === 'office standard') {
+      brand = '';
+    }
+    if (model.toUpperCase() === 'NONE' || !model) {
+      if (type === 'UPS') model = 'Office UPS Backup Unit';
+      else if (type === 'Mouse') model = 'Optical USB Mouse';
+      else if (type === 'Keyboard') model = 'Standard Keyboard';
+      else if (type === 'Monitor') model = 'Display Monitor';
+      else if (type === 'Desktop' || type === 'CPU') model = 'Desktop PC Workstation';
+      else if (type === 'Laptop') model = 'Business Laptop';
+      else model = type;
+    }
+    if (brand && model.toLowerCase().startsWith(brand.toLowerCase() + ' ')) {
+      model = model.slice(brand.length + 1).trim();
+    }
+    return [brand, model].filter(Boolean).join(' ') || type;
+  },
+
+  formatAssetLabel(a) {
+    if (!a) return '';
+    const user = a.AssignedUserName && a.AssignedUserName !== 'Unassigned'
+      ? a.AssignedUserName
+      : 'Unassigned (Storage)';
+    const type = String(a.AssetType || 'Device').toUpperCase();
+    const hardware = this.getCleanHardwareName(a);
+    const tag = a.VerifiedNo && !a.VerifiedNo.includes('UNTAGGED') && a.VerifiedNo.trim() !== ''
+      ? `(Tag: ${a.VerifiedNo})`
+      : '(No Tag)';
+    const status = a.Status ? `[${a.Status}]` : '';
+
+    return `${user} ➔ [${type}] ${hardware} ${tag} ${status}`.replace(/\s+/g, ' ').trim();
+  },
+
+  groupAssetsByUser(assetsList) {
+    const groupsMap = new Map();
+
+    const typeOrder = {
+      'DESKTOP': 1,
+      'CPU': 1,
+      'ALL-IN-ONE': 1,
+      'LAPTOP': 2,
+      'MONITOR': 3,
+      'UPS': 4,
+      'PRINTER': 5,
+      'KEYBOARD': 6,
+      'MOUSE': 7,
+      'ACCESSORY': 8,
+      'LAB EQUIPMENT': 9,
+      'OTHER': 10
+    };
+
+    assetsList.forEach(a => {
+      const isAssigned = a.AssignedUserName && a.AssignedUserName !== 'Unassigned';
+      const groupKey = isAssigned ? a.AssignedUserName : 'Unassigned / Office Storage';
+      const dept = a.AssignedUserDepartment ? ` • ${a.AssignedUserDepartment}` : '';
+      const groupLabel = isAssigned ? `👤 ${groupKey}${dept}` : `📦 Unassigned / Office Storage`;
+
+      if (!groupsMap.has(groupKey)) {
+        groupsMap.set(groupKey, {
+          groupKey,
+          groupLabel,
+          isAssigned,
+          items: []
+        });
+      }
+      groupsMap.get(groupKey).items.push(a);
+    });
+
+    const groups = Array.from(groupsMap.values());
+
+    // Sort groups: Assigned users alphabetically, Unassigned at the bottom
+    groups.sort((ga, gb) => {
+      if (ga.isAssigned && !gb.isAssigned) return -1;
+      if (!ga.isAssigned && gb.isAssigned) return 1;
+      return ga.groupKey.localeCompare(gb.groupKey);
+    });
+
+    // Within each group, sort items by AssetType priority, then by Tag
+    groups.forEach(g => {
+      g.items.sort((ia, ib) => {
+        const orderA = typeOrder[(ia.AssetType || '').toUpperCase()] || 50;
+        const orderB = typeOrder[(ib.AssetType || '').toUpperCase()] || 50;
+        if (orderA !== orderB) return orderA - orderB;
+        return (ia.VerifiedNo || '').localeCompare(ib.VerifiedNo || '');
+      });
+    });
+
+    return groups;
   }
 };

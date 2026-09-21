@@ -46,6 +46,23 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
   const alerts = useMemo(() => {
     const list = [];
 
+    // 0. Devices under daily warning / observation (Still working, but requires checking)
+    const warningAssets = assets.filter(a => 
+      a.HealthStatus === 'Warning' || 
+      (a.WarningNote && a.WarningNote.length > 0) ||
+      (a.Notes && (a.Notes.toLowerCase().includes('warning') || a.Notes.toLowerCase().includes('low performance') || a.Notes.toLowerCase().includes('beep') || a.Notes.toLowerCase().includes('error')))
+    );
+    if (warningAssets.length > 0) {
+      list.push({
+        id: 'alert-daily-warnings',
+        type: 'warning',
+        icon: AlertTriangle,
+        title: `⚠️ ${warningAssets.length} Machine(s) Under Daily Warning & Observation`,
+        description: warningAssets.map(a => `${a.Brand} ${a.Model} (${a.AssignedUserName || 'Storage'}): ${a.WarningNote || a.Notes}`).slice(0, 3).join(' • ') + (warningAssets.length > 3 ? '...' : ''),
+        action: () => onNavigate('assets')
+      });
+    }
+
     // 1. Assets under repair
     const underRepairList = assets.filter(a => a.Status === 'Under Repair');
     if (underRepairList.length > 0) {

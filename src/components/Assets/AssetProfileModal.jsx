@@ -111,6 +111,42 @@ export default function AssetProfileModal({ assetId, isOpen, onClose, onReassign
           </div>
         )}
 
+        {/* Active Warning & Observation Banner */}
+        {(asset.HealthStatus === 'Warning' || asset.WarningNote || (asset.Notes && (asset.Notes.toLowerCase().includes('warning') || asset.Notes.toLowerCase().includes('low performance') || asset.Notes.toLowerCase().includes('beep') || asset.Notes.toLowerCase().includes('error')))) && (
+          <div className="asset-warning-active-banner mt-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="warning-pulse-icon">
+                  <AlertTriangle size={22} className="text-amber" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-amber text-sm">⚠️ ACTIVE WARNING / UNDER DAILY MONITORING</span>
+                    <span className="badge badge-warning">Still In Use</span>
+                  </div>
+                  <p className="text-sm font-semibold mt-1 text-primary">
+                    {asset.WarningNote || asset.Notes}
+                  </p>
+                  <span className="text-xs text-muted block mt-0.5">
+                    Device is operational at station, but requires daily physical checks by IT staff.
+                  </span>
+                </div>
+              </div>
+              <button
+                className="btn btn-outline btn-xs shrink-0"
+                title="Mark this machine as fully resolved and healthy"
+                onClick={async () => {
+                  if (confirm('Mark this device as resolved and clear the daily check warning?')) {
+                    await assetService.clearAssetWarning(asset.AssetID);
+                  }
+                }}
+              >
+                <ShieldCheck size={12} className="text-emerald" /> Clear Warning (Mark Healthy)
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="profile-nav-tabs mt-4">
           <button

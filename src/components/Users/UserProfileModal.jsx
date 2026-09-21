@@ -125,7 +125,7 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                       <span className="asset-card-type">{a.AssetType}</span>
                       <span className="asset-card-tag">{a.VerifiedNo}</span>
                     </div>
-                    <span className="asset-card-model">{a.Brand} {a.Model}</span>
+                    <span className="asset-card-model">{assetService.getCleanHardwareName(a)}</span>
                     <span className="asset-card-id">{a.AssetID}</span>
                     <div className="asset-card-footer">
                       <span>Status: <strong>{a.Status}</strong></span>

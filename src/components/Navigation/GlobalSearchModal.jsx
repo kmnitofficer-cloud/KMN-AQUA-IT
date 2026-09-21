@@ -168,7 +168,10 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
                       onClick={() => { onSelectEntity('asset', a.AssetID); onClose(); }}
                     >
                       <div className="search-item-info">
-                        <span className="search-item-primary">{a.Brand} {a.Model}</span>
+                        <span className="search-item-primary">
+                          <span className="text-cyan font-bold mr-1.5">[{a.AssetType}]</span>
+                          {assetService.getCleanHardwareName(a)}
+                        </span>
                         <span className="search-item-secondary">
                           Tag: <strong className="text-cyan">{a.VerifiedNo}</strong> • {a.AssetID} • Assigned: {a.AssignedUserName} • {a.Status}
                         </span>

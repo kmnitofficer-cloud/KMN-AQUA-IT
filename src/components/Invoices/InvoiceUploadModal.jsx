@@ -150,11 +150,15 @@ export default function InvoiceUploadModal({ isOpen, onClose, onSaved }) {
                 value={assetId}
                 onChange={e => setAssetId(e.target.value)}
               >
-                <option value="">-- None / General --</option>
-                {assets.map(a => (
-                  <option key={a.AssetID} value={a.AssetID}>
-                    {a.Brand} {a.Model} ({a.VerifiedNo})
-                  </option>
+                <option value="">-- None / General Office --</option>
+                {assetService.groupAssetsByUser(assets).map(group => (
+                  <optgroup key={group.groupKey} label={group.groupLabel}>
+                    {group.items.map(a => (
+                      <option key={a.AssetID} value={a.AssetID}>
+                        {assetService.formatAssetLabel(a)}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
