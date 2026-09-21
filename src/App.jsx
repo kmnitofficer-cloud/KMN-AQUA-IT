@@ -1,514 +1,242 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import DashboardHome from './components/DashboardHome';
-import WorkstationsView from './components/WorkstationsView';
-import StatsCards from './components/StatsCards';
-import ExcelGrid from './components/ExcelGrid';
-import MachineModal from './components/MachineModal';
-import MachineDetailDrawer from './components/MachineDetailDrawer';
-import ServiceLogsModal from './components/ServiceLogsModal';
-import SupabaseSettingsModal from './components/SupabaseSettingsModal';
-import ExcelImportModal from './components/ExcelImportModal';
-import AdminPinModal from './components/AdminPinModal';
-import { Database, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import './App.css';
+import Navbar from './components/Navigation/Navbar';
+import Sidebar from './components/Navigation/Sidebar';
+import GlobalSearchModal from './components/Navigation/GlobalSearchModal';
 
-import { initialMachines, initialServices } from './data/seedData';
-import { 
-  getSupabaseCredentials, 
-  fetchMachinesCloud, 
-  fetchServicesCloud, 
-  upsertMachineCloud, 
-  deleteMachineCloud, 
-  upsertServiceCloud, 
-  deleteServiceCloud 
-} from './lib/supabaseClient';
+// Views
+import DashboardOverview from './components/Dashboard/DashboardOverview';
+import UsersView from './components/Users/UsersView';
+import AssetsView from './components/Assets/AssetsView';
+import AssignmentsView from './components/Assignments/AssignmentsView';
+import PrintersView from './components/Printers/PrintersView';
+import RepairsView from './components/Repairs/RepairsView';
+import PartsView from './components/Repairs/PartsView';
+import ExpensesView from './components/Expenses/ExpensesView';
+import InvoicesView from './components/Invoices/InvoicesView';
+import ReportsView from './components/Reports/ReportsView';
+import LocationsDepartmentsView from './components/Locations/LocationsDepartmentsView';
+import DatabaseSyncModal from './components/Database/DatabaseSyncModal';
 
-import { 
-  HardDrive, 
-  Wrench, 
-  CheckCircle2, 
-  AlertCircle, 
-  Info 
-} from 'lucide-react';
+// Modals for direct entity navigation
+import AssetProfileModal from './components/Assets/AssetProfileModal';
+import UserProfileModal from './components/Users/UserProfileModal';
+import PrinterProfileModal from './components/Printers/PrinterProfileModal';
 
-const STORAGE_MACHINES = 'kmn_machines_data';
-const STORAGE_SERVICES = 'kmn_services_data';
+import { dbRepository } from './services/dbRepository';
+
 const STORAGE_THEME = 'kmn_theme';
 const STORAGE_ROLE = 'kmn_user_role';
 
 export default function App() {
-  // Theme state
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem(STORAGE_THEME) || 'dark';
-  });
-
-  // Role: 'viewer' or 'admin'
-  const [role, setRole] = useState(() => {
-    return localStorage.getItem(STORAGE_ROLE) || 'viewer';
-  });
-
-  // Active Main Tab: 'dashboard', 'workstations', 'machines', or 'services'
+  const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_THEME) || 'dark');
+  const [role, setRole] = useState(() => localStorage.getItem(STORAGE_ROLE) || 'admin');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [dbVersion, setDbVersion] = useState(0);
 
-  // Filters
-  const [officeFilter, setOfficeFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
-
-  // Data state
-  const [machines, setMachines] = useState(() => {
-    try {
-      const cached = localStorage.getItem(STORAGE_MACHINES);
-      if (cached) return JSON.parse(cached);
-    } catch (e) {
-      console.error('Failed to parse cached machines:', e);
-    }
-    return initialMachines;
-  });
-
-  const [services, setServices] = useState(() => {
-    try {
-      const cached = localStorage.getItem(STORAGE_SERVICES);
-      if (cached) return JSON.parse(cached);
-    } catch (e) {
-      console.error('Failed to parse cached services:', e);
-    }
-    return initialServices;
-  });
-
-  // Cloud status
-  const [isCloudConnected, setIsCloudConnected] = useState(false);
-
-  // Modals state
-  const [isMachineModalOpen, setIsMachineModalOpen] = useState(false);
-  const [editingMachine, setEditingMachine] = useState(null);
-
-  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
-  const [viewingMachine, setViewingMachine] = useState(null);
-
-  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [servicePrefillMachine, setServicePrefillMachine] = useState(null);
-
-  const [isCloudSettingsOpen, setIsCloudSettingsOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isAdminPinOpen, setIsAdminPinOpen] = useState(false);
+  // Global Navigation & Modal states
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isDbHubOpen, setIsDbHubOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Toast notifications
-  const [toasts, setToasts] = useState([]);
+  // Direct entity inspect modals (from search / dashboard)
+  const [viewingAssetId, setViewingAssetId] = useState(null);
+  const [isAssetProfileOpen, setIsAssetProfileOpen] = useState(false);
 
-  const showToast = useCallback((message, type = 'info') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3500);
+  const [viewingUserId, setViewingUserId] = useState(null);
+  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
+
+  const [viewingPrinterId, setViewingPrinterId] = useState(null);
+  const [isPrinterProfileOpen, setIsPrinterProfileOpen] = useState(false);
+
+  // 1. Initialize relational database repository and subscribe to updates
+  useEffect(() => {
+    dbRepository.init().then(() => {
+      setDbVersion(v => v + 1);
+    });
+
+    const unsubscribe = dbRepository.subscribe(() => {
+      setDbVersion(v => v + 1);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // Sync theme attribute to document
+  // 2. Set theme data attribute on body
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(STORAGE_THEME, theme);
   }, [theme]);
 
-  // Sync role to storage
+  // 3. Set role
   useEffect(() => {
     localStorage.setItem(STORAGE_ROLE, role);
   }, [role]);
 
-  // Sync machines to localStorage
+  // 4. Global hotkey for Search (Ctrl+K or Cmd+K)
   useEffect(() => {
-    localStorage.setItem(STORAGE_MACHINES, JSON.stringify(machines));
-  }, [machines]);
-
-  // Sync services to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_SERVICES, JSON.stringify(services));
-  }, [services]);
-
-  // Check Supabase Cloud connection on mount
-  const checkCloudData = useCallback(async () => {
-    const { url, key } = getSupabaseCredentials();
-    if (!url || !key) {
-      setIsCloudConnected(false);
-      return;
-    }
-
-    try {
-      const cloudMachines = await fetchMachinesCloud();
-      if (cloudMachines && cloudMachines.length > 0) {
-        setMachines(cloudMachines);
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
       }
-      const cloudServices = await fetchServicesCloud();
-      if (cloudServices && cloudServices.length > 0) {
-        setServices(cloudServices);
-      }
-      setIsCloudConnected(true);
-    } catch (err) {
-      console.warn('Supabase fetch failed, falling back to local data:', err.message);
-      setIsCloudConnected(false);
-    }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    checkCloudData();
-  }, [checkCloudData]);
-
-  // Theme toggle
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Switch role directly or prompt
-  const handleSwitchRole = (newRole) => {
-    if (newRole === 'admin' && role !== 'admin') {
-      setIsAdminPinOpen(true);
-    } else {
-      setRole(newRole);
-      showToast(`Switched to ${newRole === 'viewer' ? 'Viewer Mode (Read-only)' : 'Admin Mode'}`, 'info');
-    }
+  const toggleRole = () => {
+    setRole(prev => (prev === 'admin' ? 'viewer' : 'admin'));
   };
 
-  // Machine Actions: Save (Add or Update)
-  const handleSaveMachine = async (machineData) => {
-    let updated;
-    const isEdit = Boolean(machineData.id);
-
-    if (isEdit) {
-      updated = machines.map(m => m.id === machineData.id ? machineData : m);
-    } else {
-      const newMachine = {
-        id: `m-${Date.now()}`,
-        ...machineData,
-        created_at: new Date().toISOString()
-      };
-      updated = [newMachine, ...machines];
-    }
-    setMachines(updated);
-    showToast(isEdit ? 'Machine updated successfully' : 'New computer added to inventory', 'success');
-
-    // Attempt cloud upsert if connected
-    if (isCloudConnected) {
-      try {
-        await upsertMachineCloud(machineData);
-      } catch (err) {
-        console.error('Failed to sync machine to Supabase:', err);
-        showToast('Saved locally, but Supabase sync failed: ' + err.message, 'error');
-      }
-    }
-  };
-
-  // Machine Actions: Delete
-  const handleDeleteMachine = async (id) => {
-    setMachines(prev => prev.filter(m => m.id !== id));
-    showToast('Machine record removed', 'info');
-
-    if (isCloudConnected) {
-      try {
-        await deleteMachineCloud(id);
-      } catch (err) {
-        console.error('Failed to delete machine from Supabase:', err);
-      }
-    }
-  };
-
-  // Machine Actions: Open Add
-  const handleOpenAddMachine = () => {
-    setEditingMachine(null);
-    setIsMachineModalOpen(true);
-  };
-
-  // Machine Actions: Open Edit
-  const handleOpenEditMachine = (machine) => {
-    setEditingMachine(machine);
-    setIsMachineModalOpen(true);
-  };
-
-  // Machine Actions: View Details
-  const handleViewMachine = (machine) => {
-    setViewingMachine(machine);
-    setIsDetailDrawerOpen(true);
-  };
-
-  // Add Service record for a specific machine
-  const handleAddServiceForMachine = (machine) => {
-    setServicePrefillMachine(machine);
-    setIsServiceModalOpen(true);
-  };
-
-  // Service Records: Save
-  const handleSaveService = async (serviceData) => {
-    const isEdit = services.some(s => s.id === serviceData.id);
-    let updated;
-    if (isEdit) {
-      updated = services.map(s => s.id === serviceData.id ? serviceData : s);
-    } else {
-      updated = [serviceData, ...services];
-    }
-    setServices(updated);
-
-    if (isCloudConnected) {
-      try {
-        await upsertServiceCloud(serviceData);
-      } catch (err) {
-        console.error('Failed to sync service to Supabase:', err);
-      }
-    }
-  };
-
-  // Service Records: Delete
-  const handleDeleteService = async (id) => {
-    setServices(prev => prev.filter(s => s.id !== id));
-    showToast('Service record deleted', 'info');
-
-    if (isCloudConnected) {
-      try {
-        await deleteServiceCloud(id);
-      } catch (err) {
-        console.error('Failed to delete service from Supabase:', err);
-      }
-    }
-  };
-
-  // Import Excel records
-  const handleImportSuccess = (importedList, mode) => {
-    if (mode === 'replace') {
-      setMachines(importedList);
-    } else {
-      setMachines(prev => [...importedList, ...prev]);
+  // Entity selection handler from Global Search
+  const handleSelectEntity = (type, id) => {
+    if (type === 'asset') {
+      setViewingAssetId(id);
+      setIsAssetProfileOpen(true);
+    } else if (type === 'user') {
+      setViewingUserId(id);
+      setIsUserProfileOpen(true);
+    } else if (type === 'printer') {
+      setViewingPrinterId(id);
+      setIsPrinterProfileOpen(true);
+    } else if (type === 'repair') {
+      setActiveTab('repairs');
+    } else if (type === 'invoice') {
+      setActiveTab('invoices');
     }
   };
 
   return (
-    <div className="app-shell">
-      {/* Modern HireWise Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={(tab) => {
-          if (tab === 'services') {
-            setServicePrefillMachine(null);
-            setIsServiceModalOpen(true);
-          } else {
-            setActiveTab(tab);
-          }
-        }}
-        role={role}
-        onSwitchRole={handleSwitchRole}
+    <div className="app-container" data-theme={theme}>
+      {/* Top Navigation */}
+      <Navbar
         theme={theme}
         onToggleTheme={toggleTheme}
-        isCloudConnected={isCloudConnected}
-        onOpenCloudSettings={() => setIsCloudSettingsOpen(true)}
-        onOpenAdminPin={() => setIsAdminPinOpen(true)}
-        machinesCount={machines.length}
-        servicesCount={services.length}
-        isMobileOpen={isMobileSidebarOpen}
-        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        role={role}
+        onToggleRole={toggleRole}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenDatabaseHub={() => setIsDbHubOpen(true)}
+        onToggleMobileMenu={() => setIsMobileSidebarOpen(prev => !prev)}
       />
 
-      {/* Main Content Area */}
-      <div className="main-wrapper">
-        {/* Top Header Bar */}
-        <header className="top-header-bar">
-          <div className="header-left-group">
-            <button
-              type="button"
-              className="mobile-menu-toggle-btn"
-              onClick={() => setIsMobileSidebarOpen(true)}
-              aria-label="Open navigation menu"
-              title="Open Navigation Menu"
-            >
-              <Menu size={22} />
-            </button>
-            <div className="header-title-block">
-              <h1 className="header-greeting-title">IT Asset Operations Hub</h1>
-              <span className="header-date-badge">Saturday, September 19, 2026 &bull; KMN Aqua Services (Pvt) Ltd</span>
-            </div>
-          </div>
+      {/* Main Workspace Layout */}
+      <div className="app-main-layout">
+        {/* Left Navigation Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          isOpen={isMobileSidebarOpen}
+          onClose={() => setIsMobileSidebarOpen(false)}
+        />
 
-          <div className="header-actions-right">
-            {/* Supabase Status Pill */}
-            <button 
-              type="button" 
-              className="cloud-status-pill"
-              onClick={() => setIsCloudSettingsOpen(true)}
-              title="Configure Supabase Database"
-            >
-              <span className={`status-dot ${isCloudConnected ? 'connected' : 'disconnected'}`}></span>
-              <Database size={14} />
-              <span>{isCloudConnected ? 'Cloud Synced' : 'Local Mode'}</span>
-            </button>
-
-            {/* Quick Service / Bill Log button */}
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                setServicePrefillMachine(null);
-                setIsServiceModalOpen(true);
-              }}
-              title="Log new maintenance bill / update"
-            >
-              <Wrench size={14} />
-              <span>Service Bill</span>
-            </button>
-
-            {role === 'admin' ? (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleOpenAddMachine}
-                title="Add new computer / equipment"
-              >
-                <span>+ Add Asset</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setIsAdminPinOpen(true)}
-                title="Unlock Admin Privileges"
-              >
-                <span>Unlock Admin</span>
-              </button>
-            )}
-          </div>
-        </header>
-
-        {/* View Switching */}
-        {activeTab === 'dashboard' && (
-          <DashboardHome
-            machines={machines}
-            services={services}
-            onSelectTab={(tab) => {
-              if (tab === 'services') {
-                setServicePrefillMachine(null);
-                setIsServiceModalOpen(true);
-              } else {
-                setActiveTab(tab);
-              }
-            }}
-            onOpenServiceModal={(serviceOrData) => {
-              setServicePrefillMachine(serviceOrData);
-              setIsServiceModalOpen(true);
-            }}
-            onViewMachine={handleViewMachine}
-            onEditMachine={handleOpenEditMachine}
-            onOpenAdminPin={() => setIsAdminPinOpen(true)}
-            role={role}
-          />
-        )}
-
-        {activeTab === 'workstations' && (
-          <WorkstationsView
-            machines={machines}
-            services={services}
-            onOpenServiceModal={(prefill) => {
-              setServicePrefillMachine(prefill);
-              setIsServiceModalOpen(true);
-            }}
-            onViewMachine={handleViewMachine}
-            onAddMachine={handleOpenAddMachine}
-            role={role}
-          />
-        )}
-
-        {activeTab === 'machines' && (
-          <div className="machines-view-wrapper">
-            <div style={{ marginBottom: '1.25rem' }}>
-              <StatsCards
-                machines={machines}
-                services={services}
-                onFilterByStatus={(status) => setStatusFilter(status)}
-                onFilterByOffice={(office) => setOfficeFilter(office)}
-              />
-            </div>
-            <ExcelGrid
-              machines={machines}
-              role={role}
-              onAddMachine={handleOpenAddMachine}
-              onEditMachine={handleOpenEditMachine}
-              onDeleteMachine={handleDeleteMachine}
-              onViewMachine={handleViewMachine}
-              onAddServiceForMachine={handleAddServiceForMachine}
-              onOpenImportModal={() => setIsImportModalOpen(true)}
-              officeFilter={officeFilter}
-              setOfficeFilter={setOfficeFilter}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              showToast={showToast}
+        {/* Content View Area */}
+        <main className="app-content-area" key={dbVersion}>
+          {activeTab === 'dashboard' && (
+            <DashboardOverview
+              onNavigate={setActiveTab}
+              onOpenPrinter={(id) => { setViewingPrinterId(id); setIsPrinterProfileOpen(true); }}
             />
-          </div>
-        )}
+          )}
+
+          {activeTab === 'users' && (
+            <UsersView
+              onSelectAsset={(id) => { setViewingAssetId(id); setIsAssetProfileOpen(true); }}
+            />
+          )}
+
+          {activeTab === 'assets' && (
+            <AssetsView
+              onSelectUser={(id) => { setViewingUserId(id); setIsUserProfileOpen(true); }}
+            />
+          )}
+
+          {activeTab === 'assignments' && (
+            <AssignmentsView />
+          )}
+
+          {activeTab === 'printers' && (
+            <PrintersView />
+          )}
+
+          {activeTab === 'repairs' && (
+            <RepairsView
+              onOpenAsset={(id) => { setViewingAssetId(id); setIsAssetProfileOpen(true); }}
+            />
+          )}
+
+          {activeTab === 'parts' && (
+            <PartsView />
+          )}
+
+          {activeTab === 'expenses' && (
+            <ExpensesView />
+          )}
+
+          {activeTab === 'invoices' && (
+            <InvoicesView />
+          )}
+
+          {activeTab === 'reports' && (
+            <ReportsView />
+          )}
+
+          {activeTab === 'locations' && (
+            <LocationsDepartmentsView />
+          )}
+
+          {activeTab === 'database' && (
+            <div className="p-6">
+              <button className="btn btn-primary" onClick={() => setIsDbHubOpen(true)}>
+                Open Excel Database Hub
+              </button>
+            </div>
+          )}
+        </main>
       </div>
 
-      {/* Modals & Drawers */}
-      <MachineModal
-        isOpen={isMachineModalOpen}
-        onClose={() => setIsMachineModalOpen(false)}
-        onSave={handleSaveMachine}
-        initialData={editingMachine}
-        existingMachines={machines}
+      {/* Global Search Modal */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onSelectEntity={handleSelectEntity}
       />
 
-      <MachineDetailDrawer
-        isOpen={isDetailDrawerOpen}
-        onClose={() => setIsDetailDrawerOpen(false)}
-        machine={viewingMachine}
-        services={services}
-        role={role}
-        onEditMachine={handleOpenEditMachine}
-        onAddService={handleAddServiceForMachine}
+      {/* Database & Sync Hub Modal */}
+      <DatabaseSyncModal
+        isOpen={isDbHubOpen}
+        onClose={() => setIsDbHubOpen(false)}
       />
 
-      <ServiceLogsModal
-        isOpen={isServiceModalOpen}
-        onClose={() => {
-          setIsServiceModalOpen(false);
-          setServicePrefillMachine(null);
+      {/* Global Entity Inspection Modals */}
+      <AssetProfileModal
+        assetId={viewingAssetId}
+        isOpen={isAssetProfileOpen}
+        onClose={() => setIsAssetProfileOpen(false)}
+        onReassign={() => { setIsAssetProfileOpen(false); setActiveTab('assignments'); }}
+        onLogRepair={() => { setIsAssetProfileOpen(false); setActiveTab('repairs'); }}
+      />
+
+      <UserProfileModal
+        userId={viewingUserId}
+        isOpen={isUserProfileOpen}
+        onClose={() => setIsUserProfileOpen(false)}
+        onSelectAsset={(id) => {
+          setIsUserProfileOpen(false);
+          setViewingAssetId(id);
+          setIsAssetProfileOpen(true);
         }}
-        services={services}
-        machines={machines}
-        role={role}
-        onSaveService={handleSaveService}
-        onDeleteService={handleDeleteService}
-        prefillMachine={servicePrefillMachine}
-        showToast={showToast}
       />
 
-      <SupabaseSettingsModal
-        isOpen={isCloudSettingsOpen}
-        onClose={() => setIsCloudSettingsOpen(false)}
-        machines={machines}
-        services={services}
-        onSyncComplete={checkCloudData}
-        showToast={showToast}
+      <PrinterProfileModal
+        printerId={viewingPrinterId}
+        isOpen={isPrinterProfileOpen}
+        onClose={() => setIsPrinterProfileOpen(false)}
       />
-
-      <ExcelImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onImportSuccess={handleImportSuccess}
-        showToast={showToast}
-      />
-
-      <AdminPinModal
-        isOpen={isAdminPinOpen}
-        onClose={() => setIsAdminPinOpen(false)}
-        onUnlockSuccess={() => setRole('admin')}
-        showToast={showToast}
-      />
-
-      {/* Toast Notifications container */}
-      <div className="toast-container">
-        {toasts.map(toast => (
-          <div key={toast.id} className={`toast ${toast.type}`}>
-            {toast.type === 'success' && <CheckCircle2 size={16} color="var(--accent-emerald)" />}
-            {toast.type === 'error' && <AlertCircle size={16} color="var(--accent-rose)" />}
-            {toast.type === 'info' && <Info size={16} color="var(--brand-primary)" />}
-            <span>{toast.message}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
