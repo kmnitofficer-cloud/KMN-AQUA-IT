@@ -8,19 +8,42 @@ export const printerService = {
     const locations = dbRepository.getTable('Locations');
     const departments = dbRepository.getTable('Departments');
 
-    return printers.map(p => {
+    // Also find any asset of type Printer that might not yet be in the Printers table
+    const printerAssets = assets.filter(a => a.AssetType === 'Printer');
+    const existingAssetIds = new Set(printers.map(p => p.AssetID));
+
+    const extraPrinters = printerAssets
+      .filter(pa => !existingAssetIds.has(pa.AssetID))
+      .map((pa, idx) => ({
+        PrinterID: `PRN-AUTO-${pa.AssetID}`,
+        AssetID: pa.AssetID,
+        PrinterName: `${pa.Brand} ${pa.Model}`.trim(),
+        IPAddress: '192.168.1.xxx',
+        LocationID: pa.CurrentLocationID || 'LOC-0001',
+        DepartmentID: 'DEP-0004',
+        AssignedUserID: pa.CurrentUserID || 'SHARED_NETWORK',
+        Status: pa.Status || 'In Use (Shared Network)',
+        TonerCartridgeModel: 'Standard Toner',
+        Notes: pa.Notes || 'Shared Network Printer'
+      }));
+
+    const allPrinters = [...printers, ...extraPrinters];
+
+    return allPrinters.map(p => {
       const asset = assets.find(a => a.AssetID === p.AssetID) || {};
-      const user = users.find(u => u.UserID === p.AssignedUserID);
+      const isShared = p.AssignedUserID === 'SHARED_NETWORK' || !p.AssignedUserID || (p.Status && p.Status.includes('Shared'));
+      const user = isShared ? null : users.find(u => u.UserID === p.AssignedUserID);
       const loc = locations.find(l => l.LocationID === p.LocationID);
       const dept = departments.find(d => d.DepartmentID === p.DepartmentID);
 
       return {
         ...p,
+        IsSharedNetwork: isShared,
         VerifiedNo: asset.VerifiedNo || 'N/A',
         SerialNumber: asset.SerialNumber || '',
         PurchaseCost: asset.PurchaseCost || 0,
         PurchaseDate: asset.PurchaseDate || '',
-        AssignedUserName: user ? user.Name : 'Unassigned',
+        AssignedUserName: isShared ? '🌐 Shared Network (All Staff)' : (user ? user.Name : 'Unassigned'),
         LocationName: loc ? loc.OfficeName : 'General Office',
         DepartmentName: dept ? dept.DepartmentName : 'All Departments'
       };
@@ -159,10 +182,10 @@ export const printerService = {
     if (printerData.PrinterID) {
       updated = printers.map(p => p.PrinterID === printerData.PrinterID ? { ...p, ...printerData } : p);
     } else {
-      const nextNum = printers.length + 1;
+      const newPrinterId = dbRepository.getNextId('Printers', 'PRN-', 'PrinterID');
       const newPrinter = {
         ...printerData,
-        PrinterID: `PRN-${String(nextNum).padStart(4, '0')}`,
+        PrinterID: newPrinterId,
         Status: printerData.Status || 'In Use'
       };
       updated = [newPrinter, ...printers];

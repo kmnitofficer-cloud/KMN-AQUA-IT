@@ -175,9 +175,27 @@ class DBRepository {
     await this.persistToExcel();
   }
 
+  getNextId(tableName, prefix = 'AST-', idField = 'AssetID', padLength = 4) {
+    const records = this.getTable(tableName);
+    let maxNum = 0;
+    records.forEach(r => {
+      const val = String(r[idField] || '');
+      const match = val.match(/(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    return `${prefix}${String(maxNum + 1).padStart(padLength, '0')}`;
+  }
+
   async persistToExcel() {
-    if (this.isSaving) return;
+    if (this.isSaving) {
+      this.pendingSave = true;
+      return;
+    }
     this.isSaving = true;
+    this.pendingSave = false;
 
     try {
       const res = await fetch('/api/database/save', {
@@ -194,6 +212,10 @@ class DBRepository {
       console.warn('Could not auto-sync to Excel on disk:', err.message);
     } finally {
       this.isSaving = false;
+      if (this.pendingSave) {
+        this.pendingSave = false;
+        setTimeout(() => this.persistToExcel(), 50);
+      }
     }
   }
 

@@ -1,15 +1,58 @@
 import React, { useState } from 'react';
-import { Wrench, Plus, Search, Filter, ShieldCheck, Cpu, FileText } from 'lucide-react';
+import { 
+  Wrench, 
+  Plus, 
+  Search, 
+  Cpu, 
+  FileText
+} from 'lucide-react';
 import { repairService } from '../../services/repairService';
+import { invoiceService } from '../../services/invoiceService';
 import RepairModal from './RepairModal';
+import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
-export default function RepairsView({ onOpenAsset }) {
+export default function RepairsView({ onOpenAsset: _onOpenAsset }) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState(null);
 
+  // Invoice viewer modal state
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+
   const repairs = repairService.getRepairs();
+
+  const handleOpenInvoice = (invoiceId) => {
+    if (!invoiceId) return;
+    const allInvoices = invoiceService.getInvoices();
+    const inv = allInvoices.find(i => i.InvoiceID === invoiceId || i.InvoiceNumber === invoiceId);
+    if (inv) {
+      setSelectedInvoice(inv);
+      setIsInvoiceModalOpen(true);
+    } else {
+      setSelectedInvoice({
+        InvoiceID: invoiceId,
+        InvoiceNumber: invoiceId,
+        Supplier: 'KMN IT Solution',
+        Amount: 0,
+        InvoiceDate: '2026-09-05',
+        FileName: '05.09.2026..pdf',
+        FilePath: '/invoices/05.09.2026..pdf',
+        Description: `Invoice ${invoiceId}`
+      });
+      setIsInvoiceModalOpen(true);
+    }
+  };
+
+  // Helper to split parts cleanly
+  const parseParts = (text) => {
+    if (!text || text === 'N/A' || text === 'None') return [];
+    return text
+      .split(/;\s*|,\s*/)
+      .map(t => t.trim())
+      .filter(Boolean);
+  };
 
   const filteredRepairs = repairs.filter(r => {
     if (filter === 'Completed' && r.Status !== 'Completed') return false;
@@ -23,7 +66,8 @@ export default function RepairsView({ onOpenAsset }) {
       (r.Model && r.Model.toLowerCase().includes(q)) ||
       (r.VerifiedNo && r.VerifiedNo.toLowerCase().includes(q)) ||
       (r.RepairSupplier && r.RepairSupplier.toLowerCase().includes(q)) ||
-      (r.RepairID && r.RepairID.toLowerCase().includes(q))
+      (r.RepairID && r.RepairID.toLowerCase().includes(q)) ||
+      (r.PartsReplaced && r.PartsReplaced.toLowerCase().includes(q))
     );
   });
 
@@ -36,7 +80,7 @@ export default function RepairsView({ onOpenAsset }) {
         <div>
           <h2>Hardware Maintenance & Repair Registry</h2>
           <p className="text-muted">
-            Permanent, immutable ledger of all equipment breakdowns, vendor services, actions taken, and component replacements.
+            Permanent ledger of all equipment breakdowns, vendor services, actions taken, warranties, and component replacements.
           </p>
         </div>
         <div className="view-header-actions">
@@ -80,7 +124,7 @@ export default function RepairsView({ onOpenAsset }) {
           <input
             type="text"
             className="filter-search-input"
-            placeholder="Search problem, device, vendor..."
+            placeholder="Search problem, device, parts, vendor..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -91,10 +135,10 @@ export default function RepairsView({ onOpenAsset }) {
       <div className="summary-banner mb-4">
         <div className="flex items-center gap-3">
           <Wrench size={18} className="text-amber" />
-          <span>Showing <strong>{filteredRepairs.length}</strong> repair records</span>
+          <span>Showing <strong>{filteredRepairs.length}</strong> repair & service records</span>
         </div>
         <div className="font-semibold text-primary">
-          Total Maintenance Cost: <strong className="text-emerald">Rs. {totalCost.toLocaleString()}</strong>
+          Total Recorded Cost: <strong className="text-emerald text-base font-mono">Rs. {totalCost.toLocaleString()}</strong>
         </div>
       </div>
 
@@ -125,59 +169,71 @@ export default function RepairsView({ onOpenAsset }) {
                   </td>
                 </tr>
               ) : (
-                filteredRepairs.map(r => (
-                  <tr key={r.RepairID}>
-                    <td><span className="id-pill">{r.RepairID}</span></td>
-                    <td>{r.RepairDate}</td>
-                    <td>
-                      <div>
-                        <span className="font-semibold text-primary">{r.Brand} {r.Model}</span>
-                        <div className="text-xs text-muted">{r.AssetID} • {r.AssignedUserName}</div>
-                      </div>
-                    </td>
-                    <td><span className="tag-pill font-mono">{r.VerifiedNo}</span></td>
-                    <td><strong className="text-rose">{r.ProblemDescription}</strong></td>
-                    <td>{r.ActionTaken}</td>
-                    <td>
-                      {r.PartsReplaced && r.PartsReplaced !== 'N/A' && r.PartsReplaced !== 'None' ? (
-                        <div className="flex flex-col gap-1 max-w-xs">
-                          {r.PartsReplaced.split('; ').map((pt, i) => (
-                            <span key={i} className="text-xs bg-violet/10 text-violet border border-violet/20 px-2 py-0.5 rounded">
-                              {pt}
-                            </span>
-                          ))}
+                filteredRepairs.map(r => {
+                  const partsList = parseParts(r.PartsReplaced);
+
+                  return (
+                    <tr key={r.RepairID}>
+                      <td><span className="id-pill">{r.RepairID}</span></td>
+                      <td className="whitespace-nowrap">{r.RepairDate}</td>
+                      <td>
+                        <div>
+                          <span className="font-semibold text-primary">{r.Brand} {r.Model}</span>
+                          <div className="text-xs text-muted">{r.AssetID} • {r.AssignedUserName}</div>
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted italic">None</span>
-                      )}
-                    </td>
-                    <td>
-                      {r.InvoiceID ? (
-                        <span className="id-pill bg-cyan/15 text-cyan border border-cyan/30 flex items-center gap-1 font-mono text-xs">
-                          <FileText size={12} /> {r.InvoiceID}
+                      </td>
+                      <td><span className="tag-pill font-mono">{r.VerifiedNo}</span></td>
+                      <td><strong className="text-rose">{r.ProblemDescription}</strong></td>
+                      <td>{r.ActionTaken}</td>
+                      <td>
+                        {partsList.length > 0 ? (
+                          <div className="flex flex-col gap-1 max-w-xs">
+                            {partsList.map((pt, i) => (
+                              <span key={i} className="part-tag-item">
+                                <Cpu size={12} className="shrink-0" />
+                                {pt}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted italic">None</span>
+                        )}
+                      </td>
+                      <td>
+                        {r.InvoiceID ? (
+                          <button
+                            type="button"
+                            className="invoice-clickable-btn"
+                            title="Click to view & download official invoice PDF/image"
+                            onClick={() => handleOpenInvoice(r.InvoiceID)}
+                          >
+                            <FileText size={12} /> {r.InvoiceID}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted italic">N/A</span>
+                        )}
+                      </td>
+                      <td>
+                        <div>{r.RepairSupplier}</div>
+                        <div className="text-xs text-muted">{r.Technician}</div>
+                      </td>
+                      <td>
+                        <strong className="text-emerald font-mono">
+                          Rs. {Number(r.RepairCost || 0).toLocaleString()}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          r.Status === 'Completed' ? 'badge-success' :
+                          (r.Status && (r.Status.includes('Warning') || r.Status.includes('Observation'))) ? 'badge-warning font-semibold' :
+                          'badge-danger'
+                        }`}>
+                          {r.Status}
                         </span>
-                      ) : (
-                        <span className="text-xs text-muted italic">N/A</span>
-                      )}
-                    </td>
-                    <td>
-                      <div>{r.RepairSupplier}</div>
-                      <div className="text-xs text-muted">{r.Technician}</div>
-                    </td>
-                    <td>
-                      <strong className="text-emerald">Rs. {Number(r.RepairCost).toLocaleString()}</strong>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        r.Status === 'Completed' ? 'badge-success' :
-                        (r.Status && (r.Status.includes('Warning') || r.Status.includes('Observation'))) ? 'badge-warning font-semibold' :
-                        'badge-danger'
-                      }`}>
-                        {r.Status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -189,6 +245,17 @@ export default function RepairsView({ onOpenAsset }) {
         assetId={selectedAssetId}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSaved={() => {
+          // Trigger reload / re-render
+          setIsModalOpen(false);
+        }}
+      />
+
+      {/* Invoice Viewer Modal */}
+      <InvoiceViewerModal
+        invoice={selectedInvoice}
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
       />
     </div>
   );

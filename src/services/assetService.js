@@ -9,13 +9,15 @@ export const assetService = {
 
     // Enrich with User & Location info
     const enriched = assets.map(a => {
-      const user = users.find(u => u.UserID === a.CurrentUserID);
+      const isShared = a.CurrentUserID === 'SHARED_NETWORK' || a.Status === 'Shared / Networked';
+      const user = isShared ? null : users.find(u => u.UserID === a.CurrentUserID);
       const loc = locations.find(l => l.LocationID === a.CurrentLocationID);
       const dept = user ? departments.find(d => d.DepartmentID === user.DepartmentID) : null;
       return {
         ...a,
-        AssignedUserName: user ? user.Name : 'Unassigned',
-        AssignedUserDepartment: dept ? dept.DepartmentName : '',
+        IsSharedNetwork: isShared,
+        AssignedUserName: isShared ? '🌐 Shared Network (All Staff)' : (user ? user.Name : 'Unassigned (Storage)'),
+        AssignedUserDepartment: isShared ? 'Branch Wide' : (dept ? dept.DepartmentName : ''),
         LocationName: loc ? loc.OfficeName : 'General Storage'
       };
     });
@@ -26,7 +28,8 @@ export const assetService = {
     if (filter === 'Monitors') return enriched.filter(a => a.AssetType === 'Monitor');
     if (filter === 'Printers') return enriched.filter(a => a.AssetType === 'Printer');
     if (filter === 'Accessories') return enriched.filter(a => ['Keyboard', 'Mouse', 'UPS', 'Accessory', 'Other'].includes(a.AssetType));
-    if (filter === 'Unassigned') return enriched.filter(a => !a.CurrentUserID || a.Status === 'Available' || a.Status === 'In Storage');
+    if (filter === 'Shared') return enriched.filter(a => a.IsSharedNetwork || a.Status === 'Shared / Networked');
+    if (filter === 'Unassigned') return enriched.filter(a => !a.IsSharedNetwork && (!a.CurrentUserID || a.Status === 'Available' || a.Status === 'In Storage'));
     if (filter === 'Under Repair') return enriched.filter(a => a.Status === 'Under Repair');
     if (filter === 'Warnings') return enriched.filter(a => a.HealthStatus === 'Warning' || (a.Status && a.Status.includes('Warning')) || (a.Notes && (a.Notes.toLowerCase().includes('warning') || a.Notes.toLowerCase().includes('low performance') || a.Notes.toLowerCase().includes('error'))));
     return enriched;
@@ -176,23 +179,61 @@ export const assetService = {
   async saveAsset(asset) {
     const assets = dbRepository.getTable('Assets');
     let updated;
+    let savedAsset;
+
+    const isShared = asset.CurrentUserID === 'SHARED_NETWORK' || asset.Status === 'Shared / Networked';
 
     if (asset.AssetID) {
-      updated = assets.map(a => a.AssetID === asset.AssetID ? { ...a, ...asset } : a);
+      savedAsset = {
+        ...asset,
+        Status: isShared ? 'Shared / Networked' : (asset.CurrentUserID ? 'Assigned' : (asset.Status || 'Available'))
+      };
+      updated = assets.map(a => a.AssetID === asset.AssetID ? { ...a, ...savedAsset } : a);
     } else {
-      const nextNum = assets.length + 1;
-      const newId = `AST-${String(nextNum).padStart(4, '0')}`;
-      const newAsset = {
+      const newId = dbRepository.getNextId('Assets', 'AST-', 'AssetID');
+      savedAsset = {
         ...asset,
         AssetID: newId,
-        Status: asset.Status || 'Available',
+        Status: isShared ? 'Shared / Networked' : (asset.CurrentUserID ? 'Assigned' : (asset.Status || 'Available')),
         PurchaseDate: asset.PurchaseDate || new Date().toISOString().split('T')[0]
       };
-      updated = [newAsset, ...assets];
+      updated = [savedAsset, ...assets];
     }
 
     await dbRepository.updateTable('Assets', updated);
-    return asset;
+
+    // If it is a printer, ensure it's synced with the Printers table
+    if (savedAsset.AssetType === 'Printer') {
+      const printers = dbRepository.getTable('Printers');
+      const existingPrinter = printers.find(p => p.AssetID === savedAsset.AssetID);
+      if (existingPrinter) {
+        const updatedPrinters = printers.map(p => p.AssetID === savedAsset.AssetID ? {
+          ...p,
+          PrinterName: `${savedAsset.Brand} ${savedAsset.Model}`.trim(),
+          LocationID: savedAsset.CurrentLocationID || p.LocationID || 'LOC-0001',
+          AssignedUserID: savedAsset.CurrentUserID || 'SHARED_NETWORK',
+          Status: isShared ? 'In Use (Shared Network)' : (savedAsset.Status || 'In Use')
+        } : p);
+        await dbRepository.updateTable('Printers', updatedPrinters);
+      } else {
+        const newPrinterId = dbRepository.getNextId('Printers', 'PRN-', 'PrinterID');
+        const newPrinter = {
+          PrinterID: newPrinterId,
+          AssetID: savedAsset.AssetID,
+          PrinterName: `${savedAsset.Brand} ${savedAsset.Model}`.trim(),
+          IPAddress: savedAsset.IPAddress || '192.168.1.xxx',
+          LocationID: savedAsset.CurrentLocationID || 'LOC-0001',
+          DepartmentID: 'DEP-0004',
+          AssignedUserID: savedAsset.CurrentUserID || 'SHARED_NETWORK',
+          Status: isShared ? 'In Use (Shared Network)' : (savedAsset.Status || 'In Use'),
+          TonerCartridgeModel: 'Standard Toner',
+          Notes: savedAsset.Notes || 'Shared Network Printer for office staff'
+        };
+        await dbRepository.updateTable('Printers', [newPrinter, ...printers]);
+      }
+    }
+
+    return savedAsset;
   },
 
   async archiveAsset(assetId, reason = 'Disposed') {
@@ -305,16 +346,32 @@ export const assetService = {
     };
 
     assetsList.forEach(a => {
-      const isAssigned = a.AssignedUserName && a.AssignedUserName !== 'Unassigned';
-      const groupKey = isAssigned ? a.AssignedUserName : 'Unassigned / Office Storage';
-      const dept = a.AssignedUserDepartment ? ` • ${a.AssignedUserDepartment}` : '';
-      const groupLabel = isAssigned ? `👤 ${groupKey}${dept}` : `📦 Unassigned / Office Storage`;
+      let groupKey;
+      let groupLabel;
+      let isAssigned = false;
+      const isShared = a.IsSharedNetwork || a.CurrentUserID === 'SHARED_NETWORK' || a.Status === 'Shared / Networked';
+
+      if (isShared) {
+        groupKey = '🌐 Shared Network Devices (All Staff)';
+        groupLabel = `🌐 Shared Network Devices (All Staff • ${a.LocationName || 'Office'})`;
+        isAssigned = true;
+      } else if (a.AssignedUserName && a.AssignedUserName !== 'Unassigned' && !a.AssignedUserName.includes('Unassigned')) {
+        groupKey = a.AssignedUserName;
+        const dept = a.AssignedUserDepartment ? ` • ${a.AssignedUserDepartment}` : '';
+        groupLabel = `👤 ${groupKey}${dept}`;
+        isAssigned = true;
+      } else {
+        groupKey = 'Unassigned / Office Storage';
+        groupLabel = `📦 Unassigned / Office Storage`;
+        isAssigned = false;
+      }
 
       if (!groupsMap.has(groupKey)) {
         groupsMap.set(groupKey, {
           groupKey,
           groupLabel,
           isAssigned,
+          isShared,
           items: []
         });
       }
@@ -323,8 +380,10 @@ export const assetService = {
 
     const groups = Array.from(groupsMap.values());
 
-    // Sort groups: Assigned users alphabetically, Unassigned at the bottom
+    // Sort groups: Shared network first, then assigned users alphabetically, Unassigned at the bottom
     groups.sort((ga, gb) => {
+      if (ga.isShared && !gb.isShared) return -1;
+      if (!ga.isShared && gb.isShared) return 1;
       if (ga.isAssigned && !gb.isAssigned) return -1;
       if (!ga.isAssigned && gb.isAssigned) return 1;
       return ga.groupKey.localeCompare(gb.groupKey);

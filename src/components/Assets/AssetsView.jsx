@@ -88,6 +88,7 @@ export default function AssetsView({ onSelectUser }) {
             { id: 'Laptops', label: 'Laptops', count: assetService.getAssets('Laptops').length },
             { id: 'Monitors', label: 'Monitors', count: assetService.getAssets('Monitors').length },
             { id: 'Printers', label: 'Printers', count: assetService.getAssets('Printers').length },
+            { id: 'Shared', label: '🌐 Shared / Network', count: assetService.getAssets('Shared').length },
             { id: 'Accessories', label: 'Accessories', count: assetService.getAssets('Accessories').length },
             { id: 'Unassigned', label: 'Unassigned (Storage)', count: assetService.getAssets('Unassigned').length },
             { id: 'Warnings', label: '⚠️ Daily Warnings', count: assetService.getAssets('Warnings').length },
@@ -166,9 +167,15 @@ export default function AssetsView({ onSelectUser }) {
                       <span className="type-badge">{a.AssetType}</span>
                     </td>
                     <td>
-                      <span className={a.CurrentUserID ? 'font-medium' : 'text-muted italic'}>
-                        {a.AssignedUserName}
-                      </span>
+                      {a.IsSharedNetwork || a.CurrentUserID === 'SHARED_NETWORK' || a.Status === 'Shared / Networked' ? (
+                        <span className="badge badge-primary flex items-center gap-1 font-semibold text-xs" style={{ width: 'fit-content' }}>
+                          🌐 Shared Network (All Staff)
+                        </span>
+                      ) : (
+                        <span className={a.CurrentUserID ? 'font-medium' : 'text-muted italic'}>
+                          {a.AssignedUserName}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className="location-pill">{a.LocationName}</span>
@@ -177,6 +184,7 @@ export default function AssetsView({ onSelectUser }) {
                       <div className="flex flex-col gap-1">
                         <span className={`badge ${
                           a.Status === 'Assigned' ? 'badge-success' :
+                          a.Status === 'Shared / Networked' ? 'badge-primary' :
                           a.Status === 'Under Repair' ? 'badge-danger' :
                           a.Status === 'Available' || a.Status === 'In Storage' ? 'badge-warning' : 'badge-neutral'
                         }`}>

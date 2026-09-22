@@ -18,7 +18,7 @@ export const assignmentService = {
         Brand: asset.Brand || '',
         Model: asset.Model || '',
         VerifiedNo: asset.VerifiedNo || '',
-        UserName: user.Name || 'Unassigned / Storage',
+        UserName: asgn.UserID === 'SHARED_NETWORK' ? '🌐 Shared Network (All Staff)' : (user.Name || 'Unassigned / Storage'),
         LocationName: loc.OfficeName || 'General Office'
       };
     }).sort((a, b) => new Date(b.AssignedDate || 0) - new Date(a.AssignedDate || 0));
@@ -52,9 +52,9 @@ export const assignmentService = {
     });
 
     // 2. Add the new Assignment record
-    const nextNum = assignments.length + 1;
+    const newAssignmentId = dbRepository.getNextId('Assignments', 'ASN-', 'AssignmentID');
     const newAssignment = {
-      AssignmentID: `ASN-${String(nextNum).padStart(4, '0')}`,
+      AssignmentID: newAssignmentId,
       AssetID: assetId,
       UserID: toUserId || '',
       LocationID: locationId || 'LOC-0001',
@@ -75,7 +75,7 @@ export const assignmentService = {
           ...ast,
           CurrentUserID: toUserId || '',
           CurrentLocationID: locationId || ast.CurrentLocationID,
-          Status: toUserId ? 'Assigned' : 'Available'
+          Status: toUserId === 'SHARED_NETWORK' ? 'Shared / Networked' : (toUserId ? 'Assigned' : 'Available')
         };
       }
       return ast;

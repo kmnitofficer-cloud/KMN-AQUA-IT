@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, User, Laptop, Clock, DollarSign, Shield, Phone, Mail, MapPin, Building } from 'lucide-react';
+import { X, User, Laptop, Clock, DollarSign, Shield, Phone, Mail, MapPin, Building, Printer } from 'lucide-react';
 import { userService } from '../../services/userService';
+import { assetService } from '../../services/assetService';
 
 export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsset }) {
   if (!isOpen || !userId) return null;
@@ -11,6 +12,11 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
   const currentAssets = userService.getUserCurrentAssets(userId);
   const assignmentHistory = userService.getUserAssignmentHistory(userId);
   const costs = userService.getUserCosts(userId);
+  const allAssets = assetService.getAssets('All');
+  const sharedBranchPrinters = allAssets.filter(a =>
+    (a.AssetType === 'Printer' || a.IsSharedNetwork) &&
+    (a.CurrentLocationID === user.OfficeLocationID || a.CurrentUserID === 'SHARED_NETWORK')
+  );
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -136,6 +142,36 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
               </div>
             )}
           </div>
+
+          {/* Section 1b: Branch Network Printers & Shared Equipment */}
+          {sharedBranchPrinters.length > 0 && (
+            <div className="profile-section mt-6">
+              <div className="section-title-bar">
+                <div className="flex items-center gap-2">
+                  <Printer size={18} className="text-cyan" />
+                  <h3>Branch Network Printers & Shared Equipment ({sharedBranchPrinters.length})</h3>
+                </div>
+                <span className="badge badge-primary">🌐 Shared in Branch</span>
+              </div>
+
+              <div className="current-assets-grid">
+                {sharedBranchPrinters.map(a => (
+                  <div key={a.AssetID} className="current-asset-card" style={{ borderColor: 'rgba(56, 189, 248, 0.3)' }} onClick={() => onSelectAsset(a.AssetID)}>
+                    <div className="asset-card-top">
+                      <span className="asset-card-type text-cyan">🌐 Network Shared</span>
+                      <span className="asset-card-tag">{a.VerifiedNo || 'Shared'}</span>
+                    </div>
+                    <span className="asset-card-model">{assetService.getCleanHardwareName(a)}</span>
+                    <span className="asset-card-id">{a.AssetID} • {a.LocationName}</span>
+                    <div className="asset-card-footer">
+                      <span className="text-emerald">Status: <strong>Network Active</strong></span>
+                      <span className="text-cyan">View Printer ➔</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Section 2: Complete Historical Record (Never Overwritten) */}
           <div className="profile-section mt-6">

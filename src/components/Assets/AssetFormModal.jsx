@@ -93,7 +93,16 @@ export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved 
               <select
                 className="form-input"
                 value={formData.AssetType}
-                onChange={e => setFormData({ ...formData, AssetType: e.target.value })}
+                onChange={e => {
+                  const val = e.target.value;
+                  const isPrinter = val === 'Printer';
+                  setFormData({
+                    ...formData,
+                    AssetType: val,
+                    CurrentUserID: isPrinter && (!formData.CurrentUserID || formData.CurrentUserID === '') ? 'SHARED_NETWORK' : formData.CurrentUserID,
+                    Status: isPrinter && (formData.Status === 'Available' || !formData.Status) ? 'Shared / Networked' : formData.Status
+                  });
+                }}
               >
                 <option value="Laptop">Laptop</option>
                 <option value="Desktop">Desktop</option>
@@ -194,28 +203,35 @@ export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved 
                 value={formData.Status}
                 onChange={e => setFormData({ ...formData, Status: e.target.value })}
               >
+                <option value="Shared / Networked">Shared / Networked (All Staff)</option>
+                <option value="Assigned">Assigned (Individual Custody)</option>
                 <option value="Available">Available (In Storage)</option>
-                <option value="Assigned">Assigned</option>
                 <option value="Under Repair">Under Repair</option>
                 <option value="Disposed">Disposed</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label>Assign to Employee</label>
+              <label>Assign to Custodian / Network</label>
               <select
                 className="form-input"
                 value={formData.CurrentUserID}
-                onChange={e => setFormData({
-                  ...formData,
-                  CurrentUserID: e.target.value,
-                  Status: e.target.value ? 'Assigned' : 'Available'
-                })}
+                onChange={e => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    CurrentUserID: val,
+                    Status: val === 'SHARED_NETWORK' ? 'Shared / Networked' : (val ? 'Assigned' : 'Available')
+                  });
+                }}
               >
+                <option value="SHARED_NETWORK">🌐 Shared Network Device (All Office Staff)</option>
                 <option value="">-- Leave Unassigned (Storage) --</option>
-                {users.map(u => (
-                  <option key={u.UserID} value={u.UserID}>{u.Name} ({u.UserID})</option>
-                ))}
+                <optgroup label="👤 Specific Employee Custody">
+                  {users.map(u => (
+                    <option key={u.UserID} value={u.UserID}>{u.Name} ({u.UserID})</option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
@@ -233,6 +249,15 @@ export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved 
               </select>
             </div>
           </div>
+
+          {(formData.CurrentUserID === 'SHARED_NETWORK' || formData.AssetType === 'Printer' || formData.Status === 'Shared / Networked') && (
+            <div className="p-3 mt-3 rounded bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan flex items-center gap-2">
+              <span className="text-base">🌐</span>
+              <div>
+                <strong>Networked Shared Device:</strong> This asset will be accessible by all staff in <strong>{formData.CurrentLocationID === 'LOC-0001' ? 'Chilaw Office' : formData.CurrentLocationID === 'LOC-0002' ? 'Palaviya Office' : 'Branch Office'}</strong> and synchronized with the Printers & Shared Equipment directory.
+              </div>
+            </div>
+          )}
 
           <div className="form-group mt-4">
             <label>Hardware Specifications</label>

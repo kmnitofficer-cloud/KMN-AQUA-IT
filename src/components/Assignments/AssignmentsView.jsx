@@ -41,6 +41,11 @@ export default function AssignmentsView() {
             Complete, immutable audit trail of every device handover, reassignment, and return since office inception.
           </p>
         </div>
+        <div className="view-header-actions">
+          <button className="btn btn-primary" onClick={() => handleOpenReassign(null)}>
+            <RefreshCw size={16} /> + Hand Over / Assign Equipment to Staff
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs & Search */}

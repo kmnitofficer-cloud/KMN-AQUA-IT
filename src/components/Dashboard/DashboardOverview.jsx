@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Users, 
   Laptop, 
@@ -10,6 +10,10 @@ import {
   CheckCircle2, 
   ArrowUpRight, 
   ShieldAlert, 
+  ShieldCheck,
+  Cpu,
+  Clock,
+  FileText,
   HelpCircle,
   FileSpreadsheet
 } from 'lucide-react';
@@ -18,6 +22,8 @@ import { userService } from '../../services/userService';
 import { repairService } from '../../services/repairService';
 import { expenseService } from '../../services/expenseService';
 import { printerService } from '../../services/printerService';
+import { invoiceService } from '../../services/invoiceService';
+import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
 export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
   const users = userService.getUsers('All');
@@ -25,6 +31,32 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
   const repairs = repairService.getRepairs();
   const printers = printerService.getPrinters();
   const financialSummary = expenseService.getFinancialSummary();
+  const warrantySummary = useMemo(() => repairService.getWarrantySummary(), []);
+
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+
+  const handleOpenInvoice = (invoiceId) => {
+    if (!invoiceId) return;
+    const allInvoices = invoiceService.getInvoices();
+    const inv = allInvoices.find(i => i.InvoiceID === invoiceId || i.InvoiceNumber === invoiceId);
+    if (inv) {
+      setSelectedInvoice(inv);
+      setIsInvoiceModalOpen(true);
+    } else {
+      setSelectedInvoice({
+        InvoiceID: invoiceId,
+        InvoiceNumber: invoiceId,
+        Supplier: 'KMN IT Solution',
+        Amount: 0,
+        InvoiceDate: '2026-09-05',
+        FileName: '05.09.2026..pdf',
+        FilePath: '/invoices/05.09.2026..pdf',
+        Description: `Invoice ${invoiceId}`
+      });
+      setIsInvoiceModalOpen(true);
+    }
+  };
 
   // Metrics calculations
   const totalUsers = users.length;
@@ -128,8 +160,23 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
       });
     }
 
+    // 6. Hardware Part Warranties Expiring Soon
+    if (warrantySummary.expiringSoonCount > 0) {
+      list.push({
+        id: 'alert-warranty-expiring',
+        type: 'warning',
+        icon: ShieldCheck,
+        title: `🛡️ ${warrantySummary.expiringSoonCount} Installed Part(s) Warranty Expiring Soon (≤ 60 Days)`,
+        description: warrantySummary.warrantyParts
+          .filter(p => p.WarrantyBadgeType === 'expiring-soon')
+          .map(p => `${p.PartType} (${p.NewPartDetails}) on ${p.Brand} ${p.Model} - ${p.WarrantyRemainingDays} days left`)
+          .join('; '),
+        action: () => onNavigate('parts')
+      });
+    }
+
     return list;
-  }, [assets, printers, onNavigate]);
+  }, [assets, printers, onNavigate, warrantySummary]);
 
   return (
     <div className="dashboard-overview-container">
@@ -301,6 +348,125 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
           </div>
         </div>
       </div>
+
+      {/* Hardware Component Warranties & Expiration Tracker */}
+      <div className="section-panel mt-6">
+        <div className="section-panel-header">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded bg-emerald/15 text-emerald border border-emerald/30">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold">Hardware Component Warranties & Days Remaining</h3>
+              <span className="text-muted text-xs block">
+                Warranty duration tracking for replaced & installed hardware parts (RAM, SSD, Batteries, etc.)
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="badge badge-success font-semibold">
+              {warrantySummary.activeCount} Active Warranties
+            </span>
+            {warrantySummary.expiringSoonCount > 0 && (
+              <span className="badge badge-warning font-semibold">
+                ⚠️ {warrantySummary.expiringSoonCount} Expiring Soon
+              </span>
+            )}
+            <button className="btn-link text-xs" onClick={() => onNavigate('parts')}>
+              Open Parts Registry ({warrantySummary.totalWarrantiedParts})
+            </button>
+          </div>
+        </div>
+
+        {warrantySummary.totalWarrantiedParts === 0 ? (
+          <div className="p-6 text-center text-muted text-sm">
+            No component warranty records logged yet. Use "Log Repair / Issue" to add parts with warranty tracking.
+          </div>
+        ) : (
+          <div className="warranty-parts-grid">
+            {warrantySummary.warrantyParts.map(part => {
+              const days = part.WarrantyRemainingDays;
+              const isExpiring = part.WarrantyBadgeType === 'expiring-soon';
+
+              return (
+                <div 
+                  key={part.PartID} 
+                  className={`warranty-part-card ${isExpiring ? 'expiring-soon' : ''}`}
+                >
+                  <div>
+                    {/* Top Row: Component Type & Days Remaining Badge */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="part-tag-item">
+                        <Cpu size={12} /> {part.PartType}
+                      </span>
+                      {days !== null ? (
+                        <span className={`warranty-countdown-pill ${
+                          days > 60 ? 'active' : days >= 0 ? 'expiring' : 'expired'
+                        }`}>
+                          <Clock size={12} />
+                          {days > 60 
+                            ? `${days.toLocaleString()} Days Left`
+                            : days >= 0
+                              ? `⚠️ ${days} Days Left`
+                              : `Expired`}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted">No Expiry</span>
+                      )}
+                    </div>
+
+                    {/* Installed Part Specifications */}
+                    <div className="font-semibold text-white text-sm">
+                      {part.NewPartDetails}
+                    </div>
+                    {part.NewPartSerial && part.NewPartSerial !== 'N/A' && (
+                      <div className="text-xs text-muted font-mono mt-0.5">
+                        S/N: {part.NewPartSerial}
+                      </div>
+                    )}
+
+                    {/* Host Machine & Assigned Employee */}
+                    <div className="text-xs text-secondary mt-2 flex flex-col gap-0.5">
+                      <div>
+                        Installed on: <strong className="text-primary">{part.Brand} {part.Model}</strong> ({part.VerifiedNo})
+                      </div>
+                      <div className="text-muted">
+                        User: <span className="text-primary font-medium">{part.AssignedUserName}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Bottom: Provider & Invoice Link */}
+                  <div className="pt-2 border-t border-subtle flex items-center justify-between text-xs">
+                    <span className="text-muted">
+                      🛡️ {part.WarrantyPeriod} ({part.WarrantyProvider || 'Vendor'})
+                    </span>
+                    {part.InvoiceID ? (
+                      <button 
+                        type="button" 
+                        className="invoice-clickable-btn" 
+                        title={`View Invoice ${part.InvoiceNumber || part.InvoiceID}`}
+                        onClick={() => handleOpenInvoice(part.InvoiceID)}
+                      >
+                        <FileText size={12} /> {part.InvoiceNumber || part.InvoiceID}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted italic">No invoice</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Invoice Viewer Modal for instant document viewing */}
+      <InvoiceViewerModal
+        invoice={selectedInvoice}
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+      />
     </div>
   );
 }

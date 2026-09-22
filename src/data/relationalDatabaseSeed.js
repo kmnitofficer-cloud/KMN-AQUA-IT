@@ -275,6 +275,23 @@ export const relationalDatabaseSeed = {
   ],
   "Assets": [
     {
+      "VerifiedNo": "KMN/CH/CP/069",
+      "AssetType": "Mouse",
+      "Brand": "Standard",
+      "Model": "Standard Optical USB Mouse",
+      "SerialNumber": "",
+      "Specifications": "Standard Optical USB Mouse",
+      "PurchaseDate": "2026-09-07",
+      "PurchaseCost": 1000,
+      "WarrantyStart": "2026-09-07",
+      "WarrantyEnd": "2027-09-07",
+      "Status": "Assigned",
+      "CurrentUserID": "USR-0014",
+      "CurrentLocationID": "LOC-0001",
+      "Notes": "Issued during service REP-0004: HAVEN'T A MOUSE [Warranty: 1 Year]",
+      "AssetID": "AST-0058"
+    },
+    {
       "VerifiedNo": "",
       "AssetType": "Printer",
       "Brand": "CANON",
@@ -285,10 +302,10 @@ export const relationalDatabaseSeed = {
       "PurchaseCost": 0,
       "WarrantyStart": "2026-09-21",
       "WarrantyEnd": "",
-      "Status": "Assigned",
-      "CurrentUserID": "USR-0008",
+      "Status": "Shared / Networked",
+      "CurrentUserID": "SHARED_NETWORK",
       "CurrentLocationID": "LOC-0001",
-      "Notes": "",
+      "Notes": "Shared Network Office Printer",
       "AssetID": "AST-0057"
     },
     {
@@ -1245,8 +1262,48 @@ export const relationalDatabaseSeed = {
     }
   ],
   "AssetComponents": [],
-  "Assignments": [],
-  "Printers": [],
+  "Assignments": [
+    {
+      "AssignmentID": "ASN-0001",
+      "AssetID": "AST-0058",
+      "UserID": "USR-0014",
+      "LocationID": "LOC-0001",
+      "AssignedDate": "2026-09-07",
+      "ReturnedDate": "",
+      "AssignmentStatus": "Current",
+      "ConditionWhenAssigned": "Brand New",
+      "ConditionWhenReturned": "",
+      "Reason": "Newly Issued Peripheral (Mouse) to employee",
+      "HandoverFormRef": "INV-0003",
+      "Notes": "Issued during service REP-0004: HAVEN'T A MOUSE"
+    }
+  ],
+  "Printers": [
+    {
+      "PrinterID": "PRN-0001",
+      "AssetID": "AST-0057",
+      "PrinterName": "CANON MF645C ufr ii",
+      "IPAddress": "192.168.1.200",
+      "LocationID": "LOC-0001",
+      "DepartmentID": "DEP-0004",
+      "AssignedUserID": "SHARED_NETWORK",
+      "Status": "In Use (Shared Network)",
+      "TonerCartridgeModel": "Cartridge 337 / 047",
+      "Notes": "Shared Network Printer for branch office staff"
+    },
+    {
+      "PrinterID": "PRN-0002",
+      "AssetID": "AST-0005",
+      "PrinterName": "EPSON Printer",
+      "IPAddress": "192.168.1.201",
+      "LocationID": "LOC-0001",
+      "DepartmentID": "DEP-0004",
+      "AssignedUserID": "SHARED_NETWORK",
+      "Status": "In Use (Shared Network)",
+      "TonerCartridgeModel": "Toner T664",
+      "Notes": "Shared Network Printer for branch office staff"
+    }
+  ],
   "Consumables": [],
   "Repairs": [],
   "Parts": [],
