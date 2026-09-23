@@ -56,6 +56,15 @@ class DBRepository {
           this.isServerConnected = true;
           this.saveToLocalCache();
           this.notify();
+
+          // Listen for real-time Excel file modifications on disk via Vite websocket
+          if (typeof window !== 'undefined' && import.meta.hot) {
+            import.meta.hot.on('excel-database-disk-update', async () => {
+              console.log('[dbRepository] External Excel update detected on disk! Refreshing database...');
+              await this.refreshFromDisk();
+            });
+          }
+
           return this.database;
         }
       }
@@ -143,7 +152,63 @@ class DBRepository {
       });
     }
 
+    // Relational Cross-Sync: Keep Printers table and Assets table 100% unified
+    if (Array.isArray(normalized.Printers) && Array.isArray(normalized.Assets)) {
+      normalized.Printers.forEach(prn => {
+        const astIndex = normalized.Assets.findIndex(a => a.AssetID === prn.AssetID);
+        if (astIndex !== -1) {
+          const ast = normalized.Assets[astIndex];
+          const printerName = String(prn.PrinterName || '').trim();
+          const assetFullName = `${ast.Brand || ''} ${ast.Model || ''}`.trim();
+
+          // If user updated PrinterName in Printers sheet, sync into Assets Brand and Model
+          if (printerName && printerName !== assetFullName && printerName !== 'Printer') {
+            const parts = printerName.split(' ');
+            const knownBrands = ['HP', 'CANON', 'EPSON', 'BROTHER', 'SAMSUNG', 'XEROX', 'RICOH', 'DELL', 'KYOCERA', 'LEXMARK', 'PANTUM'];
+            const firstWordUpper = parts[0].toUpperCase();
+            let brand = 'Generic';
+            let model = printerName;
+
+            if (knownBrands.includes(firstWordUpper)) {
+              brand = parts[0].toUpperCase();
+              model = parts.slice(1).join(' ').trim() || 'Printer';
+            } else if (parts.length > 1) {
+              brand = parts[0];
+              model = parts.slice(1).join(' ').trim();
+            }
+
+            normalized.Assets[astIndex] = {
+              ...ast,
+              Brand: brand,
+              Model: model
+            };
+          } else if (assetFullName && assetFullName !== 'Generic Printer' && assetFullName !== 'Printer' && (!printerName || printerName === 'Printer')) {
+            prn.PrinterName = assetFullName;
+          }
+        }
+      });
+    }
+
     return normalized;
+  }
+
+  async refreshFromDisk() {
+    try {
+      const res = await fetch('/api/database');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          this.database = this.validateAndNormalize(json.data);
+          this.isServerConnected = true;
+          this.saveToLocalCache();
+          this.notify();
+          console.log('[dbRepository] Successfully re-synced from Excel file on disk!');
+          return this.database;
+        }
+      }
+    } catch (err) {
+      console.warn('[dbRepository] Could not refresh database from disk:', err.message);
+    }
   }
 
   saveToLocalCache() {

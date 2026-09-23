@@ -290,6 +290,16 @@ export const assetService = {
 
   getCleanHardwareName(a) {
     if (!a) return '';
+
+    // For Printers, prioritize the canonical PrinterName from the Printers table
+    if (a.AssetType === 'Printer') {
+      const printers = dbRepository.getTable('Printers');
+      const prn = printers.find(p => p.AssetID === a.AssetID);
+      if (prn && prn.PrinterName && prn.PrinterName.trim() !== '' && prn.PrinterName.toLowerCase() !== 'printer') {
+        return prn.PrinterName.trim();
+      }
+    }
+
     let brand = String(a.Brand || '').trim();
     let model = String(a.Model || '').trim();
     const type = String(a.AssetType || 'Device').trim();

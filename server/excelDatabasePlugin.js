@@ -99,32 +99,61 @@ function readFullDatabase() {
   return result;
 }
 
+let isInternalSaving = false;
+
 function saveFullDatabase(data) {
   ensureDirectories();
+  isInternalSaving = true;
 
-  // 1. Create a timestamped backup before overwrite
-  if (fs.existsSync(DB_PATH)) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = path.join(BACKUP_DIR, `IT_Asset_Database_${timestamp}.xlsx`);
-    fs.copyFileSync(DB_PATH, backupPath);
+  try {
+    // 1. Create a timestamped backup before overwrite
+    if (fs.existsSync(DB_PATH)) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupPath = path.join(BACKUP_DIR, `IT_Asset_Database_${timestamp}.xlsx`);
+      fs.copyFileSync(DB_PATH, backupPath);
+    }
+
+    // 2. Write new workbook
+    const wb = XLSX.utils.book_new();
+    TABLE_NAMES.forEach(sheetName => {
+      const records = data[sheetName] || [];
+      const ws = XLSX.utils.json_to_sheet(records);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    XLSX.writeFile(wb, DB_PATH);
+    return { success: true, timestamp: new Date().toISOString() };
+  } finally {
+    setTimeout(() => {
+      isInternalSaving = false;
+    }, 2000);
   }
-
-  // 2. Write new workbook
-  const wb = XLSX.utils.book_new();
-  TABLE_NAMES.forEach(sheetName => {
-    const records = data[sheetName] || [];
-    const ws = XLSX.utils.json_to_sheet(records);
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  });
-
-  XLSX.writeFile(wb, DB_PATH);
-  return { success: true, timestamp: new Date().toISOString() };
 }
 
 export function excelDatabasePlugin() {
   return {
     name: 'excel-database-server',
     configureServer(server) {
+      // Watch DB_PATH for manual edits in Microsoft Excel on disk
+      let lastDiskMtime = 0;
+      try {
+        if (fs.existsSync(DB_PATH)) {
+          lastDiskMtime = fs.statSync(DB_PATH).mtimeMs;
+        }
+      } catch (e) {}
+
+      fs.watchFile(DB_PATH, { interval: 1000 }, (curr) => {
+        if (!isInternalSaving && curr.mtimeMs > lastDiskMtime) {
+          lastDiskMtime = curr.mtimeMs;
+          console.log('[Excel Database Plugin] External Excel modification detected on disk! Notifying clients...');
+          server.ws.send({
+            type: 'custom',
+            event: 'excel-database-disk-update',
+            data: { timestamp: new Date().toISOString() }
+          });
+        }
+      });
+
       server.middlewares.use(async (req, res, next) => {
         const url = req.url.split('?')[0];
 

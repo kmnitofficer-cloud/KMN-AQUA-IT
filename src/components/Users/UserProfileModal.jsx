@@ -1,9 +1,25 @@
-import React from 'react';
-import { X, User, Laptop, Clock, DollarSign, Shield, Phone, Mail, MapPin, Building, Printer } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Laptop, Clock, DollarSign, Shield, Phone, Mail, MapPin, Building, Printer, Plus, RefreshCw, Archive, CheckCircle2 } from 'lucide-react';
 import { userService } from '../../services/userService';
 import { assetService } from '../../services/assetService';
+import { dbRepository } from '../../services/dbRepository';
+import ReassignModal from '../Assignments/ReassignModal';
 
 export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsset }) {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [reassignAssetId, setReassignAssetId] = useState(null);
+  const [reassignMode, setReassignMode] = useState('return');
+  const [preselectedUserId, setPreselectedUserId] = useState('');
+  const [isReassignOpen, setIsReassignOpen] = useState(false);
+  const [historyTab, setHistoryTab] = useState('all'); // 'all', 'returned', 'current'
+
+  useEffect(() => {
+    const unsub = dbRepository.subscribe(() => {
+      setRefreshKey(k => k + 1);
+    });
+    return unsub;
+  }, []);
+
   if (!isOpen || !userId) return null;
 
   const user = userService.getUserById(userId);
@@ -17,6 +33,29 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
     (a.AssetType === 'Printer' || a.IsSharedNetwork) &&
     (a.CurrentLocationID === user.OfficeLocationID || a.CurrentUserID === 'SHARED_NETWORK')
   );
+
+  const returnedHistory = assignmentHistory.filter(a => a.AssignmentStatus === 'Returned' || a.ReturnedDate);
+  const activeHistory = assignmentHistory.filter(a => a.AssignmentStatus === 'Current' && !a.ReturnedDate);
+
+  const displayedHistory = historyTab === 'returned' 
+    ? returnedHistory 
+    : historyTab === 'current' 
+    ? activeHistory 
+    : assignmentHistory;
+
+  const handleOpenReturn = (assetId) => {
+    setReassignAssetId(assetId);
+    setReassignMode('return');
+    setPreselectedUserId('');
+    setIsReassignOpen(true);
+  };
+
+  const handleOpenAssignNew = () => {
+    setReassignAssetId(null);
+    setReassignMode('reassign');
+    setPreselectedUserId(userId);
+    setIsReassignOpen(true);
+  };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -117,6 +156,13 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                 <Laptop size={18} className="text-blue" />
                 <h3>Current Active Assets ({currentAssets.length})</h3>
               </div>
+              <button 
+                type="button" 
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
+                onClick={handleOpenAssignNew}
+              >
+                <Plus size={15} /> Hand Over / Assign Equipment
+              </button>
             </div>
 
             {currentAssets.length === 0 ? (
@@ -129,13 +175,26 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                   <div key={a.AssetID} className="current-asset-card" onClick={() => onSelectAsset(a.AssetID)}>
                     <div className="asset-card-top">
                       <span className="asset-card-type">{a.AssetType}</span>
-                      <span className="asset-card-tag">{a.VerifiedNo}</span>
+                      <span className="asset-card-tag">{a.VerifiedNo || 'UNTAGGED'}</span>
                     </div>
                     <span className="asset-card-model">{assetService.getCleanHardwareName(a)}</span>
                     <span className="asset-card-id">{a.AssetID}</span>
-                    <div className="asset-card-footer">
-                      <span>Status: <strong>{a.Status}</strong></span>
-                      <span className="text-cyan">View Timeline ➔</span>
+                    <div className="asset-card-footer flex justify-between items-center mt-3 pt-2 border-t border-slate-700/30">
+                      <span>Status: <strong className="text-emerald">{a.Status}</strong></span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-xs flex items-center gap-1 text-cyan hover:bg-cyan/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReturn(a.AssetID);
+                          }}
+                          title="Remove desktop/device, return to storage, and make available for others"
+                        >
+                          <RefreshCw size={12} /> Return / Swap
+                        </button>
+                        <span className="text-cyan text-xs cursor-pointer hover:underline">Timeline ➔</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -180,7 +239,32 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                 <Clock size={18} className="text-violet" />
                 <h3>Assignment History & Audit Trail ({assignmentHistory.length})</h3>
               </div>
-              <span className="badge badge-neutral">Permanent Log</span>
+              <div className="flex items-center gap-2">
+                <div className="filter-tabs" style={{ margin: 0, padding: 0 }}>
+                  <button
+                    type="button"
+                    className={`filter-tab text-xs py-1 px-2.5 ${historyTab === 'all' ? 'active' : ''}`}
+                    onClick={() => setHistoryTab('all')}
+                  >
+                    All ({assignmentHistory.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-tab text-xs py-1 px-2.5 ${historyTab === 'returned' ? 'active' : ''}`}
+                    onClick={() => setHistoryTab('returned')}
+                  >
+                    Past Equipment ({returnedHistory.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-tab text-xs py-1 px-2.5 ${historyTab === 'current' ? 'active' : ''}`}
+                    onClick={() => setHistoryTab('current')}
+                  >
+                    Active Holdings ({activeHistory.length})
+                  </button>
+                </div>
+                <span className="badge badge-neutral">Permanent Log</span>
+              </div>
             </div>
 
             <div className="table-responsive">
@@ -191,46 +275,71 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                     <th>Tag / Verified No</th>
                     <th>Assigned Date</th>
                     <th>Returned Date</th>
-                    <th>Status</th>
+                    <th>Custody Status</th>
                     <th>Reason / Notes</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {assignmentHistory.map(asgn => (
-                    <tr key={asgn.AssignmentID}>
-                      <td>
-                        <strong>{asgn.Brand} {asgn.Model}</strong>
-                        <div className="text-muted text-xs">{asgn.AssetID} • {asgn.AssetType}</div>
-                      </td>
-                      <td>
-                        <span className="tag-pill">{asgn.VerifiedNo || 'N/A'}</span>
-                      </td>
-                      <td>{asgn.AssignedDate || 'N/A'}</td>
-                      <td>
-                        {asgn.ReturnedDate ? (
-                          <span className="text-muted">{asgn.ReturnedDate}</span>
-                        ) : (
-                          <span className="badge badge-success">Current</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`badge ${asgn.AssignmentStatus === 'Current' ? 'badge-primary' : 'badge-neutral'}`}>
-                          {asgn.AssignmentStatus}
-                        </span>
-                      </td>
-                      <td>
-                        <div>{asgn.Reason || 'Assigned'}</div>
-                        {asgn.ConditionWhenReturned && (
-                          <div className="text-xs text-muted">Condition: {asgn.ConditionWhenReturned}</div>
-                        )}
+                  {displayedHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center py-6 text-muted">
+                        No records found in this category.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    displayedHistory.map(asgn => (
+                      <tr key={asgn.AssignmentID}>
+                        <td>
+                          <strong>{asgn.Brand} {asgn.Model}</strong>
+                          <div className="text-muted text-xs">{asgn.AssetID} • {asgn.AssetType}</div>
+                        </td>
+                        <td>
+                          <span className="tag-pill font-mono">{asgn.VerifiedNo || 'UNTAGGED'}</span>
+                        </td>
+                        <td><span className="font-mono text-xs">{asgn.AssignedDate || 'N/A'}</span></td>
+                        <td>
+                          {asgn.ReturnedDate ? (
+                            <span className="badge badge-warning font-mono text-xs">
+                              Returned: {asgn.ReturnedDate}
+                            </span>
+                          ) : (
+                            <span className="badge badge-success text-xs">
+                              Currently in Custody
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`badge ${asgn.AssignmentStatus === 'Current' ? 'badge-primary' : 'badge-neutral'}`}>
+                            {asgn.AssignmentStatus === 'Returned' ? '📦 Returned to Storage' : asgn.AssignmentStatus}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="text-sm font-medium">{asgn.Reason || 'Assigned'}</div>
+                          {asgn.ConditionWhenReturned && (
+                            <div className="text-xs text-muted">Return condition: {asgn.ConditionWhenReturned}</div>
+                          )}
+                          {asgn.Notes && (
+                            <div className="text-xs text-amber">{asgn.Notes}</div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
+
+        {/* Modal-embedded Reassignment / Return Tool */}
+        <ReassignModal
+          assetId={reassignAssetId}
+          initialMode={reassignMode}
+          preselectedUserId={preselectedUserId}
+          isOpen={isReassignOpen}
+          onClose={() => setIsReassignOpen(false)}
+          onCompleted={() => setRefreshKey(k => k + 1)}
+        />
       </div>
     </div>
   );

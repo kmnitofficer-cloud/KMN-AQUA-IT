@@ -29,6 +29,20 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const [isReloading, setIsReloading] = useState(false);
+
+  const handleReloadFromDisk = async () => {
+    setIsReloading(true);
+    try {
+      await dbRepository.refreshFromDisk();
+      alert('Relational Excel database successfully reloaded from database/IT_Asset_Database.xlsx!');
+    } catch (err) {
+      alert('Failed to reload database from disk: ' + err.message);
+    } finally {
+      setIsReloading(false);
+    }
+  };
+
   const handleDownloadXlsx = () => {
     dbRepository.exportToExcelFile(null, `IT_Asset_Database_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
@@ -106,6 +120,9 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button className="btn btn-outline btn-sm text-cyan hover:bg-cyan/10" onClick={handleReloadFromDisk} disabled={isReloading} title="Force reload from Excel workbook on disk">
+                <RefreshCw size={14} className={isReloading ? 'animate-spin' : ''} /> {isReloading ? 'Reloading...' : 'Reload from Excel'}
+              </button>
               <button className="btn btn-outline btn-sm" onClick={handleManualBackup} disabled={isBackingUp}>
                 <Shield size={14} /> {isBackingUp ? 'Backing up...' : 'Create Snapshot'}
               </button>

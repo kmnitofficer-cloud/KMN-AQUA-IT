@@ -38,8 +38,10 @@ export const assignmentService = {
     const assets = dbRepository.getTable('Assets');
 
     // 1. Close any currently active assignment for this asset
+    let foundActive = false;
     const updatedAssignments = assignments.map(a => {
       if (a.AssetID === assetId && a.AssignmentStatus === 'Current') {
+        foundActive = true;
         return {
           ...a,
           ReturnedDate: today,
@@ -50,6 +52,26 @@ export const assignmentService = {
       }
       return a;
     });
+
+    if (!foundActive) {
+      const currentAsset = assets.find(a => a.AssetID === assetId);
+      if (currentAsset && currentAsset.CurrentUserID && currentAsset.CurrentUserID !== toUserId) {
+        const fallbackId = dbRepository.getNextId('Assignments', 'ASN-', 'AssignmentID');
+        updatedAssignments.unshift({
+          AssignmentID: fallbackId,
+          AssetID: assetId,
+          UserID: currentAsset.CurrentUserID,
+          LocationID: currentAsset.CurrentLocationID || locationId,
+          AssignedDate: currentAsset.PurchaseDate || '2026-09-21',
+          ReturnedDate: today,
+          AssignmentStatus: 'Returned',
+          Reason: `Handover / Swapped to ${toUserId}`,
+          ConditionWhenAssigned: 'Good',
+          ConditionWhenReturned: conditionWhenReturned,
+          Notes: `Previous custody closed during handover.`
+        });
+      }
+    }
 
     // 2. Add the new Assignment record
     const newAssignmentId = dbRepository.getNextId('Assignments', 'ASN-', 'AssignmentID');
@@ -98,8 +120,10 @@ export const assignmentService = {
     const assets = dbRepository.getTable('Assets');
 
     // 1. Close active assignment
+    let foundActive = false;
     const updatedAssignments = assignments.map(a => {
       if (a.AssetID === assetId && a.AssignmentStatus === 'Current') {
+        foundActive = true;
         return {
           ...a,
           ReturnedDate: today,
@@ -111,6 +135,27 @@ export const assignmentService = {
       return a;
     });
 
+    // If no active assignment was found in Assignments, create a closed record as fallback
+    if (!foundActive) {
+      const currentAsset = assets.find(a => a.AssetID === assetId);
+      if (currentAsset && currentAsset.CurrentUserID) {
+        const fallbackId = dbRepository.getNextId('Assignments', 'ASN-', 'AssignmentID');
+        updatedAssignments.unshift({
+          AssignmentID: fallbackId,
+          AssetID: assetId,
+          UserID: currentAsset.CurrentUserID,
+          LocationID: currentAsset.CurrentLocationID || locationId,
+          AssignedDate: currentAsset.PurchaseDate || '2026-09-21',
+          ReturnedDate: today,
+          AssignmentStatus: 'Returned',
+          Reason: reason,
+          ConditionWhenAssigned: 'Good',
+          ConditionWhenReturned: conditionWhenReturned,
+          Notes: `${notes || ''} [Returned to inventory]`.trim()
+        });
+      }
+    }
+
     // 2. Update asset status to Available / In Storage
     const updatedAssets = assets.map(ast => {
       if (ast.AssetID === assetId) {
@@ -120,7 +165,7 @@ export const assignmentService = {
           CurrentLocationID: locationId,
           Status: conditionWhenReturned.toLowerCase().includes('fault') || conditionWhenReturned.toLowerCase().includes('defect')
             ? 'Under Repair'
-            : 'In Storage'
+            : 'Available'
         };
       }
       return ast;

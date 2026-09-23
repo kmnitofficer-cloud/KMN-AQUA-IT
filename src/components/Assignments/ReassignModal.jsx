@@ -4,17 +4,24 @@ import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
 import { assignmentService } from '../../services/assignmentService';
 
-export default function ReassignModal({ assetId, isOpen, onClose, onCompleted }) {
+export default function ReassignModal({ 
+  assetId, 
+  initialMode = 'reassign', 
+  preselectedUserId = '', 
+  isOpen, 
+  onClose, 
+  onCompleted 
+}) {
   const users = userService.getUsers('Active');
   const allAssets = assetService.getAssets('All');
 
   const [chosenAssetId, setChosenAssetId] = useState(assetId || '');
-  const [mode, setMode] = useState('reassign'); // 'reassign' or 'return'
-  const [toUserId, setToUserId] = useState('');
+  const [mode, setMode] = useState(initialMode || 'reassign'); // 'reassign' or 'return'
+  const [toUserId, setToUserId] = useState(preselectedUserId || '');
   const [locationId, setLocationId] = useState('LOC-0001');
   const [reason, setReason] = useState('Employee Handover');
   const [conditionWhenAssigned, setConditionWhenAssigned] = useState('Good');
-  const [conditionWhenReturned, setConditionWhenReturned] = useState('Working');
+  const [conditionWhenReturned, setConditionWhenReturned] = useState('Working / Good');
   const [notes, setNotes] = useState('');
 
   // Prioritize available storage assets at the top
@@ -26,29 +33,61 @@ export default function ReassignModal({ assetId, isOpen, onClose, onCompleted })
     return allAssets.filter(a => a.CurrentUserID && a.Status === 'Assigned');
   }, [allAssets]);
 
+  // Initialize only when modal opens or key props change externally
   useEffect(() => {
-    if (assetId) {
-      setChosenAssetId(assetId);
-    } else if (availableAssets.length > 0 && !chosenAssetId) {
-      setChosenAssetId(availableAssets[0].AssetID);
-    } else if (allAssets.length > 0 && !chosenAssetId) {
-      setChosenAssetId(allAssets[0].AssetID);
+    if (isOpen) {
+      const activeMode = initialMode || 'reassign';
+      setMode(activeMode);
+      
+      const targetAssetId = assetId || chosenAssetId || (availableAssets[0]?.AssetID || allAssets[0]?.AssetID || '');
+      setChosenAssetId(targetAssetId);
+      setToUserId(preselectedUserId || '');
+
+      const targetAsset = targetAssetId ? assetService.getAssetById(targetAssetId) : null;
+      if (activeMode === 'return') {
+        setLocationId('LOC-0004');
+        setReason('Equipment Removed / Replaced - Returned to Storage (Available)');
+        setConditionWhenReturned('Working / Good');
+      } else {
+        setLocationId(targetAsset?.CurrentLocationID || 'LOC-0001');
+        setReason(targetAsset?.CurrentUserID ? 'Employee Handover / Device Swap' : 'New Equipment Handover to Staff');
+        setConditionWhenAssigned('Good');
+      }
+      setNotes('');
     }
-  }, [assetId, isOpen, availableAssets, allAssets, chosenAssetId]);
+  }, [isOpen, assetId, initialMode, preselectedUserId]);
 
   const asset = useMemo(() => {
     const id = assetId || chosenAssetId;
     return id ? assetService.getAssetById(id) : null;
-  }, [assetId, chosenAssetId]);
+  }, [assetId, chosenAssetId, allAssets]);
 
-  useEffect(() => {
-    if (asset) {
-      setLocationId(asset.CurrentLocationID || 'LOC-0001');
-      setToUserId('');
-      setReason(asset.CurrentUserID ? 'Employee Handover / Device Swap' : 'New Equipment Handover to Staff');
-      setNotes('');
+  const handleSwitchMode = (newMode) => {
+    setMode(newMode);
+    if (newMode === 'return') {
+      setLocationId('LOC-0004');
+      setReason('Equipment Removed / Replaced - Returned to Storage (Available)');
+      setConditionWhenReturned('Working / Good');
+    } else {
+      setLocationId(asset?.CurrentLocationID || 'LOC-0001');
+      setReason(asset?.CurrentUserID ? 'Employee Handover / Device Swap' : 'New Equipment Handover to Staff');
+      setConditionWhenAssigned('Good');
     }
-  }, [asset, isOpen]);
+  };
+
+  const handleSelectAsset = (newAssetId) => {
+    setChosenAssetId(newAssetId);
+    const selected = assetService.getAssetById(newAssetId);
+    if (selected) {
+      if (mode === 'return') {
+        setLocationId('LOC-0004');
+        setReason('Equipment Removed / Replaced - Returned to Storage (Available)');
+      } else {
+        setLocationId(selected.CurrentLocationID || 'LOC-0001');
+        setReason(selected.CurrentUserID ? 'Employee Handover / Device Swap' : 'New Equipment Handover to Staff');
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -59,32 +98,37 @@ export default function ReassignModal({ assetId, isOpen, onClose, onCompleted })
       return;
     }
 
-    if (mode === 'reassign') {
-      if (!toUserId) {
-        alert('Please select a recipient employee for handover.');
-        return;
+    try {
+      if (mode === 'reassign') {
+        if (!toUserId) {
+          alert('Please select a recipient employee for handover.');
+          return;
+        }
+        await assignmentService.reassignAsset({
+          assetId: asset.AssetID,
+          toUserId,
+          locationId,
+          reason,
+          conditionWhenAssigned,
+          conditionWhenReturned,
+          notes
+        });
+      } else {
+        await assignmentService.returnAsset({
+          assetId: asset.AssetID,
+          locationId: locationId || 'LOC-0004',
+          reason: reason || 'Equipment Removed - Returned to Storage (Available)',
+          conditionWhenReturned: conditionWhenReturned || 'Working / Good',
+          notes
+        });
       }
-      await assignmentService.reassignAsset({
-        assetId: asset.AssetID,
-        toUserId,
-        locationId,
-        reason,
-        conditionWhenAssigned,
-        conditionWhenReturned,
-        notes
-      });
-    } else {
-      await assignmentService.returnAsset({
-        assetId: asset.AssetID,
-        locationId,
-        reason: reason || 'Returned to Office Storage',
-        conditionWhenReturned,
-        notes
-      });
-    }
 
-    if (onCompleted) onCompleted();
-    onClose();
+      if (onCompleted) onCompleted();
+      onClose();
+    } catch (err) {
+      console.error('Error during custody handover / return:', err);
+      alert('Failed to process custody change: ' + err.message);
+    }
   };
 
   return (
@@ -111,7 +155,7 @@ export default function ReassignModal({ assetId, isOpen, onClose, onCompleted })
                 required
                 className="form-input font-medium"
                 value={chosenAssetId}
-                onChange={e => setChosenAssetId(e.target.value)}
+                onChange={e => handleSelectAsset(e.target.value)}
               >
                 <optgroup label="📦 Available in Storage (Ready to Hand Over)">
                   {availableAssets.map(a => (
@@ -159,17 +203,26 @@ export default function ReassignModal({ assetId, isOpen, onClose, onCompleted })
               <button
                 type="button"
                 className={`action-toggle-btn ${mode === 'reassign' ? 'active' : ''}`}
-                onClick={() => setMode('reassign')}
+                onClick={() => handleSwitchMode('reassign')}
               >
                 <UserCheck size={16} /> Reassign / Hand Over to Employee
               </button>
               <button
                 type="button"
                 className={`action-toggle-btn ${mode === 'return' ? 'active' : ''}`}
-                onClick={() => setMode('return')}
+                onClick={() => handleSwitchMode('return')}
               >
-                <CornerDownLeft size={16} /> Return to Storage / Stock
+                <CornerDownLeft size={16} /> Return to Storage (Make Available)
               </button>
+            </div>
+          )}
+
+          {mode === 'return' && asset && (
+            <div className="p-3 my-3 rounded-lg border border-cyan/30 bg-cyan/10 text-xs leading-relaxed text-primary">
+              <span className="font-semibold text-cyan">ℹ️ Return to Inventory Workflow:</span>
+              <p className="mt-1">
+                This machine will be removed from <strong>{asset.AssignedUserName}</strong> and placed back into <strong>Available Inventory</strong> so you can assign it to any new person. A permanent handover log will be sealed in <strong>{asset.AssignedUserName}</strong>'s profile under <em>Assignment History & Audit Trail</em> with today's return date.
+              </p>
             </div>
           )}
 
@@ -214,36 +267,48 @@ export default function ReassignModal({ assetId, isOpen, onClose, onCompleted })
             </div>
 
             <div className="form-group">
-              <label>Equipment Condition When Handed Over</label>
-              <select
-                className="form-input"
-                value={conditionWhenAssigned}
-                onChange={e => setConditionWhenAssigned(e.target.value)}
-              >
-                <option value="Brand New">Brand New (Unboxed)</option>
-                <option value="Good">Good / Working Perfectly</option>
-                <option value="Fair">Fair / Minor Cosmetic Wear</option>
-              </select>
+              <label>{mode === 'return' ? 'Equipment Condition When Returned' : 'Equipment Condition When Handed Over'}</label>
+              {mode === 'return' ? (
+                <select
+                  className="form-input"
+                  value={conditionWhenReturned}
+                  onChange={e => setConditionWhenReturned(e.target.value)}
+                >
+                  <option value="Working / Good">Good / Working Perfectly (Ready to Reassign)</option>
+                  <option value="Fair / Cosmetic Wear">Fair / Minor Cosmetic Wear (Usable)</option>
+                  <option value="Defective / Needs Repair">Defective / Faulty (Send to Repair)</option>
+                </select>
+              ) : (
+                <select
+                  className="form-input"
+                  value={conditionWhenAssigned}
+                  onChange={e => setConditionWhenAssigned(e.target.value)}
+                >
+                  <option value="Brand New">Brand New (Unboxed)</option>
+                  <option value="Good">Good / Working Perfectly</option>
+                  <option value="Fair">Fair / Minor Cosmetic Wear</option>
+                </select>
+              )}
             </div>
 
             <div className="form-group col-span-2">
-              <label>Reason / Purpose of Handover *</label>
+              <label>Reason / Purpose of {mode === 'return' ? 'Return' : 'Handover'} *</label>
               <input
                 type="text"
                 required
                 className="form-input"
-                placeholder="e.g. User has no mouse, issued new optical USB mouse or New Desk Setup"
+                placeholder={mode === 'return' ? "e.g. Desktop upgraded to new machine, old unit returned to stock" : "e.g. User has no mouse, issued new optical USB mouse or New Desk Setup"}
                 value={reason}
                 onChange={e => setReason(e.target.value)}
               />
             </div>
 
             <div className="form-group col-span-2">
-              <label>Handover Remarks & Serial Notes</label>
+              <label>{mode === 'return' ? 'Return Remarks & Storage Notes' : 'Handover Remarks & Serial Notes'}</label>
               <textarea
                 className="form-textarea"
                 rows="2"
-                placeholder="e.g. Handed over USB mouse to Mr. Nethusha for daily office use."
+                placeholder={mode === 'return' ? "e.g. Removed desktop from Ishara's desk. Cleaned and kept in IT Storage shelf B, available for reassignment." : "e.g. Handed over USB mouse to Mr. Nethusha for daily office use."}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
               ></textarea>
@@ -255,8 +320,11 @@ export default function ReassignModal({ assetId, isOpen, onClose, onCompleted })
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              <UserCheck size={16} /> 
-              {mode === 'reassign' ? 'Confirm Custody Handover' : 'Return to Storage'}
+              {mode === 'reassign' ? (
+                <><UserCheck size={16} /> Confirm Custody Handover</>
+              ) : (
+                <><CornerDownLeft size={16} /> Return to Storage & Make Available</>
+              )}
             </button>
           </div>
         </form>

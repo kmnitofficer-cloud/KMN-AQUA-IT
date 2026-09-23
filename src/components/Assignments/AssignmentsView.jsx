@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { History, Search, RefreshCw, Filter, CheckCircle2, User, Laptop } from 'lucide-react';
+import { History, Search, RefreshCw, Filter, CheckCircle2, User, Laptop, CornerDownLeft } from 'lucide-react';
 import { assignmentService } from '../../services/assignmentService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 import ReassignModal from './ReassignModal';
@@ -8,6 +8,7 @@ export default function AssignmentsView() {
   const [filter, setFilter] = useState('All'); // 'All', 'Current', 'Returned'
   const [search, setSearch] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [reassignMode, setReassignMode] = useState('reassign');
   const [isReassignOpen, setIsReassignOpen] = useState(false);
 
   const assignments = assignmentService.getAssignments();
@@ -29,6 +30,13 @@ export default function AssignmentsView() {
 
   const handleOpenReassign = (assetId) => {
     setSelectedAssetId(assetId);
+    setReassignMode('reassign');
+    setIsReassignOpen(true);
+  };
+
+  const handleOpenReturn = (assetId) => {
+    setSelectedAssetId(assetId);
+    setReassignMode('return');
     setIsReassignOpen(true);
   };
 
@@ -148,12 +156,22 @@ export default function AssignmentsView() {
                     </td>
                     <td className="text-right">
                       {asgn.AssignmentStatus === 'Current' && (
-                        <button
-                          className="btn btn-outline btn-xs"
-                          onClick={() => handleOpenReassign(asgn.AssetID)}
-                        >
-                          <RefreshCw size={12} /> Reassign
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            className="btn btn-outline btn-xs flex items-center gap-1 text-cyan hover:bg-cyan/10"
+                            onClick={() => handleOpenReturn(asgn.AssetID)}
+                            title="Return device to storage & make available for new staff"
+                          >
+                            <CornerDownLeft size={12} /> Return
+                          </button>
+                          <button
+                            className="btn btn-outline btn-xs flex items-center gap-1"
+                            onClick={() => handleOpenReassign(asgn.AssetID)}
+                            title="Transfer custody to another employee"
+                          >
+                            <RefreshCw size={12} /> Reassign
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -167,6 +185,7 @@ export default function AssignmentsView() {
       {/* Reassign Modal */}
       <ReassignModal
         assetId={selectedAssetId}
+        initialMode={reassignMode}
         isOpen={isReassignOpen}
         onClose={() => setIsReassignOpen(false)}
       />
