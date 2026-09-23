@@ -18,6 +18,10 @@ const TABLE_NAMES = [
   'Invoices',
   'Suppliers',
   'CCTVBills',
+  'ACUnits',
+  'ACServices',
+  'ACRepairs',
+  'ACReplacements',
   'LegacyRawImport'
 ];
 
@@ -94,7 +98,10 @@ class DBRepository {
   validateAndNormalize(db) {
     const normalized = {};
     TABLE_NAMES.forEach(table => {
-      const rawRecords = Array.isArray(db[table]) ? db[table] : [];
+      let rawRecords = Array.isArray(db[table]) ? db[table] : [];
+      if ((!rawRecords || rawRecords.length === 0) && relationalDatabaseSeed[table]?.length > 0) {
+        rawRecords = relationalDatabaseSeed[table];
+      }
       normalized[table] = rawRecords.map(r => {
         if (!r || typeof r !== 'object') return r;
         const copy = { ...r };

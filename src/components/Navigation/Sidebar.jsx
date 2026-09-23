@@ -13,6 +13,7 @@ import {
   MapPin, 
   Database,
   Cctv,
+  Wind,
   X
 } from 'lucide-react';
 
@@ -36,6 +37,7 @@ export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
     {
       title: 'MAINTENANCE & FINANCIALS',
       items: [
+        { id: 'ac', label: 'AC & Floor Plan', icon: Wind },
         { id: 'repairs', label: 'Repairs & Services', icon: Wrench },
         { id: 'parts', label: 'Part Replacements', icon: Cpu },
         { id: 'cctv', label: 'CCTV Surveillance', icon: Cctv },

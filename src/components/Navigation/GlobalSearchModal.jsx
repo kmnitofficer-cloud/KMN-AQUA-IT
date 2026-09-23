@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, User, Laptop, Printer, FileText, Wrench, Cctv, ArrowRight } from 'lucide-react';
+import { Search, X, User, Laptop, Printer, FileText, Wrench, Cctv, Wind, ArrowRight } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
 import { invoiceService } from '../../services/invoiceService';
 import { printerService } from '../../services/printerService';
 import { repairService } from '../../services/repairService';
 import { cctvService } from '../../services/cctvService';
+import { acService } from '../../services/acService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 
 export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
@@ -16,7 +17,8 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
     printers: [],
     invoices: [],
     repairs: [],
-    cctv: []
+    cctv: [],
+    ac: []
   });
 
   useEffect(() => {
@@ -91,13 +93,24 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
       (b.BillCategory && b.BillCategory.toLowerCase().includes(q))
     ).slice(0, 5);
 
+    // 7. AC Units
+    const allAC = acService.getACUnits();
+    const matchedAC = allAC.filter(u =>
+      (u.UnitCode && u.UnitCode.toLowerCase().includes(q)) ||
+      (u.RoomName && u.RoomName.toLowerCase().includes(q)) ||
+      (u.Brand && u.Brand.toLowerCase().includes(q)) ||
+      (u.Model && u.Model.toLowerCase().includes(q)) ||
+      (u.Floor && u.Floor.toLowerCase().includes(q))
+    ).slice(0, 5);
+
     setResults({
       users: matchedUsers,
       assets: matchedAssets,
       printers: matchedPrinters,
       invoices: matchedInvoices,
       repairs: matchedRepairs,
-      cctv: matchedCctv
+      cctv: matchedCctv,
+      ac: matchedAC
     });
   }, [query]);
 
@@ -109,7 +122,8 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
     results.printers.length +
     results.invoices.length +
     results.repairs.length +
-    results.cctv.length;
+    results.cctv.length +
+    results.ac.length;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -287,6 +301,32 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
                         </span>
                         <span className="search-item-secondary">
                           Rs. {Number(b.Amount).toLocaleString()} • {b.BillCategory} • {formatDisplayDate(b.BillDate)} • {b.Description}
+                        </span>
+                      </div>
+                      <ArrowRight size={14} className="search-item-arrow" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* AC Units & Floor Plan */}
+              {results.ac.length > 0 && (
+                <div className="search-group">
+                  <div className="search-group-title">
+                    <Wind size={14} /> AC Units & Floor Plan ({results.ac.length})
+                  </div>
+                  {results.ac.map(u => (
+                    <div
+                      key={u.UnitID}
+                      className="search-item"
+                      onClick={() => { onSelectEntity('ac', u.UnitID); onClose(); }}
+                    >
+                      <div className="search-item-info">
+                        <span className="search-item-primary">
+                          [{u.UnitCode}] {u.Brand} {u.Model} ({u.Status})
+                        </span>
+                        <span className="search-item-secondary">
+                          📍 {u.RoomName} • {u.Floor} • {u.CapacityBTU} • LKR {Number(u.PurchasePrice || 0).toLocaleString()}
                         </span>
                       </div>
                       <ArrowRight size={14} className="search-item-arrow" />
