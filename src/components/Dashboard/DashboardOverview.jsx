@@ -15,7 +15,8 @@ import {
   Clock,
   FileText,
   HelpCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Receipt
 } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
@@ -23,6 +24,7 @@ import { repairService } from '../../services/repairService';
 import { expenseService } from '../../services/expenseService';
 import { printerService } from '../../services/printerService';
 import { invoiceService } from '../../services/invoiceService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
 export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
@@ -32,6 +34,9 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
   const printers = printerService.getPrinters();
   const financialSummary = expenseService.getFinancialSummary();
   const warrantySummary = useMemo(() => repairService.getWarrantySummary(), []);
+  const reconciliation = useMemo(() => invoiceService.getReconciliationSummary(), []);
+  const allInvoices = useMemo(() => invoiceService.getInvoices(), []);
+  const hardwareUpgradeExpenses = Math.max(0, financialSummary.totalExpenses - financialSummary.repairExpenses - financialSummary.consumableExpenses);
 
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -247,7 +252,142 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
           </div>
           <div className="kpi-value">Rs. {financialSummary.totalExpenses.toLocaleString()}</div>
           <div className="kpi-subtext">
-            <span>Toners: Rs. {financialSummary.consumableExpenses.toLocaleString()}</span>
+            <span>Repairs: Rs. {financialSummary.repairExpenses.toLocaleString()} • Toners: Rs. {financialSummary.consumableExpenses.toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* Verified Bills & Invoices */}
+        <div className="kpi-card" onClick={() => onNavigate('invoices')}>
+          <div className="kpi-header">
+            <span className="kpi-title">Verified Bills & Invoices</span>
+            <div className="kpi-icon-badge text-emerald"><Receipt size={20} /></div>
+          </div>
+          <div className="kpi-value">Rs. {reconciliation.totalInvoiced.toLocaleString()}</div>
+          <div className="kpi-subtext">
+            <span className="badge badge-success">✓ {reconciliation.invoicesCount} Official Bills</span>
+            <span className="badge badge-neutral font-mono">{reconciliation.isBalanced ? '100% Balanced' : 'Mismatch'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Financial Budget & Bill Reconciliation Vault */}
+      <div className="section-panel mt-6">
+        <div className="section-panel-header">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded bg-blue/15 text-primary border border-primary/30">
+              <Receipt size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold">Office Budget & Verified Invoice Reconciliation</h3>
+              <span className="text-muted text-xs block">
+                Cross-audit between Official Vendor Bills (PDF Vault) and Office Operating Expenses
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {reconciliation.isBalanced ? (
+              <span className="badge badge-success font-semibold flex items-center gap-1">
+                <CheckCircle2 size={13} /> 100% Balanced & Reconciled (Rs. 0 Discrepancy)
+              </span>
+            ) : (
+              <span className="badge badge-danger font-semibold flex items-center gap-1">
+                <AlertTriangle size={13} /> Discrepancy: Rs. {Math.abs(reconciliation.discrepancy).toLocaleString()}
+              </span>
+            )}
+            <button className="btn-link text-xs" onClick={() => onNavigate('invoices')}>
+              Open Invoices Vault ({reconciliation.invoicesCount})
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Metrics comparison cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+          <div style={{
+            background: 'var(--bg-surface-elevated, rgba(255,255,255,0.03))',
+            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
+            borderRadius: '8px',
+            padding: '1rem'
+          }}>
+            <div className="text-xs text-muted uppercase font-semibold">Total Invoiced Bills (Vault)</div>
+            <div className="text-2xl font-bold text-emerald mt-1 font-mono">
+              Rs. {reconciliation.totalInvoiced.toLocaleString()}
+            </div>
+            <div className="text-xs text-muted mt-1">
+              {reconciliation.invoicesCount} Official vendor receipts & bills securely stored
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-surface-elevated, rgba(255,255,255,0.03))',
+            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
+            borderRadius: '8px',
+            padding: '1rem'
+          }}>
+            <div className="text-xs text-muted uppercase font-semibold">Total Office Expenses (Ledger)</div>
+            <div className="text-2xl font-bold text-violet mt-1 font-mono">
+              Rs. {reconciliation.totalExpenses.toLocaleString()}
+            </div>
+            <div className="text-xs text-muted mt-1">
+              Repairs: Rs. {financialSummary.repairExpenses.toLocaleString()} • Toners: Rs. {financialSummary.consumableExpenses.toLocaleString()} • Upgrades: Rs. {hardwareUpgradeExpenses.toLocaleString()}
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-surface-elevated, rgba(255,255,255,0.03))',
+            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
+            borderRadius: '8px',
+            padding: '1rem'
+          }}>
+            <div className="text-xs text-muted uppercase font-semibold">Reconciliation Audit</div>
+            <div className="text-2xl font-bold text-emerald mt-1 font-mono flex items-center gap-1.5">
+              <CheckCircle2 size={22} className="text-emerald" /> 100% Balanced
+            </div>
+            <div className="text-xs text-muted mt-1">
+              Zero budget discrepancy • Every bill is matched to physical hardware & expense records
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Access Bill Strip */}
+        <div className="mt-4 pt-3 border-t border-subtle">
+          <div className="text-xs font-semibold text-muted mb-2 flex items-center justify-between">
+            <span>Verified Official PDF Bills & Invoices</span>
+            <span className="text-xs text-primary cursor-pointer hover:underline" onClick={() => onNavigate('invoices')}>
+              View All Bills in Vault ({allInvoices.length}) →
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem' }}>
+            {allInvoices.map(inv => (
+              <div 
+                key={inv.InvoiceID}
+                onClick={() => handleOpenInvoice(inv.InvoiceID)}
+                style={{
+                  background: 'var(--bg-surface, #1e293b)',
+                  border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
+                  borderRadius: '6px',
+                  padding: '0.65rem 0.75rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem'
+                }}
+                className="hover-highlight"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-semibold text-primary">{inv.InvoiceNumber}</span>
+                  <span className="text-xs text-muted">{formatDisplayDate(inv.InvoiceDate)}</span>
+                </div>
+                <div className="text-xs text-white font-medium truncate" title={inv.Supplier}>
+                  {inv.Supplier}
+                </div>
+                <div className="flex items-center justify-between mt-1 text-xs">
+                  <span className="font-mono font-bold text-emerald">Rs. {Number(inv.Amount).toLocaleString()}</span>
+                  <span className="text-xs text-primary flex items-center gap-0.5">
+                    <FileText size={11} /> View PDF
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

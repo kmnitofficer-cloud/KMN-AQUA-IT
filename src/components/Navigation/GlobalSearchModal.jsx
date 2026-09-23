@@ -5,6 +5,7 @@ import { userService } from '../../services/userService';
 import { invoiceService } from '../../services/invoiceService';
 import { printerService } from '../../services/printerService';
 import { repairService } from '../../services/repairService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 
 export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
   const [query, setQuery] = useState('');
@@ -221,7 +222,7 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
                       <div className="search-item-info">
                         <span className="search-item-primary">{i.InvoiceNumber} - {i.Supplier}</span>
                         <span className="search-item-secondary">
-                          Rs. {Number(i.Amount).toLocaleString()} • {i.InvoiceDate} • {i.Description}
+                          Rs. {Number(i.Amount).toLocaleString()} • {formatDisplayDate(i.InvoiceDate)} • {i.Description}
                         </span>
                       </div>
                       <ArrowRight size={14} className="search-item-arrow" />
@@ -245,7 +246,7 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
                       <div className="search-item-info">
                         <span className="search-item-primary">{r.ProblemDescription}</span>
                         <span className="search-item-secondary">
-                          {r.RepairSupplier} • Rs. {Number(r.RepairCost).toLocaleString()} • {r.RepairDate} • {r.Status}
+                          {r.RepairSupplier} • Rs. {Number(r.RepairCost).toLocaleString()} • {formatDisplayDate(r.RepairDate)} • {r.Status}
                         </span>
                       </div>
                       <ArrowRight size={14} className="search-item-arrow" />

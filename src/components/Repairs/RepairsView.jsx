@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { repairService } from '../../services/repairService';
 import { invoiceService } from '../../services/invoiceService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import RepairModal from './RepairModal';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
@@ -175,7 +176,7 @@ export default function RepairsView({ onOpenAsset: _onOpenAsset }) {
                   return (
                     <tr key={r.RepairID}>
                       <td><span className="id-pill">{r.RepairID}</span></td>
-                      <td className="whitespace-nowrap">{r.RepairDate}</td>
+                      <td className="whitespace-nowrap"><span className="font-mono text-sm">{formatDisplayDate(r.RepairDate)}</span></td>
                       <td>
                         <div>
                           <span className="font-semibold text-primary">{r.Brand} {r.Model}</span>

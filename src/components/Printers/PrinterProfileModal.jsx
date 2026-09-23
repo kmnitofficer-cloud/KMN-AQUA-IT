@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Printer, DollarSign, Clock, Wrench, FileText, Wifi, Plus } from 'lucide-react';
 import { printerService } from '../../services/printerService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import TonerModal from './TonerModal';
 
 export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogRepair }) {
@@ -142,7 +143,7 @@ export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogR
                 <tbody>
                   {tonerHistory.map(t => (
                     <tr key={t.TransactionID}>
-                      <td>{t.Date}</td>
+                      <td><span className="font-mono text-xs">{formatDisplayDate(t.Date)}</span></td>
                       <td><strong>{t.ConsumableType}</strong></td>
                       <td>{t.Model}</td>
                       <td>{t.Quantity}</td>

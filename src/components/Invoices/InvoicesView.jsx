@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Upload, Search, Download, Eye, ExternalLink } from 'lucide-react';
 import { invoiceService } from '../../services/invoiceService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import InvoiceViewerModal from './InvoiceViewerModal';
 import InvoiceUploadModal from './InvoiceUploadModal';
 
@@ -101,7 +102,7 @@ export default function InvoicesView() {
                         <span className="font-semibold text-primary font-mono">{inv.InvoiceNumber}</span>
                       </div>
                     </td>
-                    <td>{inv.InvoiceDate}</td>
+                    <td><span className="font-mono text-sm">{formatDisplayDate(inv.InvoiceDate)}</span></td>
                     <td><strong>{inv.Supplier}</strong></td>
                     <td><span className="text-sm">{inv.Description}</span></td>
                     <td>

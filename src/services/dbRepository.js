@@ -1,4 +1,5 @@
 import { relationalDatabaseSeed } from '../data/relationalDatabaseSeed';
+import { parseExcelDate } from '../utils/dateUtils';
 import * as XLSX from 'xlsx';
 
 const STORAGE_KEY = 'kmn_relational_excel_db';
@@ -83,7 +84,19 @@ class DBRepository {
   validateAndNormalize(db) {
     const normalized = {};
     TABLE_NAMES.forEach(table => {
-      normalized[table] = Array.isArray(db[table]) ? db[table] : [];
+      const rawRecords = Array.isArray(db[table]) ? db[table] : [];
+      normalized[table] = rawRecords.map(r => {
+        if (!r || typeof r !== 'object') return r;
+        const copy = { ...r };
+        for (const k of Object.keys(copy)) {
+          if (k.toLowerCase().includes('date') || k === 'Date') {
+            if (copy[k] !== '' && copy[k] !== null && copy[k] !== undefined) {
+              copy[k] = parseExcelDate(copy[k]);
+            }
+          }
+        }
+        return copy;
+      });
     });
 
     // Automatically cleanse any legacy 'NONE' brand/model records

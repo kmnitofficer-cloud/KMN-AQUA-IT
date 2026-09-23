@@ -1,15 +1,41 @@
 import React, { useState } from 'react';
 import { DollarSign, Plus, Search, Filter, FileText } from 'lucide-react';
 import { expenseService } from '../../services/expenseService';
+import { invoiceService } from '../../services/invoiceService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import ExpenseModal from './ExpenseModal';
+import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
 export default function ExpensesView() {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const expenses = expenseService.getExpenses(filter);
   const summary = expenseService.getFinancialSummary();
+
+  const handleOpenInvoice = (invRef) => {
+    if (!invRef) return;
+    const allInvoices = invoiceService.getInvoices();
+    const inv = allInvoices.find(i => i.InvoiceID === invRef || i.InvoiceNumber === invRef);
+    if (inv) {
+      setSelectedInvoice(inv);
+    } else {
+      setSelectedInvoice({
+        InvoiceID: invRef,
+        InvoiceNumber: invRef,
+        Supplier: 'Vendor',
+        Amount: 0,
+        InvoiceDate: '2026-09-01',
+        FileName: `${invRef}.pdf`,
+        FilePath: `/invoices/${invRef}.pdf`,
+        Description: `Invoice Reference ${invRef}`
+      });
+    }
+    setIsInvoiceModalOpen(true);
+  };
 
   const filteredExpenses = expenses.filter(e => {
     const q = search.toLowerCase();
@@ -118,7 +144,7 @@ export default function ExpensesView() {
                 filteredExpenses.map(e => (
                   <tr key={e.ExpenseID}>
                     <td><span className="id-pill">{e.ExpenseID}</span></td>
-                    <td>{e.ExpenseDate}</td>
+                    <td><span className="font-mono text-sm">{formatDisplayDate(e.ExpenseDate)}</span></td>
                     <td><span className="type-badge">{e.ExpenseType}</span></td>
                     <td><strong className="text-primary">{e.Description}</strong></td>
                     <td>
@@ -136,8 +162,15 @@ export default function ExpensesView() {
                     <td><span className="text-xs">{e.PaymentMethod}</span></td>
                     <td><strong className="text-emerald">Rs. {Number(e.Amount).toLocaleString()}</strong></td>
                     <td>
-                      {e.InvoiceNumber ? (
-                        <span className="tag-pill font-mono text-xs">{e.InvoiceNumber}</span>
+                      {e.InvoiceNumber || e.InvoiceID ? (
+                        <button 
+                          type="button" 
+                          className="invoice-clickable-btn"
+                          title="View Verified PDF Bill / Invoice"
+                          onClick={() => handleOpenInvoice(e.InvoiceNumber || e.InvoiceID)}
+                        >
+                          <FileText size={12} /> {e.InvoiceNumber || e.InvoiceID}
+                        </button>
                       ) : (
                         <span className="text-muted text-xs">N/A</span>
                       )}
@@ -154,6 +187,13 @@ export default function ExpensesView() {
       <ExpenseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* Invoice Viewer Modal */}
+      <InvoiceViewerModal
+        invoice={selectedInvoice}
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
       />
     </div>
   );

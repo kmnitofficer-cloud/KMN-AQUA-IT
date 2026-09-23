@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { History, Search, RefreshCw, Filter, CheckCircle2, User, Laptop } from 'lucide-react';
 import { assignmentService } from '../../services/assignmentService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import ReassignModal from './ReassignModal';
 
 export default function AssignmentsView() {
@@ -125,10 +126,10 @@ export default function AssignmentsView() {
                       <span className="font-medium text-primary">{asgn.UserName}</span>
                     </td>
                     <td><span className="location-pill">{asgn.LocationName}</span></td>
-                    <td>{asgn.AssignedDate || 'N/A'}</td>
+                    <td><span className="font-mono text-xs">{formatDisplayDate(asgn.AssignedDate)}</span></td>
                     <td>
                       {asgn.ReturnedDate ? (
-                        <span className="text-muted">{asgn.ReturnedDate}</span>
+                        <span className="text-muted font-mono text-xs">{formatDisplayDate(asgn.ReturnedDate)}</span>
                       ) : (
                         <span className="badge badge-success">Currently Held</span>
                       )}

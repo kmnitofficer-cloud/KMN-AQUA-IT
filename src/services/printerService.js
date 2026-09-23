@@ -96,36 +96,82 @@ export const printerService = {
     model = 'Cartridge 337',
     quantity = 1,
     unitCost = 0,
+    date = '',
     supplier = 'KMN IT Solution',
     installedBy = 'IT Support',
     notes = '',
+    selectedInvoiceId = '',
     invoiceNumber = '',
-    invoiceFile = null
+    invoiceFile = null,
+    invoiceAmount = null
   }) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = date || new Date().toISOString().split('T')[0];
     const consumables = dbRepository.getTable('Consumables');
     const expenses = dbRepository.getTable('Expenses');
     const invoices = dbRepository.getTable('Invoices');
 
     const totalCost = Number(unitCost) * Number(quantity);
 
-    // 1. Create Invoice if invoice number / file provided
-    let invoiceId = '';
-    if (invoiceNumber || invoiceFile) {
-      invoiceId = `INV-${String(invoices.length + 1).padStart(4, '0')}`;
+    // 1. Resolve or Create Invoice
+    let invoiceId = selectedInvoiceId || '';
+
+    if (!invoiceId && invoiceFile) {
+      invoiceId = dbRepository.getNextId('Invoices', 'INV-', 'InvoiceID');
+      const safeName = invoiceFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const newInvoice = {
         InvoiceID: invoiceId,
-        InvoiceNumber: invoiceNumber || `INV-${Date.now().toString().slice(-4)}`,
+        InvoiceNumber: invoiceNumber || safeName.replace(/\.[^/.]+$/, '').slice(0, 20),
         InvoiceDate: today,
         Supplier: supplier,
-        Amount: totalCost,
+        Amount: invoiceAmount !== null && invoiceAmount !== undefined ? Number(invoiceAmount) : totalCost,
         AssetID: printerAssetId,
         UserID: '',
         PrinterAssetID: printerAssetId,
         ExpenseID: '',
-        FileName: invoiceFile ? invoiceFile.name : `Invoice_${invoiceNumber || invoiceId}.pdf`,
-        FilePath: invoiceFile ? `/invoices/${invoiceFile.name}` : '',
-        FileSize: '120 KB',
+        FileName: safeName,
+        FilePath: `/invoices/${safeName}`,
+        FileSize: `${Math.round(invoiceFile.size / 1024)} KB`,
+        UploadDate: today,
+        Description: `${consumableType} for printer`
+      };
+
+      // Upload file to disk if possible
+      try {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            await fetch('/api/invoices/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                filename: safeName,
+                base64Data: reader.result,
+                invoiceData: newInvoice
+              })
+            });
+          } catch (e) {
+            console.warn('Could not post invoice to backend:', e.message);
+          }
+        };
+        reader.readAsDataURL(invoiceFile);
+      } catch (e) {}
+
+      await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
+    } else if (!invoiceId && invoiceNumber) {
+      invoiceId = dbRepository.getNextId('Invoices', 'INV-', 'InvoiceID');
+      const newInvoice = {
+        InvoiceID: invoiceId,
+        InvoiceNumber: invoiceNumber,
+        InvoiceDate: today,
+        Supplier: supplier,
+        Amount: invoiceAmount !== null && invoiceAmount !== undefined ? Number(invoiceAmount) : totalCost,
+        AssetID: printerAssetId,
+        UserID: '',
+        PrinterAssetID: printerAssetId,
+        ExpenseID: '',
+        FileName: `Invoice_${invoiceNumber}.pdf`,
+        FilePath: '',
+        FileSize: 'N/A',
         UploadDate: today,
         Description: `${consumableType} for printer`
       };
@@ -133,9 +179,9 @@ export const printerService = {
     }
 
     // 2. Create Consumable record
-    const nextCsmNum = consumables.length + 1;
+    const newCsmId = dbRepository.getNextId('Consumables', 'CSM-', 'TransactionID');
     const newTransaction = {
-      TransactionID: `CSM-${String(nextCsmNum).padStart(4, '0')}`,
+      TransactionID: newCsmId,
       PrinterAssetID: printerAssetId,
       ConsumableType: consumableType,
       Brand: brand,
@@ -153,9 +199,9 @@ export const printerService = {
 
     // 3. Create Expense record
     if (totalCost > 0) {
-      const nextExpNum = expenses.length + 1;
+      const newExpId = dbRepository.getNextId('Expenses', 'EXP-', 'ExpenseID');
       const newExpense = {
-        ExpenseID: `EXP-${String(nextExpNum).padStart(4, '0')}`,
+        ExpenseID: newExpId,
         ExpenseDate: today,
         ExpenseType: 'Consumable / Toner',
         AssetID: printerAssetId,

@@ -30,6 +30,56 @@ function ensureDirectories() {
   if (!fs.existsSync(INVOICE_DIR)) fs.mkdirSync(INVOICE_DIR, { recursive: true });
 }
 
+function parseExcelDate(val) {
+  if (val === null || val === undefined || val === '') return '';
+  if (typeof val === 'number') {
+    if (isNaN(val) || val <= 0) return '';
+    const epoch = new Date(Date.UTC(1899, 11, 30));
+    const msPerDay = 86400 * 1000;
+    const dateObj = new Date(epoch.getTime() + val * msPerDay);
+    return dateObj.toISOString().split('T')[0];
+  }
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? '' : val.toISOString().split('T')[0];
+  }
+  const str = String(val).trim();
+  if (/^\d{5}$/.test(str)) {
+    const num = parseInt(str, 10);
+    const epoch = new Date(Date.UTC(1899, 11, 30));
+    const msPerDay = 86400 * 1000;
+    const dateObj = new Date(epoch.getTime() + num * msPerDay);
+    return dateObj.toISOString().split('T')[0];
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return str.substring(0, 10);
+  }
+  const parts = str.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+  if (parts) {
+    const day = parts[1].padStart(2, '0');
+    const month = parts[2].padStart(2, '0');
+    const year = parts[3];
+    return `${year}-${month}-${day}`;
+  }
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed)) {
+    return new Date(parsed).toISOString().split('T')[0];
+  }
+  return str;
+}
+
+function normalizeRecordDates(record) {
+  if (!record || typeof record !== 'object') return record;
+  const normalized = { ...record };
+  for (const key of Object.keys(normalized)) {
+    if (key.toLowerCase().includes('date') || key === 'Date') {
+      if (normalized[key] !== '' && normalized[key] !== null && normalized[key] !== undefined) {
+        normalized[key] = parseExcelDate(normalized[key]);
+      }
+    }
+  }
+  return normalized;
+}
+
 function readFullDatabase() {
   ensureDirectories();
   if (!fs.existsSync(DB_PATH)) {
@@ -39,7 +89,8 @@ function readFullDatabase() {
   const result = {};
   TABLE_NAMES.forEach(sheetName => {
     if (wb.Sheets[sheetName]) {
-      result[sheetName] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+      const rawRows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+      result[sheetName] = rawRows.map(normalizeRecordDates);
     } else {
       result[sheetName] = [];
     }

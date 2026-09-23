@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { repairService } from '../../services/repairService';
 import { invoiceService } from '../../services/invoiceService';
+import { formatDisplayDate } from '../../utils/dateUtils';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
 export default function PartsView() {
@@ -157,7 +158,7 @@ export default function PartsView() {
                   return (
                     <tr key={p.PartID}>
                       <td><span className="id-pill">{p.PartID}</span></td>
-                      <td className="whitespace-nowrap">{p.NewPartInstalledDate || p.OldPartRemovedDate}</td>
+                      <td className="whitespace-nowrap"><span className="font-mono text-xs">{formatDisplayDate(p.NewPartInstalledDate || p.OldPartRemovedDate)}</span></td>
                       <td>
                         <div>
                           <span className="font-semibold text-primary">{p.Brand} {p.Model}</span>

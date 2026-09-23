@@ -16,6 +16,9 @@ export default function InvoiceUploadModal({ isOpen, onClose, onSaved }) {
   const [assetId, setAssetId] = useState('');
   const [userId, setUserId] = useState('');
   const [description, setDescription] = useState('');
+  const [createExpense, setCreateExpense] = useState(true);
+  const [expenseType, setExpenseType] = useState('General IT');
+  const [paymentMethod, setPaymentMethod] = useState('Company Cheque');
   const [isUploading, setIsUploading] = useState(false);
 
   if (!isOpen) return null;
@@ -47,7 +50,10 @@ export default function InvoiceUploadModal({ isOpen, onClose, onSaved }) {
         Amount: Number(amount) || 0,
         AssetID: assetId,
         UserID: userId,
-        Description: description
+        Description: description,
+        createMatchingExpense: createExpense,
+        ExpenseType: expenseType,
+        PaymentMethod: paymentMethod
       });
 
       if (onSaved) onSaved();
@@ -187,6 +193,68 @@ export default function InvoiceUploadModal({ isOpen, onClose, onSaved }) {
               value={description}
               onChange={e => setDescription(e.target.value)}
             ></textarea>
+          </div>
+
+          {/* Automatic Expense Synchronization Box */}
+          <div style={{
+            margin: '1rem 0',
+            padding: '0.85rem 1rem',
+            background: 'var(--bg-surface-elevated, rgba(255,255,255,0.03))',
+            border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
+            borderRadius: '8px'
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
+              <input
+                type="checkbox"
+                checked={createExpense}
+                onChange={e => setCreateExpense(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--brand-primary, #3b82f6)' }}
+              />
+              <span className="text-primary">✓ Auto-Record Matching Office Expense</span>
+            </label>
+            <p className="text-xs text-muted" style={{ margin: '0.35rem 0 0 1.6rem' }}>
+              Automatically synchronizes this bill amount (Rs. {Number(amount || 0).toLocaleString()}) with the Office Expenses Ledger to ensure 100% budget match on the Dashboard.
+            </p>
+
+            {createExpense && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '0.75rem',
+                marginTop: '0.75rem',
+                paddingTop: '0.75rem',
+                borderTop: '1px solid var(--border-subtle, rgba(255,255,255,0.08))'
+              }}>
+                <div className="form-group mb-0">
+                  <label className="text-xs font-semibold text-muted">Expense Category</label>
+                  <select
+                    className="form-input text-xs"
+                    value={expenseType}
+                    onChange={e => setExpenseType(e.target.value)}
+                  >
+                    <option value="Consumable / Toner">Printer Consumable / Toner</option>
+                    <option value="Hardware Repair">Hardware Repair & Maintenance</option>
+                    <option value="Hardware Upgrade / Component">Hardware Upgrade (RAM / SSD)</option>
+                    <option value="Purchase">IT Equipment Purchase</option>
+                    <option value="Software / License">Software & Subscriptions</option>
+                    <option value="General IT">General IT Expense</option>
+                  </select>
+                </div>
+                <div className="form-group mb-0">
+                  <label className="text-xs font-semibold text-muted">Payment Method</label>
+                  <select
+                    className="form-input text-xs"
+                    value={paymentMethod}
+                    onChange={e => setPaymentMethod(e.target.value)}
+                  >
+                    <option value="Company Cheque">Company Cheque</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Cash / Petty Cash">Cash / Petty Cash</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-modal-footer">

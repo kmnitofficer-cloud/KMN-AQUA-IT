@@ -68,8 +68,7 @@ export const expenseService = {
 
   async logExpense(expenseData) {
     const expenses = dbRepository.getTable('Expenses');
-    const nextNum = expenses.length + 1;
-    const newId = `EXP-${String(nextNum).padStart(4, '0')}`;
+    const newId = dbRepository.getNextId('Expenses', 'EXP-', 'ExpenseID');
 
     const newExpense = {
       ...expenseData,
