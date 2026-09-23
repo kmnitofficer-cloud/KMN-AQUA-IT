@@ -227,9 +227,18 @@ export const cctvService = {
       const expenses = dbRepository.getTable('Expenses') || [];
       const newExpensesList = [];
 
+      let maxExpNum = 0;
+      expenses.forEach(e => {
+        const m = String(e.ExpenseID || '').match(/(\d+)/);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (num > maxExpNum) maxExpNum = num;
+        }
+      });
+
       if (isSplit) {
         if (chilawAmt > 0) {
-          const expId1 = dbRepository.getNextId('Expenses', 'EXP-', 'ExpenseID');
+          const expId1 = `EXP-${String(maxExpNum + 1).padStart(4, '0')}`;
           newExpensesList.push({
             ExpenseID: expId1,
             ExpenseDate: newBill.BillDate,
@@ -247,7 +256,7 @@ export const cctvService = {
           });
         }
         if (palawiyaAmt > 0) {
-          const expId2 = dbRepository.getNextId('Expenses', 'EXP-', 'ExpenseID');
+          const expId2 = `EXP-${String(maxExpNum + (chilawAmt > 0 ? 2 : 1)).padStart(4, '0')}`;
           newExpensesList.push({
             ExpenseID: expId2,
             ExpenseDate: newBill.BillDate,
@@ -265,7 +274,7 @@ export const cctvService = {
           });
         }
       } else {
-        const expenseId = dbRepository.getNextId('Expenses', 'EXP-', 'ExpenseID');
+        const expenseId = `EXP-${String(maxExpNum + 1).padStart(4, '0')}`;
         newExpensesList.push({
           ExpenseID: expenseId,
           ExpenseDate: newBill.BillDate,
@@ -287,6 +296,26 @@ export const cctvService = {
         await dbRepository.updateTable('Expenses', [...newExpensesList, ...expenses]);
       }
     }
+
+    // Always synchronize into Invoices (Verified Bills Vault)
+    const invoices = dbRepository.getTable('Invoices') || [];
+    const newInvoice = {
+      InvoiceID: newBill.BillID,
+      InvoiceNumber: newBill.BillNumber,
+      InvoiceDate: newBill.BillDate,
+      Supplier: newBill.Supplier,
+      Amount: totalAmt,
+      AssetID: '',
+      UserID: '',
+      PrinterAssetID: '',
+      ExpenseID: newBill.BillID,
+      FileName: fileName,
+      FilePath: filePath,
+      FileSize: fileSize,
+      UploadDate: newBill.BillDate,
+      Description: `[CCTV - ${newBill.Office}] ${newBill.Description}`
+    };
+    await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
 
     await dbRepository.updateTable('CCTVBills', [newBill, ...existingBills]);
     return newBill;
@@ -317,12 +346,36 @@ export const cctvService = {
     });
 
     await dbRepository.updateTable('CCTVBills', updated);
+
+    // Update in Invoices as well
+    const invoices = dbRepository.getTable('Invoices') || [];
+    const updatedInvoices = invoices.map(i => {
+      if (i.InvoiceID === billId) {
+        return {
+          ...i,
+          InvoiceNumber: updatedFields.BillNumber || i.InvoiceNumber,
+          Supplier: updatedFields.Supplier || i.Supplier,
+          Amount: Number(updatedFields.Amount || i.Amount)
+        };
+      }
+      return i;
+    });
+    await dbRepository.updateTable('Invoices', updatedInvoices);
   },
 
   async deleteCCTVBill(billId) {
     const existingBills = dbRepository.getTable('CCTVBills') || [];
     const filtered = existingBills.filter(b => b.BillID !== billId);
     await dbRepository.updateTable('CCTVBills', filtered);
+
+    // Also remove from Invoices and Expenses
+    const invoices = dbRepository.getTable('Invoices') || [];
+    const filteredInvoices = invoices.filter(i => i.InvoiceID !== billId);
+    await dbRepository.updateTable('Invoices', filteredInvoices);
+
+    const expenses = dbRepository.getTable('Expenses') || [];
+    const filteredExpenses = expenses.filter(e => e.InvoiceID !== billId);
+    await dbRepository.updateTable('Expenses', filteredExpenses);
   },
 
   readFileAsBase64(file) {

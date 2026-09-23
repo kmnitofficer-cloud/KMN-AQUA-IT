@@ -2,20 +2,43 @@ import { dbRepository } from './dbRepository';
 
 export const invoiceService = {
   getInvoices() {
-    const invoices = dbRepository.getTable('Invoices');
-    const assets = dbRepository.getTable('Assets');
-    const users = dbRepository.getTable('Users');
+    const invoices = dbRepository.getTable('Invoices') || [];
+    const assets = dbRepository.getTable('Assets') || [];
+    const users = dbRepository.getTable('Users') || [];
+    const cctvBills = dbRepository.getTable('CCTVBills') || [];
 
-    return invoices.map(i => {
+    // Also include any CCTV bills not yet duplicated in Invoices table
+    const cctvInvoices = cctvBills
+      .filter(c => !invoices.some(i => i.InvoiceID === c.BillID || (c.BillNumber && i.InvoiceNumber === c.BillNumber)))
+      .map(c => ({
+        InvoiceID: c.BillID,
+        InvoiceNumber: c.BillNumber,
+        InvoiceDate: c.BillDate,
+        Supplier: c.Supplier,
+        Amount: Number(c.Amount) || 0,
+        AssetID: '',
+        UserID: '',
+        PrinterAssetID: '',
+        ExpenseID: c.BillID,
+        FileName: c.FileName || '',
+        FilePath: c.FilePath || '',
+        FileSize: c.FileSize || '',
+        UploadDate: c.BillDate,
+        Description: `[CCTV - ${c.Office}] ${c.Description}`
+      }));
+
+    const combinedInvoices = [...invoices, ...cctvInvoices];
+
+    return combinedInvoices.map(i => {
       const asset = assets.find(a => a.AssetID === i.AssetID) || {};
       const user = users.find(u => u.UserID === i.UserID) || {};
 
       return {
         ...i,
         Amount: Number(i.Amount) || 0,
-        AssetName: asset.Model || (asset.AssetID ? `${asset.Brand} ${asset.AssetType}` : 'General / None'),
+        AssetName: asset.Model || (asset.AssetID ? `${asset.Brand} ${asset.AssetType}` : (i.Description?.includes('CCTV') ? 'CCTV Surveillance' : 'General / None')),
         AssetVerifiedNo: asset.VerifiedNo || '',
-        UserName: user.Name || 'General Office'
+        UserName: user.Name || (i.Description?.includes('CCTV') ? 'CCTV Security System' : 'General Office')
       };
     }).sort((a, b) => new Date(b.InvoiceDate || 0) - new Date(a.InvoiceDate || 0));
   },
@@ -89,13 +112,17 @@ export const invoiceService = {
 
   getReconciliationSummary() {
     const invoices = this.getInvoices();
-    const expenses = dbRepository.getTable('Expenses');
+    const expenses = dbRepository.getTable('Expenses') || [];
     const totalInvoiced = invoices.reduce((s, i) => s + (Number(i.Amount) || 0), 0);
     const totalExpenses = expenses.reduce((s, e) => s + (Number(e.Amount) || 0), 0);
     const discrepancy = totalInvoiced - totalExpenses;
 
     const matchedInvoicesCount = invoices.filter(i => 
-      expenses.some(e => e.InvoiceID === i.InvoiceID || (i.InvoiceNumber && e.InvoiceID === i.InvoiceNumber))
+      expenses.some(e => 
+        e.InvoiceID === i.InvoiceID || 
+        (i.InvoiceNumber && e.InvoiceID === i.InvoiceNumber) ||
+        (i.InvoiceNumber && e.Description && e.Description.includes(i.InvoiceNumber))
+      )
     ).length;
 
     return {
