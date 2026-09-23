@@ -17,6 +17,7 @@ const TABLE_NAMES = [
   'Expenses',
   'Invoices',
   'Suppliers',
+  'CCTVBills',
   'LegacyRawImport'
 ];
 

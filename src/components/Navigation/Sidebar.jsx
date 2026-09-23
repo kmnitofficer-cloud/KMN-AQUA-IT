@@ -12,6 +12,7 @@ import {
   FileSpreadsheet, 
   MapPin, 
   Database,
+  Cctv,
   X
 } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
       items: [
         { id: 'repairs', label: 'Repairs & Services', icon: Wrench },
         { id: 'parts', label: 'Part Replacements', icon: Cpu },
+        { id: 'cctv', label: 'CCTV Surveillance', icon: Cctv },
         { id: 'expenses', label: 'Office Expenses', icon: DollarSign },
         { id: 'invoices', label: 'Bills & Invoices', icon: FileText }
       ]

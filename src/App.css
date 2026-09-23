@@ -2181,4 +2181,75 @@
   margin-bottom: 0.25rem;
 }
 
+/* ==========================================================
+   CCTV SURVEILLANCE & MULTI-OFFICE BILLS MODULE
+   ========================================================== */
+
+.cctv-office-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.cctv-office-card:hover {
+  border-color: var(--brand-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.office-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-subtle);
+  background-color: var(--bg-surface-elevated);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  width: 100%;
+}
+
+.office-select-btn:hover {
+  border-color: var(--border-strong);
+}
+
+.office-select-btn.active-chilaw {
+  border-color: var(--brand-primary);
+  background-color: var(--brand-glow);
+  color: var(--text-primary);
+}
+
+.office-select-btn.active-chilaw svg {
+  color: var(--brand-primary);
+}
+
+.office-select-btn.active-palawiya {
+  border-color: var(--accent-violet);
+  background-color: var(--accent-violet-bg);
+  color: var(--text-primary);
+}
+
+.office-select-btn.active-palawiya svg {
+  color: var(--accent-violet);
+}
+
+.office-select-btn.active-split {
+  border-color: var(--accent-cyan);
+  background-color: var(--accent-cyan-bg);
+  color: var(--text-primary);
+}
+
+.office-select-btn.active-split svg {
+  color: var(--accent-cyan);
+}
+
+.badge-purple {
+  background-color: var(--accent-violet-bg);
+  color: var(--accent-violet);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
 

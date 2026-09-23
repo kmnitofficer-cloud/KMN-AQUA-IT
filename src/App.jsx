@@ -12,6 +12,7 @@ import AssignmentsView from './components/Assignments/AssignmentsView';
 import PrintersView from './components/Printers/PrintersView';
 import RepairsView from './components/Repairs/RepairsView';
 import PartsView from './components/Repairs/PartsView';
+import CCTVView from './components/CCTV/CCTVView';
 import ExpensesView from './components/Expenses/ExpensesView';
 import InvoicesView from './components/Invoices/InvoicesView';
 import ReportsView from './components/Reports/ReportsView';
@@ -108,6 +109,8 @@ export default function App() {
       setActiveTab('repairs');
     } else if (type === 'invoice') {
       setActiveTab('invoices');
+    } else if (type === 'cctv') {
+      setActiveTab('cctv');
     }
   };
 
@@ -171,6 +174,10 @@ export default function App() {
 
           {activeTab === 'parts' && (
             <PartsView />
+          )}
+
+          {activeTab === 'cctv' && (
+            <CCTVView />
           )}
 
           {activeTab === 'expenses' && (

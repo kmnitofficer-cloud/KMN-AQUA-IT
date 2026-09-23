@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, User, Laptop, Printer, FileText, Wrench, ArrowRight } from 'lucide-react';
+import { Search, X, User, Laptop, Printer, FileText, Wrench, Cctv, ArrowRight } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
 import { invoiceService } from '../../services/invoiceService';
 import { printerService } from '../../services/printerService';
 import { repairService } from '../../services/repairService';
+import { cctvService } from '../../services/cctvService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 
 export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
@@ -14,13 +15,14 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
     assets: [],
     printers: [],
     invoices: [],
-    repairs: []
+    repairs: [],
+    cctv: []
   });
 
   useEffect(() => {
     if (!isOpen) {
       setQuery('');
-      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [] });
+      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [], cctv: [] });
       return;
     }
   }, [isOpen]);
@@ -28,7 +30,7 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
   useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
-      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [] });
+      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [], cctv: [] });
       return;
     }
 
@@ -79,12 +81,23 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
       (r.PartsReplaced && r.PartsReplaced.toLowerCase().includes(q))
     ).slice(0, 5);
 
+    // 6. CCTV Bills
+    const allCctv = cctvService.getCCTVBills('All');
+    const matchedCctv = allCctv.filter(b =>
+      (b.BillNumber && b.BillNumber.toLowerCase().includes(q)) ||
+      (b.Supplier && b.Supplier.toLowerCase().includes(q)) ||
+      (b.Description && b.Description.toLowerCase().includes(q)) ||
+      (b.Office && b.Office.toLowerCase().includes(q)) ||
+      (b.BillCategory && b.BillCategory.toLowerCase().includes(q))
+    ).slice(0, 5);
+
     setResults({
       users: matchedUsers,
       assets: matchedAssets,
       printers: matchedPrinters,
       invoices: matchedInvoices,
-      repairs: matchedRepairs
+      repairs: matchedRepairs,
+      cctv: matchedCctv
     });
   }, [query]);
 
@@ -95,7 +108,8 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
     results.assets.length +
     results.printers.length +
     results.invoices.length +
-    results.repairs.length;
+    results.repairs.length +
+    results.cctv.length;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -247,6 +261,32 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
                         <span className="search-item-primary">{r.ProblemDescription}</span>
                         <span className="search-item-secondary">
                           {r.RepairSupplier} • Rs. {Number(r.RepairCost).toLocaleString()} • {formatDisplayDate(r.RepairDate)} • {r.Status}
+                        </span>
+                      </div>
+                      <ArrowRight size={14} className="search-item-arrow" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* CCTV Bills */}
+              {results.cctv.length > 0 && (
+                <div className="search-group">
+                  <div className="search-group-title">
+                    <Cctv size={14} /> CCTV Surveillance & Bills ({results.cctv.length})
+                  </div>
+                  {results.cctv.map(b => (
+                    <div
+                      key={b.BillID}
+                      className="search-item"
+                      onClick={() => { onSelectEntity('cctv', b.BillID); onClose(); }}
+                    >
+                      <div className="search-item-info">
+                        <span className="search-item-primary">
+                          [{b.Office} CCTV] {b.BillNumber} - {b.Supplier}
+                        </span>
+                        <span className="search-item-secondary">
+                          Rs. {Number(b.Amount).toLocaleString()} • {b.BillCategory} • {formatDisplayDate(b.BillDate)} • {b.Description}
                         </span>
                       </div>
                       <ArrowRight size={14} className="search-item-arrow" />

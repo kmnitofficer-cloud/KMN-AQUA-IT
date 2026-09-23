@@ -5,6 +5,7 @@ import { assignmentService } from './assignmentService';
 import { repairService } from './repairService';
 import { printerService } from './printerService';
 import { expenseService } from './expenseService';
+import { cctvService } from './cctvService';
 
 export const reportService = {
   getAvailableReports() {
@@ -14,6 +15,7 @@ export const reportService = {
       { id: 'assignment_history', name: 'Full Assignment & Chain of Custody History', description: 'Permanent audit trail of all device handovers, returns, and reassignments.' },
       { id: 'repair_costs', name: 'Repair & Maintenance Cost Report', description: 'Detailed breakdown of equipment faults, actions taken, vendors, and repair charges.' },
       { id: 'printer_toner', name: 'Printer Toner & Consumable Expenses', description: 'Toner and ink cartridge consumption, unit prices, and lifetime printer costs.' },
+      { id: 'cctv_bills', name: 'CCTV Surveillance & Office Bills Report', description: 'Detailed multi-office breakdown of CCTV Internet, repairs, hardware, and maintenance costs for Chilaw and Palawiya.' },
       { id: 'expense_statement', name: 'Comprehensive Expense & Financial Statement', description: 'Itemized expenditures sorted by entity (User, Device, Printer, Department).' },
       { id: 'warranty_expiry', name: 'Warranty Expiration & Renewal Schedule', description: 'Active warranties nearing expiration within 60-90 days.' }
     ];
@@ -138,6 +140,25 @@ export const reportService = {
           'Associated Asset': e.AssetName,
           'Invoice Ref': e.InvoiceNumber || 'N/A',
           'Payment Method': e.PaymentMethod || 'Cheque'
+        }));
+      }
+
+      case 'cctv_bills': {
+        const bills = cctvService.getCCTVBills('All');
+        return bills.map((b, i) => ({
+          'No': i + 1,
+          'Bill ID': b.BillID,
+          'Office': `${b.Office} Office`,
+          'Bill #': b.BillNumber,
+          'Date': b.BillDate,
+          'Billing Period': b.BillPeriod || 'N/A',
+          'Category': b.BillCategory,
+          'Vendor / Payee': b.Supplier,
+          'Amount (LKR)': Number(b.Amount || 0),
+          'Payment Status': b.PaymentStatus || 'Paid',
+          'Payment Method': b.PaymentMethod || 'Company Cheque',
+          'Description': b.Description,
+          'Attached Document': b.FileName || 'None'
         }));
       }
 

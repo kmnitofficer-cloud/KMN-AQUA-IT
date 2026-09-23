@@ -1895,5 +1895,6 @@ export const relationalDatabaseSeed = {
     }
   ],
   "Suppliers": [],
+  "CCTVBills": [],
   "LegacyRawImport": []
 };
