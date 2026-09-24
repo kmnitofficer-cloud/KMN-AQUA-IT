@@ -13,7 +13,6 @@ import {
   Filter,
   FileText,
   DollarSign,
-  ChevronRight,
   Sparkles,
   Info,
   CheckCircle2,
@@ -27,12 +26,13 @@ import LogACServiceModal from './LogACServiceModal';
 import LogACRepairModal from './LogACRepairModal';
 import ReplaceACModal from './ReplaceACModal';
 import ACUnitFormModal from './ACUnitFormModal';
+import './ACStyles.css';
 
 export default function ACView() {
   const [selectedFloor, setSelectedFloor] = useState('Ground Floor');
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showAirflow, setShowAirflow] = useState(true);
+  const [showAirflow, setShowAirflow] = useState(false);
 
   const [units, setUnits] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -55,7 +55,6 @@ export default function ACView() {
       const refreshedSelected = allUnits.find(u => u.UnitID === selectedUnit.UnitID);
       setSelectedUnit(refreshedSelected || allUnits[0] || null);
     } else if (allUnits.length > 0) {
-      // Default to first unit on the current floor
       const firstOnFloor = allUnits.find(u => u.Floor === selectedFloor) || allUnits[0];
       setSelectedUnit(firstOnFloor);
     }
@@ -82,10 +81,10 @@ export default function ACView() {
     const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
     const matchesSearch =
       !searchQuery ||
-      u.UnitCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.RoomName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.Brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.Model.toLowerCase().includes(searchQuery.toLowerCase());
+      (u.UnitCode && u.UnitCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.RoomName && u.RoomName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.Brand && u.Brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.Model && u.Model.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesFloor && matchesStatus && matchesSearch;
   });
 
@@ -102,130 +101,133 @@ export default function ACView() {
     loadData();
   };
 
-  const getStatusBadge = status => {
+  const getStatusBadgeClass = status => {
     switch (status) {
       case 'Active':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+        return 'badge badge-success';
       case 'Needs Service':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        return 'badge badge-warning';
       case 'Under Repair':
-        return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
+        return 'badge badge-danger';
       default:
-        return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+        return 'badge';
     }
   };
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in">
-      {/* Top Banner / Title Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 p-6 rounded-2xl border border-slate-800 shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20">
-            <Wind size={28} />
+    <div className="view-container">
+      {/* Page Header */}
+      <div className="view-header">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.25rem' }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--brand-gradient)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 12px var(--brand-glow)'
+              }}
+            >
+              <Wind size={20} />
+            </div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
+              HVAC & Air Conditioning Management
+            </h2>
+            <span className="badge badge-primary font-mono" style={{ fontSize: '0.7rem' }}>
+              Live Blueprint Plan
+            </span>
           </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-100 flex items-center gap-2">
-              <span>HVAC & Air Conditioning Management</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono font-medium">
-                Live Blueprint Plan
-              </span>
-            </h1>
-            <p className="text-xs md:text-sm text-slate-400">
-              Interactive 2-floor layout, asset cost tracking, maintenance schedules & replacement lifecycle
-            </p>
-          </div>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+            Interactive 2-floor layout, asset cost tracking, maintenance schedules & replacement lifecycle
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="view-header-actions">
           <button
+            className="btn btn-primary"
             onClick={() => {
               setUnitToEdit(null);
               setIsUnitModalOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs md:text-sm font-semibold shadow-lg shadow-cyan-600/25 transition"
           >
-            <Plus size={16} />
-            <span>Add AC Unit</span>
+            <Plus size={16} /> Add AC Unit
           </button>
         </div>
       </div>
 
-      {/* Financial & Performance Stats Banner */}
+      {/* KPI Financial & Infrastructure Summary */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span>Total Units</span>
-              <span className="text-cyan-400 font-mono font-semibold">13 Total</span>
+        <div className="ac-kpi-grid">
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span className="kpi-title">Total AC Units</span>
+              <span className="badge badge-primary font-mono">{summary.totalUnits} Total</span>
             </div>
-            <div className="text-xl font-black text-slate-100">{summary.totalUnits} Units</div>
-            <div className="flex items-center gap-2 text-[11px] mt-1.5 font-medium">
-              <span className="text-emerald-400">{summary.activeUnits} Active</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-amber-400">{summary.needsServiceUnits} Service</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-rose-400">{summary.underRepairUnits} Repair</span>
+            <div className="kpi-value text-cyan font-mono">{summary.totalUnits} Units</div>
+            <div className="kpi-subtext" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.75rem' }}>
+              <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>{summary.activeUnits} Active</span>
+              <span>•</span>
+              <span style={{ color: 'var(--accent-amber)', fontWeight: 700 }}>{summary.needsServiceUnits} Service</span>
+              <span>•</span>
+              <span style={{ color: 'var(--accent-rose)', fontWeight: 700 }}>{summary.underRepairUnits} Repair</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span>Initial Asset Cost</span>
-              <DollarSign size={14} className="text-emerald-400" />
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span className="kpi-title">Initial Asset Cost</span>
+              <DollarSign size={16} style={{ color: 'var(--accent-emerald)' }} />
             </div>
-            <div className="text-xl font-black text-emerald-400 font-mono">
-              LKR {(summary.totalAssetCost / 1000).toFixed(0)}k
+            <div className="kpi-value text-emerald font-mono">
+              Rs. {Number(summary.totalAssetCost || 0).toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Initial installation & machine cost
-            </p>
+            <span className="kpi-subtext">Original machines & installation</span>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span>Routine Maintenance</span>
-              <Wrench size={14} className="text-amber-400" />
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span className="kpi-title">Routine Maintenance</span>
+              <Wrench size={16} style={{ color: 'var(--accent-amber)' }} />
             </div>
-            <div className="text-xl font-black text-amber-400 font-mono">
-              LKR {summary.totalServiceCost.toLocaleString()}
+            <div className="kpi-value text-amber font-mono">
+              Rs. {Number(summary.totalServiceCost || 0).toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Filter cleaning, gas top-ups & washes
-            </p>
+            <span className="kpi-subtext">Filter cleaning, gas top-ups & wash</span>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg">
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span>Repairs & Breakdown</span>
-              <AlertTriangle size={14} className="text-rose-400" />
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span className="kpi-title">Repairs & Breakdown</span>
+              <AlertTriangle size={16} style={{ color: 'var(--accent-rose)' }} />
             </div>
-            <div className="text-xl font-black text-rose-400 font-mono">
-              LKR {summary.totalRepairCost.toLocaleString()}
+            <div className="kpi-value text-rose font-mono">
+              Rs. {Number(summary.totalRepairCost || 0).toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Capacitors, motors & emergency fixes
-            </p>
+            <span className="kpi-subtext">Capacitors, motors & emergency fixes</span>
           </div>
 
-          <div className="col-span-2 md:col-span-1 p-4 rounded-xl bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-800/40 shadow-lg">
-            <div className="flex items-center justify-between text-xs text-cyan-300 mb-1">
-              <span>Grand Total Invested</span>
-              <Sparkles size={14} className="text-cyan-400" />
+          <div className="kpi-card" style={{ borderLeft: '3px solid var(--accent-cyan)' }}>
+            <div className="kpi-header">
+              <span className="kpi-title">Grand Total Invested</span>
+              <Sparkles size={16} style={{ color: 'var(--accent-cyan)' }} />
             </div>
-            <div className="text-xl font-black text-cyan-300 font-mono">
-              LKR {(summary.grandTotalExpense / 1000).toFixed(1)}k
+            <div className="kpi-value font-mono" style={{ color: 'var(--accent-cyan)' }}>
+              Rs. {Number(summary.grandTotalExpense || 0).toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Machines + Lifetime upkeep
-            </p>
+            <span className="kpi-subtext">Hardware assets + Lifetime upkeep</span>
           </div>
         </div>
       )}
 
       {/* Floor & Filter Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 p-3 rounded-2xl border border-slate-800">
-        {/* Floor Tabs */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950 border border-slate-800">
+      <div className="filter-bar mb-6" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+        {/* Floor Selection Tabs */}
+        <div className="filter-tabs">
           {AC_FLOORS.map(floor => {
             const count = units.filter(u => u.Floor === floor).length;
             const isSelected = selectedFloor === floor;
@@ -237,17 +239,19 @@ export default function ACView() {
                   const firstOnNewFloor = units.find(u => u.Floor === floor);
                   if (firstOnNewFloor) setSelectedUnit(firstOnNewFloor);
                 }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition ${
-                  isSelected
-                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                }`}
+                className={`filter-tab ${isSelected ? 'active' : ''}`}
               >
                 <span>{floor}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isSelected ? 'bg-cyan-700/70 text-cyan-100' : 'bg-slate-800 text-slate-400'
-                  }`}
+                  style={{
+                    marginLeft: '0.45rem',
+                    fontSize: '0.7rem',
+                    padding: '0.1rem 0.45rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: isSelected ? 'rgba(255,255,255,0.25)' : 'var(--bg-surface-elevated)',
+                    color: isSelected ? '#ffffff' : 'var(--text-muted)',
+                    fontFamily: 'var(--font-mono)'
+                  }}
                 >
                   {count}
                 </span>
@@ -256,65 +260,47 @@ export default function ACView() {
           })}
         </div>
 
-        {/* Status Filters & Toggles */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+        {/* Status Filter Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="filter-tabs">
             {['All', 'Active', 'Needs Service', 'Under Repair'].map(st => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg font-medium transition ${
-                  statusFilter === st
-                    ? 'bg-slate-800 text-slate-100 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
+                className={`filter-tab ${statusFilter === st ? 'active' : ''}`}
+                style={{ fontSize: '0.775rem', padding: '0.35rem 0.75rem' }}
               >
                 {st}
               </button>
             ))}
           </div>
-
-          <button
-            onClick={() => setShowAirflow(!showAirflow)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition ${
-              showAirflow
-                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
-                : 'bg-slate-950 border-slate-800 text-slate-500'
-            }`}
-            title="Toggle cool airflow visualization animation on map"
-          >
-            <Wind size={14} className={showAirflow ? 'animate-pulse' : ''} />
-            <span>Airflow</span>
-          </button>
         </div>
       </div>
 
       {/* Main Split Interface (Blueprint Map + AC Unit Inspector) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left: AC Unit Inspector Card (KOMVENT Inspired Control Deck) */}
-        <div className="lg:col-span-5 space-y-4">
+      <div className="ac-main-grid">
+        {/* Left: AC Unit Inspector Card */}
+        <div>
           {selectedUnit ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden backdrop-blur-xl">
+            <div className="ac-inspector-card">
               {/* Inspector Header */}
-              <div className="p-5 border-b border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono font-bold text-xs">
-                      {selectedUnit.UnitCode}
-                    </span>
-                    <span className="text-xs text-slate-400 font-mono">
-                      Spot #{selectedUnit.UnitNumber}
+              <div className="ac-inspector-header">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className="id-pill font-mono">{selectedUnit.UnitCode}</span>
+                    <span className="location-pill font-mono" style={{ fontSize: '0.7rem' }}>
+                      Spot #{selectedUnit.UnitNumber || '01'}
                     </span>
                   </div>
-                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-semibold ${getStatusBadge(selectedUnit.Status)}`}>
+                  <span className={getStatusBadgeClass(selectedUnit.Status)}>
                     {selectedUnit.Status}
                   </span>
                 </div>
 
-                <h2 className="text-lg font-bold text-slate-100">
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
                   {selectedUnit.Brand} {selectedUnit.Model}
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                </h3>
+                <p className="text-muted" style={{ fontSize: '0.75rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <span>📍 {selectedUnit.RoomName}</span>
                   <span>•</span>
                   <span>{selectedUnit.Floor}</span>
@@ -322,38 +308,48 @@ export default function ACView() {
               </div>
 
               {/* Climate Dial & Mode Control Box */}
-              <div className="p-5 border-b border-slate-800 bg-slate-950/40">
-                <div className="flex items-center justify-between gap-4">
-                  {/* Temperature Stepper */}
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+              <div className="ac-climate-box">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--brand-glow)',
+                        color: 'var(--brand-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
                       <Thermometer size={22} />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">
+                      <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em', display: 'block' }}>
                         Set Temperature
                       </span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-slate-100 font-mono">
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.2rem' }}>
+                        <span style={{ fontSize: '1.75rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
                           {selectedUnit.TargetTemp || 22}
                         </span>
-                        <span className="text-cyan-400 font-bold text-lg">°C</span>
+                        <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--brand-primary)' }}>°C</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Buttons - / + */}
-                  <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                  <div className="ac-temp-stepper">
                     <button
                       onClick={() => handleTempAdjust(-1)}
-                      className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono font-bold text-base transition flex items-center justify-center"
+                      className="ac-temp-btn"
                       title="Lower temperature"
                     >
                       -
                     </button>
                     <button
                       onClick={() => handleTempAdjust(1)}
-                      className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono font-bold text-base transition flex items-center justify-center"
+                      className="ac-temp-btn"
                       title="Increase temperature"
                     >
                       +
@@ -362,21 +358,17 @@ export default function ACView() {
                 </div>
 
                 {/* Mode Selector */}
-                <div className="mt-4 pt-3 border-t border-slate-800/80">
-                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+                <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
                     <span>Operating Work Mode:</span>
-                    <span className="text-cyan-400 font-semibold">{selectedUnit.WorkMode}</span>
+                    <span style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>{selectedUnit.WorkMode}</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1 text-[11px] font-medium">
+                  <div className="ac-modes-grid">
                     {['Normal Cooling', 'Eco Cooling', 'Turbo Cooling', 'Low Power'].map(mode => (
                       <button
                         key={mode}
                         onClick={() => handleModeChange(mode)}
-                        className={`py-1.5 px-2 rounded-lg text-center truncate transition ${
-                          selectedUnit.WorkMode === mode
-                            ? 'bg-cyan-600 text-white shadow-sm'
-                            : 'bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200'
-                        }`}
+                        className={`ac-mode-btn ${selectedUnit.WorkMode === mode ? 'active' : ''}`}
                       >
                         {mode.split(' ')[0]}
                       </button>
@@ -385,45 +377,47 @@ export default function ACView() {
                 </div>
               </div>
 
-              {/* Unit Lifetime Financial Breakdown Card */}
-              <div className="p-4 bg-slate-950/60 border-b border-slate-800">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 font-mono">
+              {/* Lifetime Financial Audit Card */}
+              <div className="ac-cost-audit">
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em', display: 'block', marginBottom: '0.5rem' }}>
                   Financial & Cost Audit
                 </span>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span className="text-slate-500 block text-[10px]">Purchase</span>
-                    <span className="text-slate-200 font-bold font-mono">
-                      LKR {Number(selectedUnit.PurchasePrice || 0).toLocaleString()}
+                <div className="ac-cost-grid">
+                  <div className="ac-cost-item">
+                    <span className="cost-item-label">Purchase</span>
+                    <span className="cost-item-val font-mono" style={{ fontSize: '0.85rem' }}>
+                      Rs. {Number(selectedUnit.PurchasePrice || 0).toLocaleString()}
                     </span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span className="text-amber-500/80 block text-[10px]">Maintenance</span>
-                    <span className="text-amber-400 font-bold font-mono">
-                      LKR {Number(selectedUnit.lifetimeServiceCost || 0).toLocaleString()}
+                  <div className="ac-cost-item">
+                    <span className="cost-item-label" style={{ color: 'var(--accent-amber)' }}>Maintenance</span>
+                    <span className="cost-item-val font-mono" style={{ fontSize: '0.85rem', color: 'var(--accent-amber)' }}>
+                      Rs. {Number(selectedUnit.lifetimeServiceCost || 0).toLocaleString()}
                     </span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span className="text-rose-500/80 block text-[10px]">Repairs</span>
-                    <span className="text-rose-400 font-bold font-mono">
-                      LKR {Number(selectedUnit.lifetimeRepairCost || 0).toLocaleString()}
+                  <div className="ac-cost-item">
+                    <span className="cost-item-label" style={{ color: 'var(--accent-rose)' }}>Repairs</span>
+                    <span className="cost-item-val font-mono" style={{ fontSize: '0.85rem', color: 'var(--accent-rose)' }}>
+                      Rs. {Number(selectedUnit.lifetimeRepairCost || 0).toLocaleString()}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-2.5 p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-800/30 flex items-center justify-between text-xs">
-                  <span className="text-cyan-300 font-semibold">Total Invested in Spot:</span>
-                  <span className="text-cyan-300 font-black font-mono text-sm">
-                    LKR {Number(selectedUnit.totalInvestedCost || 0).toLocaleString()}
+                <div className="ac-cost-total-banner">
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Total Invested in Spot:
+                  </span>
+                  <span className="font-mono font-bold" style={{ fontSize: '0.9rem', color: 'var(--brand-primary)' }}>
+                    Rs. {Number(selectedUnit.totalInvestedCost || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
 
               {/* Action Buttons Row */}
-              <div className="p-4 border-b border-slate-800 grid grid-cols-3 gap-2">
+              <div className="ac-actions-row">
                 <button
                   onClick={() => setIsServiceModalOpen(true)}
-                  className="flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-cyan-400 hover:text-cyan-300 transition text-xs font-semibold"
+                  className="ac-action-btn service"
                 >
                   <Wrench size={16} />
                   <span>Log Service</span>
@@ -431,7 +425,7 @@ export default function ACView() {
 
                 <button
                   onClick={() => setIsRepairModalOpen(true)}
-                  className="flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-rose-400 hover:text-rose-300 transition text-xs font-semibold"
+                  className="ac-action-btn repair"
                 >
                   <AlertTriangle size={16} />
                   <span>Log Repair</span>
@@ -439,7 +433,7 @@ export default function ACView() {
 
                 <button
                   onClick={() => setIsReplaceModalOpen(true)}
-                  className="flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 transition text-xs font-semibold"
+                  className="ac-action-btn replace"
                   title="Replace with new AC unit while preserving old machine history"
                 >
                   <RefreshCw size={16} />
@@ -448,149 +442,143 @@ export default function ACView() {
               </div>
 
               {/* Tab Navigation in Inspector */}
-              <div className="flex items-center border-b border-slate-800 bg-slate-950/40 text-xs">
+              <div className="ac-tab-bar">
                 <button
                   onClick={() => setInspectorTab('overview')}
-                  className={`flex-1 py-2.5 font-semibold text-center transition border-b-2 ${
-                    inspectorTab === 'overview'
-                      ? 'border-cyan-500 text-cyan-400 bg-slate-900/60'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
+                  className={`ac-tab-nav-btn ${inspectorTab === 'overview' ? 'active' : ''}`}
                 >
                   Specs
                 </button>
                 <button
                   onClick={() => setInspectorTab('services')}
-                  className={`flex-1 py-2.5 font-semibold text-center transition border-b-2 ${
-                    inspectorTab === 'services'
-                      ? 'border-cyan-500 text-cyan-400 bg-slate-900/60'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
+                  className={`ac-tab-nav-btn ${inspectorTab === 'services' ? 'active' : ''}`}
                 >
                   Services ({selectedUnit.serviceCount || 0})
                 </button>
                 <button
                   onClick={() => setInspectorTab('repairs')}
-                  className={`flex-1 py-2.5 font-semibold text-center transition border-b-2 ${
-                    inspectorTab === 'repairs'
-                      ? 'border-cyan-500 text-cyan-400 bg-slate-900/60'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
+                  className={`ac-tab-nav-btn ${inspectorTab === 'repairs' ? 'active' : ''}`}
                 >
                   Repairs ({selectedUnit.repairCount || 0})
                 </button>
                 <button
                   onClick={() => setInspectorTab('replacements')}
-                  className={`flex-1 py-2.5 font-semibold text-center transition border-b-2 ${
-                    inspectorTab === 'replacements'
-                      ? 'border-purple-500 text-purple-400 bg-slate-900/60'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
+                  className={`ac-tab-nav-btn ${inspectorTab === 'replacements' ? 'active' : ''}`}
                 >
                   History ({selectedUnit.replacements ? selectedUnit.replacements.length : 0})
                 </button>
               </div>
 
               {/* Tab Content Area */}
-              <div className="p-5 max-h-[300px] overflow-y-auto text-xs space-y-3">
+              <div className="ac-tab-pane">
                 {/* 1. Overview Specs Tab */}
                 {inspectorTab === 'overview' && (
-                  <div className="space-y-2.5">
-                    <div className="grid grid-cols-2 gap-2 text-slate-300">
-                      <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
-                        <span className="text-slate-500 block text-[10px]">Cooling Capacity</span>
-                        <span className="font-semibold text-slate-200">{selectedUnit.CapacityBTU}</span>
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div className="ac-cost-item">
+                        <span className="cost-item-label">Cooling Capacity</span>
+                        <span className="cost-item-val" style={{ fontSize: '0.8rem' }}>{selectedUnit.CapacityBTU}</span>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
-                        <span className="text-slate-500 block text-[10px]">Refrigerant Gas</span>
-                        <span className="font-semibold text-slate-200">{selectedUnit.RefrigerantType}</span>
+                      <div className="ac-cost-item">
+                        <span className="cost-item-label">Refrigerant Gas</span>
+                        <span className="cost-item-val" style={{ fontSize: '0.8rem' }}>{selectedUnit.RefrigerantType}</span>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
-                        <span className="text-slate-500 block text-[10px]">Power Rating</span>
-                        <span className="font-semibold text-slate-200">{selectedUnit.PowerRating || '1.5 kW'}</span>
+                      <div className="ac-cost-item">
+                        <span className="cost-item-label">Power Rating</span>
+                        <span className="cost-item-val" style={{ fontSize: '0.8rem' }}>{selectedUnit.PowerRating || '1.5 kW'}</span>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-950 border border-slate-800">
-                        <span className="text-slate-500 block text-[10px]">Supplier / Vendor</span>
-                        <span className="font-semibold text-slate-200">{selectedUnit.Supplier || 'N/A'}</span>
+                      <div className="ac-cost-item">
+                        <span className="cost-item-label">Supplier / Vendor</span>
+                        <span className="cost-item-val" style={{ fontSize: '0.8rem' }}>{selectedUnit.Supplier || 'N/A'}</span>
                       </div>
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1 text-slate-300">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Installation Date:</span>
+                    <div style={{ backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '0.75rem', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span className="text-muted">Installation Date:</span>
                         <span className="font-mono">{selectedUnit.PurchaseDate || 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Warranty Until:</span>
-                        <span className="font-mono text-emerald-400">{selectedUnit.WarrantyUntil || 'N/A'}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span className="text-muted">Warranty Until:</span>
+                        <span className="font-mono" style={{ color: 'var(--accent-emerald)' }}>{selectedUnit.WarrantyUntil || 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Last Serviced:</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span className="text-muted">Last Serviced:</span>
                         <span className="font-mono">{selectedUnit.LastServiceDate || 'None'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Next Due:</span>
-                        <span className="font-mono text-amber-400">{selectedUnit.NextServiceDue || 'Not Scheduled'}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span className="text-muted">Next Due:</span>
+                        <span className="font-mono" style={{ color: 'var(--accent-amber)' }}>{selectedUnit.NextServiceDue || 'Not Scheduled'}</span>
                       </div>
                     </div>
 
                     {selectedUnit.Notes && (
-                      <p className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-slate-400 italic">
+                      <p style={{ margin: 0, padding: '0.65rem 0.75rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
                         "{selectedUnit.Notes}"
                       </p>
                     )}
 
-                    <div className="pt-2 flex justify-end">
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.25rem' }}>
                       <button
                         onClick={() => {
                           setUnitToEdit(selectedUnit);
                           setIsUnitModalOpen(true);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                        className="btn btn-outline"
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
                       >
                         <Edit2 size={13} />
                         <span>Edit Unit Details</span>
                       </button>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {/* 2. Services Tab */}
                 {inspectorTab === 'services' && (
-                  <div className="space-y-2.5">
+                  <>
                     {selectedUnit.services && selectedUnit.services.length > 0 ? (
                       selectedUnit.services.map(srv => (
                         <div
                           key={srv.ServiceID}
-                          className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5"
+                          style={{
+                            padding: '0.75rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--bg-surface-elevated)',
+                            border: '1px solid var(--border-subtle)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.35rem',
+                            fontSize: '0.75rem'
+                          }}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-200">{srv.ServiceType}</span>
-                            <span className="font-mono font-bold text-amber-400">
-                              LKR {Number(srv.Cost || 0).toLocaleString()}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{srv.ServiceType}</span>
+                            <span className="font-mono" style={{ fontWeight: 700, color: 'var(--accent-amber)' }}>
+                              Rs. {Number(srv.Cost || 0).toLocaleString()}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                             <span>📅 {srv.ServiceDate}</span>
                             <span>👤 {srv.Technician}</span>
                           </div>
                           {srv.GasRefillPSI && (
-                            <div className="text-[11px] text-cyan-400">
+                            <div style={{ color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
                               Pressure: {srv.GasRefillPSI}
                             </div>
                           )}
                           {srv.Notes && (
-                            <p className="text-[11px] text-slate-400 italic">
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.7rem' }}>
                               "{srv.Notes}"
                             </p>
                           )}
                           {srv.FilePath && (
-                            <div className="pt-1">
+                            <div style={{ paddingTop: '0.2rem' }}>
                               <a
                                 href={srv.FilePath}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-[11px] text-cyan-400 hover:underline flex items-center gap-1"
+                                style={{ color: 'var(--brand-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: 600 }}
                               >
                                 <FileText size={12} />
                                 View Attached Invoice ({srv.FileName || 'PDF'})
@@ -600,54 +588,61 @@ export default function ACView() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-6 text-slate-500">
+                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                         No routine maintenance logged for this unit yet.
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
 
                 {/* 3. Repairs Tab */}
                 {inspectorTab === 'repairs' && (
-                  <div className="space-y-2.5">
+                  <>
                     {selectedUnit.repairs && selectedUnit.repairs.length > 0 ? (
                       selectedUnit.repairs.map(rep => (
                         <div
                           key={rep.RepairID}
-                          className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5"
+                          style={{
+                            padding: '0.75rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--bg-surface-elevated)',
+                            border: '1px solid var(--border-subtle)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.35rem',
+                            fontSize: '0.75rem'
+                          }}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-rose-400">{rep.IssueDescription}</span>
-                            <span className="font-mono font-bold text-rose-400">
-                              LKR {Number(rep.RepairCost || 0).toLocaleString()}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>{rep.IssueDescription}</span>
+                            <span className="font-mono" style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>
+                              Rs. {Number(rep.RepairCost || 0).toLocaleString()}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                             <span>Reported: {rep.IssueDate}</span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] ${
-                              rep.Status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                            }`}>
+                            <span className={rep.Status === 'Completed' ? 'badge badge-success' : 'badge badge-danger'}>
                               {rep.Status}
                             </span>
                           </div>
                           {rep.PartsReplaced && (
-                            <div className="text-[11px] text-slate-300">
-                              <span className="text-slate-500">Parts: </span>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
+                              <strong style={{ color: 'var(--text-muted)' }}>Parts: </strong>
                               {rep.PartsReplaced}
                             </div>
                           )}
                           {rep.Technician && (
-                            <div className="text-[11px] text-slate-400">
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                               Technician: {rep.Technician}
                             </div>
                           )}
                           {rep.FilePath && (
-                            <div className="pt-1">
+                            <div style={{ paddingTop: '0.2rem' }}>
                               <a
                                 href={rep.FilePath}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-[11px] text-cyan-400 hover:underline flex items-center gap-1"
+                                style={{ color: 'var(--brand-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: 600 }}
                               >
                                 <FileText size={12} />
                                 View Attached Job Sheet / Bill
@@ -657,75 +652,84 @@ export default function ACView() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-6 text-slate-500">
+                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                         No breakdown repairs reported. System healthy!
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
 
                 {/* 4. Replacement History Tab */}
                 {inspectorTab === 'replacements' && (
-                  <div className="space-y-2.5">
+                  <>
                     {selectedUnit.replacements && selectedUnit.replacements.length > 0 ? (
                       selectedUnit.replacements.map(repLog => (
                         <div
                           key={repLog.ReplacementID}
-                          className="p-3.5 rounded-xl bg-purple-950/30 border border-purple-800/40 space-y-2"
+                          style={{
+                            padding: '0.85rem',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--accent-violet-bg)',
+                            border: '1px solid rgba(139, 92, 246, 0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.45rem',
+                            fontSize: '0.75rem'
+                          }}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-purple-300">
-                              Previous Machine: {repLog.OldUnitBrand} {repLog.OldUnitModel}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--accent-violet)' }}>
+                              Previous: {repLog.OldUnitBrand} {repLog.OldUnitModel}
                             </span>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-900/60 text-purple-200">
+                            <span className="badge badge-purple font-mono" style={{ fontSize: '0.65rem' }}>
                               Removed {repLog.RemovalDate}
                             </span>
                           </div>
 
-                          <p className="text-[11px] text-slate-300">
-                            <span className="text-slate-400">Reason: </span>
+                          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.725rem' }}>
+                            <strong style={{ color: 'var(--text-muted)' }}>Reason: </strong>
                             {repLog.RemovalReason}
                           </p>
 
-                          <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/80 p-2 rounded-lg border border-purple-900/30">
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', backgroundColor: 'var(--bg-surface)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', fontSize: '0.7rem' }}>
                             <div>
-                              <span className="text-slate-400">Old Unit Services: </span>
-                              <span className="font-mono text-amber-400">
-                                LKR {Number(repLog.OldUnitLifetimeServiceCost || 0).toLocaleString()}
+                              <span className="text-muted">Old Unit Services: </span>
+                              <span className="font-mono" style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>
+                                Rs. {Number(repLog.OldUnitLifetimeServiceCost || 0).toLocaleString()}
                               </span>
                             </div>
                             <div>
-                              <span className="text-slate-400">Old Unit Repairs: </span>
-                              <span className="font-mono text-rose-400">
-                                LKR {Number(repLog.OldUnitLifetimeRepairCost || 0).toLocaleString()}
+                              <span className="text-muted">Old Unit Repairs: </span>
+                              <span className="font-mono" style={{ color: 'var(--accent-rose)', fontWeight: 600 }}>
+                                Rs. {Number(repLog.OldUnitLifetimeRepairCost || 0).toLocaleString()}
                               </span>
                             </div>
                           </div>
 
-                          <div className="text-[11px] text-slate-400">
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                             <span>Disposal: </span>
-                            <span className="text-slate-200">{repLog.FinalCondition}</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{repLog.FinalCondition}</span>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-6 text-slate-500">
+                      <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                         This is the original machine installed at this spot. No previous decommissioned units.
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
           ) : (
-            <div className="p-8 text-center bg-slate-900 rounded-2xl border border-slate-800 text-slate-500">
+            <div className="section-panel" style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
               Select an AC pin from the floor plan to view details.
             </div>
           )}
         </div>
 
         {/* Right: Interactive SVG Blueprint Map */}
-        <div className="lg:col-span-7 h-[640px]">
+        <div>
           <ACFloorPlan
             floor={selectedFloor}
             units={floorUnits}
@@ -737,52 +741,50 @@ export default function ACView() {
       </div>
 
       {/* Full AC Ledger Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-        <div className="p-5 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-950/50">
+      <div className="table-card">
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', backgroundColor: 'var(--bg-surface)' }}>
           <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
               <span>AC Units Master Inventory & Expense Ledger</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
+              <span className="badge badge-primary font-mono" style={{ fontSize: '0.7rem' }}>
                 {tableUnits.length} Units
               </span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-muted" style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem' }}>
               Complete cost breakdown per unit: Purchase, Routine Servicing, Repairs, and Net Lifetime TCO
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search unit, room, brand..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-64"
-              />
-            </div>
+          <div className="search-input-wrapper">
+            <Search size={15} style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              placeholder="Search unit, room, brand..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="filter-search-input"
+            />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase font-mono text-[10px] tracking-wider">
+        <div className="table-responsive">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="py-3 px-4">Unit Code</th>
-                <th className="py-3 px-4">Floor & Room</th>
-                <th className="py-3 px-4">Brand & Model</th>
-                <th className="py-3 px-4">Capacity</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Purchase (LKR)</th>
-                <th className="py-3 px-4 text-right">Maintenance (LKR)</th>
-                <th className="py-3 px-4 text-right">Repairs (LKR)</th>
-                <th className="py-3 px-4 text-right">Total Invested</th>
-                <th className="py-3 px-4 text-center">Next Due</th>
-                <th className="py-3 px-4 text-center">Actions</th>
+                <th>Unit Code</th>
+                <th>Floor & Room</th>
+                <th>Brand & Model</th>
+                <th>Capacity</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Purchase (Rs.)</th>
+                <th style={{ textAlign: 'right' }}>Maintenance (Rs.)</th>
+                <th style={{ textAlign: 'right' }}>Repairs (Rs.)</th>
+                <th style={{ textAlign: 'right' }}>Total Invested</th>
+                <th style={{ textAlign: 'center' }}>Next Due</th>
+                <th style={{ textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-sans">
+            <tbody>
               {tableUnits.map(unit => {
                 const isSelected = selectedUnit && selectedUnit.UnitID === unit.UnitID;
                 return (
@@ -792,75 +794,80 @@ export default function ACView() {
                       setSelectedFloor(unit.Floor);
                       setSelectedUnit(unit);
                     }}
-                    className={`cursor-pointer transition hover:bg-slate-800/40 ${
-                      isSelected ? 'bg-cyan-950/20' : ''
-                    }`}
+                    className={`hover-highlight ${isSelected ? 'row-selected' : ''}`}
+                    style={{
+                      cursor: 'pointer',
+                      backgroundColor: isSelected ? 'var(--brand-glow)' : undefined
+                    }}
                   >
-                    <td className="py-3 px-4 font-mono font-bold text-cyan-400">
+                    <td className="font-mono font-bold" style={{ color: 'var(--brand-primary)' }}>
                       {unit.UnitCode}
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-200">{unit.RoomName}</div>
-                      <div className="text-[10px] text-slate-500">{unit.Floor}</div>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{unit.RoomName}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{unit.Floor}</div>
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-200">{unit.Brand}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{unit.Model}</div>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{unit.Brand}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{unit.Model}</div>
                     </td>
-                    <td className="py-3 px-4 text-slate-300 font-mono">
+                    <td className="font-mono text-muted">
                       {unit.CapacityBTU}
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${getStatusBadge(unit.Status)}`}>
+                    <td>
+                      <span className={getStatusBadgeClass(unit.Status)}>
                         {unit.Status}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-200">
+                    <td className="font-mono" style={{ textAlign: 'right' }}>
                       {Number(unit.PurchasePrice || 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-amber-400">
+                    <td className="font-mono" style={{ textAlign: 'right', color: 'var(--accent-amber)' }}>
                       {Number(unit.lifetimeServiceCost || 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-rose-400">
+                    <td className="font-mono" style={{ textAlign: 'right', color: 'var(--accent-rose)' }}>
                       {Number(unit.lifetimeRepairCost || 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-cyan-300">
+                    <td className="font-mono font-bold" style={{ textAlign: 'right', color: 'var(--brand-primary)' }}>
                       {Number(unit.totalInvestedCost || 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-center font-mono text-slate-400 text-[11px]">
+                    <td className="font-mono text-muted" style={{ textAlign: 'center', fontSize: '0.75rem' }}>
                       {unit.NextServiceDue || '-'}
                     </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => {
                             setSelectedUnit(unit);
                             setIsServiceModalOpen(true);
                           }}
-                          className="p-1.5 rounded-lg text-cyan-400 hover:bg-cyan-500/10 transition"
+                          className="btn btn-outline"
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-cyan)' }}
                           title="Log Service"
                         >
-                          <Wrench size={14} />
+                          <Wrench size={13} />
                         </button>
                         <button
                           onClick={() => {
                             setSelectedUnit(unit);
                             setIsRepairModalOpen(true);
                           }}
-                          className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition"
+                          className="btn btn-outline"
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-rose)' }}
                           title="Log Repair"
                         >
-                          <AlertTriangle size={14} />
+                          <AlertTriangle size={13} />
                         </button>
                         <button
                           onClick={() => {
                             setSelectedUnit(unit);
                             setIsReplaceModalOpen(true);
                           }}
-                          className="p-1.5 rounded-lg text-purple-400 hover:bg-purple-500/10 transition"
+                          className="btn btn-outline"
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-violet)' }}
                           title="Replace Unit"
                         >
-                          <RefreshCw size={14} />
+                          <RefreshCw size={13} />
                         </button>
                       </div>
                     </td>

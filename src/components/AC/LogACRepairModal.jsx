@@ -60,42 +60,50 @@ export default function LogACRepairModal({ isOpen, onClose, unit, onRepairLogged
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100 max-h-[90vh] flex flex-col">
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="form-modal-container" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
-              <AlertTriangle size={20} />
+        <div className="form-modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--accent-rose-bg)',
+                color: 'var(--accent-rose)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <AlertTriangle size={18} />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
                 Log AC Breakdown & Repair
               </h2>
-              <p className="text-xs text-slate-400 font-mono">
+              <span className="text-muted" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
                 {unit.UnitCode} • {unit.Brand} {unit.Model} ({unit.RoomName})
-              </p>
+              </span>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
-          >
-            <X size={18} />
+          <button className="btn btn-outline" style={{ padding: '0.35rem 0.55rem', height: 'auto' }} onClick={onClose}>
+            <X size={16} />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1">
+        <form onSubmit={handleSubmit} className="form-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {error && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
-              {error}
+            <div className="alert-feed-item alert-danger" style={{ padding: '0.65rem 0.85rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--accent-rose)' }}>{error}</span>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Issue Reported Date *
               </label>
               <input
@@ -103,12 +111,13 @@ export default function LogACRepairModal({ isOpen, onClose, unit, onRepairLogged
                 required
                 value={formData.IssueDate}
                 onChange={e => handleChange('IssueDate', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500"
+                className="form-input"
+                style={{ width: '100%' }}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Repair Status *
               </label>
               <select
@@ -119,7 +128,8 @@ export default function LogACRepairModal({ isOpen, onClose, unit, onRepairLogged
                     handleChange('ResolvedDate', new Date().toISOString().split('T')[0]);
                   }
                 }}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500 font-semibold"
+                className="form-input"
+                style={{ width: '100%', fontWeight: 600 }}
               >
                 <option value="In Progress">🔴 In Progress (Unit Under Repair)</option>
                 <option value="Completed">🟢 Completed (Unit Restored to Active)</option>
@@ -127,58 +137,56 @@ export default function LogACRepairModal({ isOpen, onClose, unit, onRepairLogged
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
               Issue / Breakdown Description *
             </label>
             <textarea
               rows={2}
               required
-              placeholder="e.g. Unit blowing warm air, outdoor unit compressor humming without starting, water leaking from tray..."
+              placeholder="e.g. Unit blowing warm air, compressor humming without starting, water leaking..."
               value={formData.IssueDescription}
               onChange={e => handleChange('IssueDescription', e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500 resize-none"
+              className="form-textarea"
+              style={{ width: '100%', resize: 'none' }}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Parts Replaced / Repaired
               </label>
               <input
                 type="text"
-                placeholder="e.g. Capacitor 45uF, PCB Relay, Fan Motor"
+                placeholder="e.g. Capacitor 45uF, PCB Relay"
                 value={formData.PartsReplaced}
                 onChange={e => handleChange('PartsReplaced', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500"
+                className="form-input"
+                style={{ width: '100%' }}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Total Repair Cost (LKR)
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
+                Total Repair Cost (Rs.)
               </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="100"
-                  placeholder="e.g. 18500"
-                  value={formData.RepairCost}
-                  onChange={e => handleChange('RepairCost', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500 pr-12 font-mono"
-                />
-                <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">
-                  LKR
-                </span>
-              </div>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                placeholder="e.g. 18500"
+                value={formData.RepairCost}
+                onChange={e => handleChange('RepairCost', e.target.value)}
+                className="form-input font-mono"
+                style={{ width: '100%' }}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Technician / Workshop
               </label>
               <input
@@ -186,25 +194,27 @@ export default function LogACRepairModal({ isOpen, onClose, unit, onRepairLogged
                 placeholder="e.g. Chilaw Refrigeration, In-house IT"
                 value={formData.Technician}
                 onChange={e => handleChange('Technician', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500"
+                className="form-input"
+                style={{ width: '100%' }}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Resolved Date
               </label>
               <input
                 type="date"
                 value={formData.ResolvedDate}
                 onChange={e => handleChange('ResolvedDate', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500"
+                className="form-input"
+                style={{ width: '100%' }}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
               Invoice / Repair Bill Number
             </label>
             <input
@@ -212,41 +222,43 @@ export default function LogACRepairModal({ isOpen, onClose, unit, onRepairLogged
               placeholder="e.g. REP-AC-2026-09"
               value={formData.InvoiceNo}
               onChange={e => handleChange('InvoiceNo', e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500 font-mono"
+              className="form-input font-mono"
+              style={{ width: '100%' }}
             />
           </div>
 
           {/* Bill Attachment */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
               Attach Repair Invoice / Job Sheet (PDF or Photo)
             </label>
-            <div className="flex items-center gap-3">
-              <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-slate-700 hover:border-rose-500 bg-slate-800/40 hover:bg-slate-800 cursor-pointer transition text-xs text-slate-300">
-                <Upload size={16} className="text-rose-400" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label className="btn btn-outline" style={{ flex: 1, cursor: 'pointer', fontSize: '0.75rem', padding: '0.65rem 1rem' }}>
+                <Upload size={14} style={{ color: 'var(--accent-rose)' }} />
                 <span>{billFile ? billFile.name : 'Choose invoice file (PDF, JPG, PNG)'}</span>
                 <input
                   type="file"
                   accept="application/pdf,image/*"
                   onChange={handleFileChange}
-                  className="hidden"
+                  style={{ display: 'none' }}
                 />
               </label>
               {billFile && (
                 <button
                   type="button"
                   onClick={() => setBillFile(null)}
-                  className="p-2.5 rounded-xl bg-slate-800 text-rose-400 hover:bg-slate-700"
+                  className="btn btn-outline"
+                  style={{ color: 'var(--accent-rose)' }}
                   title="Remove file"
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               )}
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
               Repair Notes
             </label>
             <textarea
@@ -254,23 +266,25 @@ export default function LogACRepairModal({ isOpen, onClose, unit, onRepairLogged
               placeholder="e.g. Replaced capacitor, pressure tested lines, verified 20 minutes continuous cooling."
               value={formData.Notes}
               onChange={e => handleChange('Notes', e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-rose-500 resize-none"
+              className="form-textarea"
+              style={{ width: '100%', resize: 'none' }}
             />
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-800">
+          <div className="form-modal-footer" style={{ padding: '0.75rem 0 0 0', margin: 0 }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition"
+              className="btn btn-outline"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
+              className="btn btn-primary"
+              style={{ backgroundColor: 'var(--accent-rose)', borderColor: 'var(--accent-rose)' }}
             >
               {isSubmitting ? 'Recording...' : 'Log Breakdown Repair'}
             </button>

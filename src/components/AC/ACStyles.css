@@ -1,0 +1,301 @@
+/* ==========================================================
+   AC & HVAC MANAGEMENT MODULE STYLES
+   Native System UI Styling - Dark/Light Theme Support
+   ========================================================== */
+
+/* Main Deck Layout */
+.ac-main-grid {
+  display: grid;
+  grid-template-columns: 410px 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1080px) {
+  .ac-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 5-Column Responsive KPI Cards */
+.ac-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 1280px) {
+  .ac-kpi-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Blueprint Card */
+.komvent-blueprint-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-height: 640px;
+}
+
+.komvent-blueprint-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  z-index: 10;
+}
+
+.komvent-blueprint-canvas {
+  position: relative;
+  flex: 1;
+  background-color: #070d18;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* AC Unit Inspector Card */
+.ac-inspector-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ac-inspector-header {
+  padding: 1.15rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.ac-climate-box {
+  padding: 1.15rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-elevated);
+}
+
+.ac-temp-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--bg-surface);
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.ac-temp-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.ac-temp-btn:hover {
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  border-color: var(--brand-primary);
+}
+
+.ac-modes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.ac-mode-btn {
+  padding: 0.45rem 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ac-mode-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--brand-primary);
+}
+
+.ac-mode-btn.active {
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  border-color: var(--brand-primary);
+  font-weight: 700;
+  box-shadow: 0 2px 6px var(--brand-glow);
+}
+
+/* Lifetime Cost Audit Sub-card */
+.ac-cost-audit {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+}
+
+.ac-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.ac-cost-item {
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ac-cost-total-banner {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(37, 99, 235, 0.08) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Action Buttons Row */
+.ac-actions-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+}
+
+.ac-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.5rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.ac-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.ac-action-btn.service {
+  color: var(--accent-cyan);
+}
+.ac-action-btn.service:hover {
+  border-color: var(--accent-cyan);
+  background-color: var(--accent-cyan-bg);
+}
+
+.ac-action-btn.repair {
+  color: var(--accent-rose);
+}
+.ac-action-btn.repair:hover {
+  border-color: var(--accent-rose);
+  background-color: var(--accent-rose-bg);
+}
+
+.ac-action-btn.replace {
+  color: var(--accent-violet);
+}
+.ac-action-btn.replace:hover {
+  border-color: var(--accent-violet);
+  background-color: var(--accent-violet-bg);
+}
+
+/* Tabs Inside Inspector */
+.ac-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-elevated);
+}
+
+.ac-tab-nav-btn {
+  flex: 1;
+  padding: 0.7rem 0.5rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.ac-tab-nav-btn:hover {
+  color: var(--text-primary);
+}
+
+.ac-tab-nav-btn.active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+  background-color: var(--bg-surface);
+}
+
+.ac-tab-pane {
+  padding: 1.15rem 1.25rem;
+  max-height: 290px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Form Modals Grid Helper */
+.ac-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .ac-modal-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

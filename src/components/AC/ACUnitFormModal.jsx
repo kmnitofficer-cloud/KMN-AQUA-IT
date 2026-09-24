@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Edit2, MapPin, Thermometer } from 'lucide-react';
+import { X, Plus, Edit2, MapPin } from 'lucide-react';
 import { acService, AC_BRANDS, AC_FLOORS, AC_WORK_MODES, AC_STATUSES } from '../../services/acService';
 
 export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, defaultFloor = 'Ground Floor' }) {
@@ -65,48 +65,57 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100 max-h-[90vh] flex flex-col">
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="form-modal-container" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-              {isEditing ? <Edit2 size={20} /> : <Plus size={20} />}
+        <div className="form-modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--brand-glow)',
+                color: 'var(--brand-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              {isEditing ? <Edit2 size={18} /> : <Plus size={18} />}
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
                 {isEditing ? `Edit AC Unit (${unitToEdit.UnitCode})` : 'Add New AC Unit'}
               </h2>
-              <p className="text-xs text-slate-400 font-mono">
+              <span className="text-muted" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
                 {isEditing ? `${unitToEdit.Brand} ${unitToEdit.Model}` : 'Deploy new unit onto building blueprint'}
-              </p>
+              </span>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
-          >
-            <X size={18} />
+          <button className="btn btn-outline" style={{ padding: '0.35rem 0.55rem', height: 'auto' }} onClick={onClose}>
+            <X size={16} />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1">
+        <form onSubmit={handleSubmit} className="form-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {error && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
-              {error}
+            <div className="alert-feed-item alert-danger" style={{ padding: '0.65rem 0.85rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--accent-rose)' }}>{error}</span>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Floor *
               </label>
               <select
                 value={formData.Floor}
                 onChange={e => handleChange('Floor', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               >
                 {AC_FLOORS.map(f => (
                   <option key={f} value={f}>{f}</option>
@@ -114,30 +123,32 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Room / Zone Name *
               </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Accounts & Audit Room, Reception"
+                placeholder="e.g. Accounts Room, Boss Office"
                 value={formData.RoomName}
                 onChange={e => handleChange('RoomName', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Brand *
               </label>
               <select
                 value={formData.Brand}
                 onChange={e => handleChange('Brand', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               >
                 {AC_BRANDS.map(b => (
                   <option key={b} value={b}>{b}</option>
@@ -145,8 +156,8 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Model Name / Code *
               </label>
               <input
@@ -155,20 +166,22 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
                 placeholder="e.g. CS-S18TKH Inverter"
                 value={formData.Model}
                 onChange={e => handleChange('Model', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Cooling Capacity
               </label>
               <select
                 value={formData.CapacityBTU}
                 onChange={e => handleChange('CapacityBTU', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               >
                 <option value="9,000 BTU">9,000 BTU</option>
                 <option value="12,000 BTU">12,000 BTU</option>
@@ -178,14 +191,15 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Refrigerant
               </label>
               <select
                 value={formData.RefrigerantType}
                 onChange={e => handleChange('RefrigerantType', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               >
                 <option value="R32">R32</option>
                 <option value="R410A">R410A</option>
@@ -193,9 +207,9 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Purchase Price (LKR)
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
+                Purchase (Rs.)
               </label>
               <input
                 type="number"
@@ -204,20 +218,22 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
                 placeholder="195000"
                 value={formData.PurchasePrice}
                 onChange={e => handleChange('PurchasePrice', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100 font-mono"
+                className="form-input font-mono"
+                style={{ width: '100%' }}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Status
               </label>
               <select
                 value={formData.Status}
                 onChange={e => handleChange('Status', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100 font-semibold"
+                className="form-input"
+                style={{ width: '100%', fontWeight: 600 }}
               >
                 {AC_STATUSES.map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -225,14 +241,15 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Work Mode
               </label>
               <select
                 value={formData.WorkMode}
                 onChange={e => handleChange('WorkMode', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               >
                 {AC_WORK_MODES.map(m => (
                   <option key={m} value={m}>{m}</option>
@@ -240,8 +257,8 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Target Temp (°C)
               </label>
               <input
@@ -250,14 +267,15 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
                 max="30"
                 value={formData.TargetTemp}
                 onChange={e => handleChange('TargetTemp', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100 font-mono"
+                className="form-input font-mono"
+                style={{ width: '100%' }}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Supplier
               </label>
               <input
@@ -265,80 +283,85 @@ export default function ACUnitFormModal({ isOpen, onClose, unitToEdit, onSaved, 
                 placeholder="e.g. Singer, Abans"
                 value={formData.Supplier}
                 onChange={e => handleChange('Supplier', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input"
+                style={{ width: '100%' }}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <div className="form-group">
+              <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
                 Warranty Until
               </label>
               <input
                 type="date"
                 value={formData.WarrantyUntil}
                 onChange={e => handleChange('WarrantyUntil', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100"
+                className="form-input font-mono"
+                style={{ width: '100%' }}
               />
             </div>
           </div>
 
           {/* Coordinates */}
-          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800">
-            <span className="text-xs font-semibold text-slate-300 flex items-center gap-1 mb-2">
-              <MapPin size={14} className="text-cyan-400" />
+          <div style={{ padding: '0.85rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <MapPin size={14} style={{ color: 'var(--brand-primary)' }} />
               Blueprint Pin Position (SVG Coordinates)
             </span>
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label className="block text-[11px] text-slate-400 mb-0.5">X Coordinate (0 - 900)</label>
+                <label className="text-muted" style={{ fontSize: '0.7rem', display: 'block', marginBottom: '0.2rem' }}>X Coordinate (0 - 900)</label>
                 <input
                   type="number"
                   min="50"
                   max="850"
                   value={formData.CoordX}
                   onChange={e => handleChange('CoordX', Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono"
+                  className="form-input font-mono"
+                  style={{ width: '100%', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
                 />
               </div>
               <div>
-                <label className="block text-[11px] text-slate-400 mb-0.5">Y Coordinate (0 - 650)</label>
+                <label className="text-muted" style={{ fontSize: '0.7rem', display: 'block', marginBottom: '0.2rem' }}>Y Coordinate (0 - 950)</label>
                 <input
                   type="number"
                   min="50"
-                  max="600"
+                  max="950"
                   value={formData.CoordY}
                   onChange={e => handleChange('CoordY', Number(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono"
+                  className="form-input font-mono"
+                  style={{ width: '100%', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
                 />
               </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem', display: 'block' }}>
               Notes
             </label>
             <textarea
               rows={2}
               value={formData.Notes}
               onChange={e => handleChange('Notes', e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-sm text-slate-100 resize-none"
+              className="form-textarea"
+              style={{ width: '100%', resize: 'none' }}
             />
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-800">
+          <div className="form-modal-footer" style={{ padding: '0.75rem 0 0 0', margin: 0 }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition"
+              className="btn btn-outline"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold shadow-lg shadow-cyan-600/30 transition disabled:opacity-50"
+              className="btn btn-primary"
             >
               {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Add AC Unit'}
             </button>

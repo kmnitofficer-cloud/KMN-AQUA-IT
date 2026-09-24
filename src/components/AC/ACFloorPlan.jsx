@@ -3,59 +3,21 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Wind,
-  Layers,
-  Thermometer,
-  Wrench,
-  AlertTriangle,
-  CheckCircle2,
-  Info
+  Maximize2
 } from 'lucide-react';
+import './ACStyles.css';
 
 export default function ACFloorPlan({
   floor = 'Ground Floor',
   units = [],
   selectedUnit = null,
-  onSelectUnit = () => {},
-  blueprintTheme = 'dark', // 'dark' | 'light'
-  showAirflow = true
+  onSelectUnit = () => { },
+  _showAirflow = true
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hoveredUnit, setHoveredUnit] = useState(null);
 
-  const isGround = floor === 'Ground Floor';
-  const isDark = blueprintTheme === 'dark';
-
-  // Theme palettes
-  const theme = isDark
-    ? {
-        bg: '#0B132B',
-        grid: '#1C2541',
-        wall: '#3A506B',
-        wallThick: '#4B6584',
-        wallFill: 'rgba(30, 41, 59, 0.7)',
-        roomFill: 'rgba(15, 23, 42, 0.55)',
-        roomFillAlt: 'rgba(20, 30, 55, 0.65)',
-        door: '#60A5FA',
-        stair: '#475569',
-        text: '#94A3B8',
-        textBright: '#F1F5F9',
-        accent: '#38BDF8'
-      }
-    : {
-        bg: '#F8FAFC',
-        grid: '#E2E8F0',
-        wall: '#64748B',
-        wallThick: '#475569',
-        wallFill: 'rgba(226, 232, 240, 0.6)',
-        roomFill: 'rgba(255, 255, 255, 0.85)',
-        roomFillAlt: 'rgba(241, 245, 249, 0.8)',
-        door: '#2563EB',
-        stair: '#94A3B8',
-        text: '#64748B',
-        textBright: '#0F172A',
-        accent: '#0284C7'
-      };
+  const isGroundFloor = !floor || floor.includes('Ground') || floor.includes('GF');
 
   const handleZoom = delta => {
     setZoomLevel(prev => Math.min(Math.max(0.7, prev + delta), 1.8));
@@ -77,717 +39,776 @@ export default function ACFloorPlan({
     }
   };
 
-  const getStatusBadge = status => {
-    switch (status) {
-      case 'Active':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-      case 'Needs Service':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-      case 'Under Repair':
-        return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
-      default:
-        return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
-    }
-  };
-
   return (
-    <div className="relative w-full h-full min-h-[580px] flex flex-col rounded-2xl overflow-hidden border border-slate-700/60 shadow-2xl backdrop-blur-xl bg-slate-900/90 select-none">
-      {/* Blueprint Header Bar */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-950/70 z-10 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-xs">
-            {isGround ? 'GF' : '1F'}
+    <div className="komvent-blueprint-card">
+      {/* Blueprint Header */}
+      <div className="komvent-blueprint-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, #00A3FF, #0066FF)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: '0.85rem'
+            }}
+          >
+            {isGroundFloor ? 'GF' : '1F'}
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <span>{isGround ? 'Ground Floor Office Plan' : 'First Floor Office Wing & Executive Suites'}</span>
-              <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-                {units.length} AC Units
-              </span>
-            </h3>
-            <p className="text-xs text-slate-400 font-mono">
-              Scale 1:100 • Architectural HVAC Layout • Interactive Node Map
-            </p>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {isGroundFloor ? 'Ground Floor' : '1st Floor (Level 1)'}
+            </div>
+            <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              {isGroundFloor
+                ? 'Kitchen, Washrooms, Reception, Fish Tank Gallery, Store Room, Stairs & 3 Offices (Boss, HR, Other)'
+                : 'Executive Suites, Main Conference & Hall • 7 AC Units'}
+            </div>
           </div>
         </div>
 
-        {/* Legend & Controls */}
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-3 text-xs font-mono">
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              Active ({units.filter(u => u.Status === 'Active').length})
-            </span>
-            <span className="flex items-center gap-1.5 text-amber-400">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              Service Due ({units.filter(u => u.Status === 'Needs Service').length})
-            </span>
-            <span className="flex items-center gap-1.5 text-rose-400">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-              Under Repair ({units.filter(u => u.Status === 'Under Repair').length})
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
-            <button
-              onClick={() => handleZoom(0.15)}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
-              title="Zoom In"
-            >
-              <ZoomIn size={16} />
-            </button>
-            <button
-              onClick={() => handleZoom(-0.15)}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
-              title="Zoom Out"
-            >
-              <ZoomOut size={16} />
-            </button>
-            <button
-              onClick={resetZoom}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
-              title="Reset View"
-            >
-              <RotateCcw size={16} />
-            </button>
-          </div>
+        {/* Zoom controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <button
+            onClick={() => handleZoom(0.15)}
+            className="btn btn-outline"
+            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
+            title="Zoom In"
+          >
+            <ZoomIn size={14} />
+          </button>
+          <button
+            onClick={() => handleZoom(-0.15)}
+            className="btn btn-outline"
+            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
+            title="Zoom Out"
+          >
+            <ZoomOut size={14} />
+          </button>
+          <button
+            onClick={resetZoom}
+            className="btn btn-outline"
+            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
+            title="Reset Zoom"
+          >
+            <RotateCcw size={14} />
+          </button>
         </div>
       </div>
 
-      {/* SVG Canvas Area */}
-      <div className="relative flex-1 overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#090D16] via-[#0E1726] to-[#0A101D]">
-        {/* Animated Background Subtle Grid */}
+      {/* Blueprint Canvas */}
+      <div className="komvent-blueprint-canvas">
         <div
-          className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, ${theme.wall} 1px, transparent 0)`,
-            backgroundSize: '24px 24px'
+            transform: `scale(${zoomLevel})`,
+            transition: 'transform 0.25s ease-out',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0.75rem',
+            userSelect: 'none'
           }}
-        />
-
-        <div
-          className="transition-transform duration-300 ease-out origin-center cursor-grab active:cursor-grabbing w-full h-full flex items-center justify-center p-4"
-          style={{ transform: `scale(${zoomLevel})` }}
         >
           <svg
-            viewBox="0 0 920 660"
-            className="w-full h-full max-h-[640px] drop-shadow-[0_15px_35px_rgba(0,0,0,0.7)]"
+            viewBox={isGroundFloor ? '0 0 960 970' : '0 0 960 620'}
+            style={{ width: '100%', height: '100%', maxHeight: isGroundFloor ? '630px' : '580px' }}
             preserveAspectRatio="xMidYMid meet"
           >
             <defs>
-              {/* Glow Filter for Active AC Units */}
-              <filter id="glowActive" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="6" result="blur" />
+              {/* Fine architectural CAD grid */}
+              <pattern id="komventCadGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#94A3B8" strokeWidth="0.6" opacity="0.18" />
+              </pattern>
+
+              {/* Glowing Aura Filter */}
+              <filter id="neonHalo" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
                 <feMerge>
                   <feMergeNode in="blur" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
-              <filter id="glowRepair" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="8" result="blur" />
-                <feColorMatrix
-                  type="matrix"
-                  values="1 0 0 0 1  0 0.2 0 0 0.2  0 0 0.2 0 0.2  0 0 0 1 0"
-                />
-                <feMerge>
-                  <feMergeNode />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
 
-              {/* Linear Gradients */}
-              <linearGradient id="groundFloorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1E293B" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="#0F172A" stopOpacity="0.95" />
-              </linearGradient>
-
-              <linearGradient id="firstFloorHallGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1E293B" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#111C30" stopOpacity="0.95" />
-              </linearGradient>
-
-              <linearGradient id="officeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#1A2639" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#0D1522" stopOpacity="0.9" />
-              </linearGradient>
-
-              {/* Airflow ripple animation */}
-              <style>{`
-                @keyframes pulseAir {
-                  0% { opacity: 0.15; transform: scale(0.95); }
-                  50% { opacity: 0.45; transform: scale(1.05); }
-                  100% { opacity: 0.15; transform: scale(0.95); }
-                }
-                @keyframes airflowWave {
-                  0% { stroke-dashoffset: 40; }
-                  100% { stroke-dashoffset: 0; }
-                }
-                .air-wave {
-                  stroke-dasharray: 6 6;
-                  animation: airflowWave 1.8s linear infinite;
-                }
-                .ac-pulse {
-                  animation: pulseAir 3s ease-in-out infinite;
-                  transform-origin: center;
-                }
-              `}</style>
             </defs>
 
+            {/* Grid Background */}
+            <rect width="960" height={isGroundFloor ? 970 : 620} fill="url(#komventCadGrid)" />
+
             {/* ======================================================== */}
-            {/* GROUND FLOOR BLUEPRINT RENDERING                         */}
+            {/* LEVEL 1: 1ST FLOOR DRAWING (7 AC UNITS)                  */}
             {/* ======================================================== */}
-            {isGround && (
-              <g id="ground-floor-blueprint">
-                {/* Main Ground Floor Outer Boundary */}
-                <rect
-                  x="140"
-                  y="90"
-                  width="640"
-                  height="480"
-                  rx="12"
-                  fill="url(#groundFloorGrad)"
-                  stroke={theme.wallThick}
-                  strokeWidth="6"
+            {!isGroundFloor && (
+              <g id="blueprint-1st-floor">
+                {/* Outer Double Walls for 1st Floor L-Shape */}
+                <path
+                  d="
+                    M 140 70 
+                    L 860 70 
+                    L 860 560 
+                    L 580 560 
+                    L 580 310 
+                    L 140 310 
+                    Z
+                  "
+                  fill="rgba(241, 245, 249, 0.4)"
+                  stroke="#334155"
+                  strokeWidth="4.5"
                   strokeLinejoin="round"
                 />
 
-                {/* Sub-flooring grid tiles */}
-                <g opacity="0.18">
-                  {Array.from({ length: 9 }).map((_, i) => (
-                    <line
-                      key={`vg-${i}`}
-                      x1={140 + (i + 1) * 64}
-                      y1="90"
-                      x2={140 + (i + 1) * 64}
-                      y2="570"
-                      stroke={theme.grid}
-                      strokeWidth="1"
-                      strokeDasharray="4 4"
-                    />
-                  ))}
-                  {Array.from({ length: 6 }).map((_, j) => (
-                    <line
-                      key={`hg-${j}`}
-                      x1="140"
-                      y1={90 + (j + 1) * 68}
-                      x2="780"
-                      y2={90 + (j + 1) * 68}
-                      stroke={theme.grid}
-                      strokeWidth="1"
-                      strokeDasharray="4 4"
-                    />
-                  ))}
-                </g>
-
-                {/* Interior Partition Wall (matches user drawing line from left door to center) */}
                 <path
-                  d="M 140 330 L 480 330"
-                  stroke={theme.wall}
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-                <circle cx="480" cy="330" r="5" fill={theme.wallThick} />
-
-                {/* Glass Partition Wall running down to divide front admin vs storage */}
-                <line
-                  x1="480"
-                  y1="330"
-                  x2="480"
-                  y2="420"
-                  stroke={theme.accent}
-                  strokeWidth="2"
-                  strokeDasharray="6 4"
-                  opacity="0.6"
+                  d="
+                    M 148 78 
+                    L 852 78 
+                    L 852 552 
+                    L 588 552 
+                    L 588 302 
+                    L 148 302 
+                    Z
+                  "
+                  fill="none"
+                  stroke="#64748B"
+                  strokeWidth="1.5"
+                  opacity="0.5"
                 />
 
-                {/* Main Entrance Door on West Wall (with Arrow "↑ up" from user drawing) */}
-                <g id="main-entrance">
-                  {/* Door Opening Gap */}
-                  <line x1="140" y1="360" x2="140" y2="440" stroke="#0B132B" strokeWidth="8" />
-                  {/* Door Swing Arc */}
-                  <path
-                    d="M 140 440 A 80 80 0 0 1 220 360"
-                    fill="none"
-                    stroke={theme.door}
-                    strokeWidth="2"
-                    strokeDasharray="4 3"
-                  />
-                  <line x1="140" y1="360" x2="220" y2="360" stroke={theme.door} strokeWidth="3" />
-                  {/* Arrow Indicator: ↑ Main Entrance */}
-                  <g transform="translate(90, 400)">
-                    <rect x="-10" y="-14" width="54" height="26" rx="6" fill="#1E293B" stroke="#38BDF8" strokeWidth="1" />
-                    <text x="17" y="3" fill="#38BDF8" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
-                      ↑ IN
-                    </text>
-                  </g>
+                {/* Partitions */}
+                <line x1="380" y1="70" x2="380" y2="302" stroke="#334155" strokeWidth="3.5" />
+                <line x1="540" y1="70" x2="540" y2="310" stroke="#334155" strokeWidth="3.5" />
+                <line x1="540" y1="270" x2="860" y2="270" stroke="#334155" strokeWidth="3.5" />
+                <line x1="580" y1="365" x2="860" y2="365" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Doors */}
+                <line x1="300" y1="302" x2="350" y2="302" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 300 302 A 45 45 0 0 1 345 257" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                <line x1="300" y1="302" x2="345" y2="257" stroke="#00A3FF" strokeWidth="1.5" />
+
+                <line x1="400" y1="302" x2="445" y2="302" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 400 302 A 45 45 0 0 1 445 257" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                <line x1="400" y1="302" x2="445" y2="257" stroke="#00A3FF" strokeWidth="1.5" />
+
+                <line x1="540" y1="140" x2="540" y2="185" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 540 185 A 45 45 0 0 0 585 140" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+
+                <g transform="translate(710, 270)">
+                  <line x1="-36" y1="0" x2="36" y2="0" stroke="#FFFFFF" strokeWidth="6" />
+                  <path d="M -36 0 A 36 36 0 0 1 0 -36" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                  <path d="M 36 0 A 36 36 0 0 0 0 -36" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                  <text x="-20" y="16" fill="#00A3FF" fontSize="10" fontWeight="800">D</text>
+                  <text x="10" y="16" fill="#00A3FF" fontSize="10" fontWeight="800">D</text>
                 </g>
 
-                {/* Secondary Exit Doors (Bottom & Right) */}
-                <g id="exits">
-                  {/* Bottom Exit */}
-                  <line x1="220" y1="570" x2="280" y2="570" stroke="#0B132B" strokeWidth="8" />
-                  <path
-                    d="M 220 570 A 60 60 0 0 0 280 510"
-                    fill="none"
-                    stroke={theme.door}
-                    strokeWidth="2"
-                    strokeDasharray="3 3"
-                  />
-                  <text x="250" y="598" fill={theme.text} fontSize="11" fontFamily="sans-serif" textAnchor="middle">
-                    Rear Exit ▾
-                  </text>
+                <line x1="580" y1="310" x2="580" y2="355" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 580 355 A 45 45 0 0 0 625 310" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
 
-                  {/* East / Right Exit */}
-                  <line x1="780" y1="310" x2="780" y2="370" stroke="#0B132B" strokeWidth="8" />
-                  <path
-                    d="M 780 310 A 60 60 0 0 1 840 370"
-                    fill="none"
-                    stroke={theme.door}
-                    strokeWidth="2"
-                    strokeDasharray="3 3"
-                  />
-                  <text x="815" y="345" fill={theme.text} fontSize="11" fontFamily="sans-serif">
-                    Side Door ▸
-                  </text>
-                </g>
+                <line x1="700" y1="365" x2="745" y2="365" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 700 365 A 45 45 0 0 1 745 320" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
 
-                {/* Room Zones Labels */}
-                <g id="ground-room-labels" opacity="0.75">
-                  <text x="310" y="210" fill={theme.textBright} fontSize="14" fontWeight="600" textAnchor="middle">
-                    Ground Floor Operations Hall
-                  </text>
-                  <text x="310" y="230" fill={theme.text} fontSize="11" textAnchor="middle">
-                    North-West Workstation Bay (4x Clusters)
-                  </text>
-
-                  <text x="630" y="210" fill={theme.textBright} fontSize="14" fontWeight="600" textAnchor="middle">
-                    Customer Reception & Lounge
-                  </text>
-                  <text x="630" y="230" fill={theme.text} fontSize="11" textAnchor="middle">
-                    North-East Client Greeting Area
-                  </text>
-
-                  <text x="310" y="470" fill={theme.textBright} fontSize="14" fontWeight="600" textAnchor="middle">
-                    Admin & Records Archive
-                  </text>
-                  <text x="310" y="490" fill={theme.text} fontSize="11" textAnchor="middle">
-                    South-West Enclosure
-                  </text>
-
-                  <text x="630" y="470" fill={theme.textBright} fontSize="14" fontWeight="600" textAnchor="middle">
-                    General Processing & Dispatch
-                  </text>
-                  <text x="630" y="490" fill={theme.text} fontSize="11" textAnchor="middle">
-                    South-East Terminal Rows
-                  </text>
-                </g>
-
-                {/* Architectural Desk Cluster Graphics (Subtle visual indication of layout) */}
-                <g id="workstations-ground" opacity="0.35">
-                  {/* NW Desks */}
-                  <rect x="230" y="145" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  <rect x="230" y="240" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  {/* NE Desks */}
-                  <rect x="570" y="145" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  <rect x="570" y="240" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  {/* SW Desks */}
-                  <rect x="230" y="375" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  <rect x="230" y="470" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  {/* SE Desks */}
-                  <rect x="570" y="375" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  <rect x="570" y="470" width="100" height="42" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                </g>
-              </g>
-            )}
-
-            {/* ======================================================== */}
-            {/* FIRST FLOOR BLUEPRINT RENDERING                          */}
-            {/* ======================================================== */}
-            {!isGround && (
-              <g id="first-floor-blueprint">
-                {/* 1. L-Shaped Wing Corridor / Main Hall (Right Side) */}
-                {/* Long vertical hall */}
-                <rect
-                  x="590"
-                  y="180"
-                  width="190"
-                  height="400"
-                  rx="10"
-                  fill="url(#firstFloorHallGrad)"
-                  stroke={theme.wallThick}
-                  strokeWidth="5"
-                />
-
-                {/* Top Wing connecting corridor & top rooms */}
-                <rect
-                  x="300"
-                  y="60"
-                  width="480"
-                  height="125"
-                  rx="10"
-                  fill="url(#officeGrad)"
-                  stroke={theme.wallThick}
-                  strokeWidth="5"
-                />
-
-                {/* Partition dividing Executive Room 2, Executive Room 1, Corner Conf */}
-                <line x1="430" y1="60" x2="430" y2="185" stroke={theme.wall} strokeWidth="4" />
-                <line x1="590" y1="60" x2="590" y2="185" stroke={theme.wall} strokeWidth="4" />
-
-                {/* 2. 3-Room Block on the Left (from sketch: 3 rooms side by side) */}
-                <rect
-                  x="110"
-                  y="260"
-                  width="290"
-                  height="190"
-                  rx="8"
-                  fill="url(#officeGrad)"
-                  stroke={theme.wallThick}
-                  strokeWidth="5"
-                />
-                {/* Partition lines for the 3 individual rooms */}
-                <line x1="205" y1="260" x2="205" y2="450" stroke={theme.wall} strokeWidth="4" />
-                <line x1="300" y1="260" x2="300" y2="450" stroke={theme.wall} strokeWidth="4" />
-
-                {/* Door openings for 3-Room Block */}
-                <line x1="140" y1="450" x2="175" y2="450" stroke="#0B132B" strokeWidth="7" />
-                <path d="M 140 450 A 35 35 0 0 0 175 415" fill="none" stroke={theme.door} strokeWidth="2" strokeDasharray="3 3" />
-
-                <line x1="235" y1="450" x2="270" y2="450" stroke="#0B132B" strokeWidth="7" />
-                <path d="M 235 450 A 35 35 0 0 0 270 415" fill="none" stroke={theme.door} strokeWidth="2" strokeDasharray="3 3" />
-
-                <line x1="330" y1="450" x2="365" y2="450" stroke="#0B132B" strokeWidth="7" />
-                <path d="M 330 450 A 35 35 0 0 0 365 415" fill="none" stroke={theme.door} strokeWidth="2" strokeDasharray="3 3" />
-
-                {/* 3. Central Staircase & Corridor Area */}
-                {/* Staircase Box (marked with ↓ up and ↙ Down in sketch) */}
-                <g id="staircase-block" transform="translate(425, 230)">
-                  <rect
-                    x="0"
-                    y="0"
-                    width="145"
-                    height="180"
-                    rx="8"
-                    fill="#151D2F"
-                    stroke={theme.wall}
-                    strokeWidth="3"
-                  />
-                  {/* Stair treads */}
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <line
-                      key={`stair-${i}`}
-                      x1="12"
-                      y1={20 + i * 18}
-                      x2="133"
-                      y2={20 + i * 18}
-                      stroke={theme.stair}
-                      strokeWidth="2"
-                    />
+                {/* Stairwell Down */}
+                <g id="first-floor-stairwell" transform="translate(590, 375)">
+                  <rect x="0" y="0" width="85" height="110" fill="rgba(148, 163, 184, 0.15)" stroke="#94A3B8" strokeWidth="1.5" />
+                  {[18, 36, 54, 72, 90].map(y => (
+                    <line key={y} x1="0" y1={y} x2="85" y2={y} stroke="#94A3B8" strokeWidth="1.2" />
                   ))}
-                  {/* Staircase center handrail */}
-                  <line x1="72" y1="12" x2="72" y2="168" stroke="#38BDF8" strokeWidth="2" opacity="0.6" />
-                  
-                  {/* Directional Arrows matching sketch */}
-                  <g transform="translate(35, 95)">
-                    <rect x="-8" y="-12" width="38" height="22" rx="4" fill="#0F172A" stroke="#38BDF8" strokeWidth="1" />
-                    <text x="11" y="2" fill="#38BDF8" fontSize="9" fontWeight="bold" textAnchor="middle">
-                      ↓ UP
-                    </text>
+                  <g transform="translate(42, 55)">
+                    <line x1="0" y1="-20" x2="0" y2="20" stroke="#F59E0B" strokeWidth="2.5" />
+                    <polyline points="-6,12 0,20 6,12" fill="none" stroke="#F59E0B" strokeWidth="2.5" />
                   </g>
-                  <g transform="translate(100, 95)">
-                    <rect x="-8" y="-12" width="46" height="22" rx="4" fill="#0F172A" stroke="#F59E0B" strokeWidth="1" />
-                    <text x="15" y="2" fill="#F59E0B" fontSize="9" fontWeight="bold" textAnchor="middle">
-                      ↙ DOWN
-                    </text>
-                  </g>
-                  <text x="72" y="172" fill={theme.text} fontSize="10" textAnchor="middle">
-                    Main Stairwell
+                  <text x="42" y="104" fill="#64748B" fontSize="8.5" fontWeight="800" textAnchor="middle">
+                    STAIRS DOWN
                   </text>
                 </g>
 
-                {/* Walking corridor indicator connecting blocks */}
+                {/* 1F AC Wall Boxes */}
+                <rect x="230" y="295" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="440" y="72" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="680" y="72" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="582" y="315" width="12" height="40" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="750" y="367" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="660" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="770" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+
+                {/* 1F Room Labels */}
+                <text x="260" y="180" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
+                  Executive Suite 1
+                </text>
+                <text x="260" y="198" fill="var(--text-muted)" fontSize="9.5" fontWeight="600" textAnchor="middle">
+                  West Wing Office
+                </text>
+
+                <text x="460" y="180" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
+                  Suite 2
+                </text>
+                <text x="460" y="196" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
+                  Center
+                </text>
+
+                <text x="700" y="160" fill="var(--text-primary)" fontSize="14" fontWeight="800" textAnchor="middle">
+                  Main Conference Room
+                </text>
+                <text x="700" y="180" fill="var(--text-muted)" fontSize="10" fontWeight="600" textAnchor="middle">
+                  Boardroom & Meetings
+                </text>
+
+                <text x="735" y="325" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
+                  Middle Connector
+                </text>
+
+                <text x="755" y="460" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
+                  1st Floor Main Hall
+                </text>
+                <text x="755" y="478" fill="var(--text-muted)" fontSize="10" fontWeight="600" textAnchor="middle">
+                  Operations & Staging
+                </text>
+
+                <g transform="translate(800, 320)">
+                  <circle cx="0" cy="0" r="16" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1.5" />
+                  <text x="0" y="5" fill="#00A3FF" fontSize="13" fontWeight="800" textAnchor="middle">1</text>
+                  <text x="0" y="26" fill="var(--text-muted)" fontSize="10" fontWeight="700" textAnchor="middle">1st Floor</text>
+                </g>
+              </g>
+            )}
+
+            {/* ======================================================== */}
+            {/* ======================================================== */}
+            {/* GROUND FLOOR: COMPLETE INTEGRATED PLAN                   */}
+            {/* Kitchen, Washrooms, Hall, Reception, Right Wing          */}
+            {/* (Fish Tank Gallery & Store Room), Stairs, Boss Washroom, */}
+            {/* Corridor & 3 Lower Offices (Boss, HR, Other)             */}
+            {/* ======================================================== */}
+            {isGroundFloor && (
+              <g id="blueprint-ground-floor">
+                {/* 1. Outer Building Double Walls */}
                 <path
-                  d="M 400 350 L 590 350"
-                  stroke={theme.grid}
-                  strokeWidth="2"
-                  strokeDasharray="6 4"
+                  d="
+                    M 180 60 
+                    L 550 60 
+                    L 550 170 
+                    L 905 170 
+                    L 905 570 
+                    L 525 570 
+                    L 525 920 
+                    L 180 920 
+                    Z
+                  "
+                  fill="rgba(241, 245, 249, 0.4)"
+                  stroke="#334155"
+                  strokeWidth="4.5"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="
+                    M 188 68 
+                    L 542 68 
+                    L 542 178 
+                    L 897 178 
+                    L 897 562 
+                    L 517 562 
+                    L 517 912 
+                    L 188 912 
+                    Z
+                  "
+                  fill="none"
+                  stroke="#64748B"
+                  strokeWidth="1.5"
+                  opacity="0.5"
                 />
 
-                {/* First Floor Room Labels */}
-                <g id="first-floor-labels">
-                  {/* Top Rooms */}
-                  <text x="365" y="115" fill={theme.textBright} fontSize="12" fontWeight="bold" textAnchor="middle">
-                    Executive 2
-                  </text>
-                  <text x="365" y="132" fill={theme.text} fontSize="10" textAnchor="middle">
-                    Office Suite
-                  </text>
+                {/* 2. Top Section Partition (Kitchen & Upper Washroom) */}
+                <line x1="180" y1="170" x2="430" y2="170" stroke="#334155" strokeWidth="3.5" />
+                <line x1="490" y1="170" x2="550" y2="170" stroke="#334155" strokeWidth="3.5" />
 
-                  <text x="510" y="115" fill={theme.textBright} fontSize="12" fontWeight="bold" textAnchor="middle">
-                    Executive 1
-                  </text>
-                  <text x="510" y="132" fill={theme.text} fontSize="10" textAnchor="middle">
-                    Director Office
-                  </text>
+                {/* Arched Double Doorway Opening into Main Hall */}
+                <g transform="translate(460, 170)">
+                  <path d="M -30 0 C -30 35, 30 35, 30 0" fill="none" stroke="#00A3FF" strokeWidth="2" strokeDasharray="3 2" />
+                  <line x1="-30" y1="0" x2="-5" y2="24" stroke="#00A3FF" strokeWidth="1.8" />
+                  <line x1="30" y1="0" x2="5" y2="24" stroke="#00A3FF" strokeWidth="1.8" />
+                </g>
 
-                  <text x="680" y="115" fill={theme.textBright} fontSize="12" fontWeight="bold" textAnchor="middle">
-                    Corner Conf.
-                  </text>
-                  <text x="680" y="132" fill={theme.text} fontSize="10" textAnchor="middle">
-                    Meeting Room
-                  </text>
+                {/* Partition dividing Kitchen and General Washroom */}
+                <line x1="365" y1="60" x2="365" y2="170" stroke="#334155" strokeWidth="3" strokeDasharray="8 4" />
 
-                  {/* 3-Room Block Labels */}
-                  <text x="157" y="340" fill={theme.textBright} fontSize="11" fontWeight="bold" textAnchor="middle">
-                    Accounts
-                  </text>
-                  <text x="157" y="355" fill={theme.text} fontSize="9" textAnchor="middle">
-                    & Audit
-                  </text>
+                {/* 3. Reception Section (Middle Right: x = 480 to 750, y = 350 to 570) */}
+                {/* West wall of Reception */}
+                <line x1="480" y1="350" x2="480" y2="570" stroke="#334155" strokeWidth="3.5" />
 
-                  <text x="252" y="335" fill="#38BDF8" fontSize="11" fontWeight="bold" textAnchor="middle">
-                    IT & Server
-                  </text>
-                  <text x="252" y="350" fill={theme.text} fontSize="9" textAnchor="middle">
-                    24/7 Facility
-                  </text>
+                {/* North partition / Reception counter */}
+                <line x1="480" y1="350" x2="550" y2="350" stroke="#334155" strokeWidth="3.5" />
+                <line x1="680" y1="350" x2="750" y2="350" stroke="#334155" strokeWidth="3.5" />
+                {/* Reception Counter Opening */}
+                <path
+                  d="M 550 350 Q 615 365 680 350"
+                  fill="none"
+                  stroke="#00A3FF"
+                  strokeWidth="2"
+                  strokeDasharray="4 3"
+                />
+                <text x="615" y="342" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
+                  COUNTER
+                </text>
 
-                  <text x="350" y="340" fill={theme.textBright} fontSize="11" fontWeight="bold" textAnchor="middle">
-                    Sr. Manager
-                  </text>
-                  <text x="350" y="355" fill={theme.text} fontSize="9" textAnchor="middle">
-                    Office
-                  </text>
+                {/* Main Front Entrance Door of the Building */}
+                <line x1="590" y1="570" x2="650" y2="570" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 590 570 A 60 60 0 0 1 650 510" fill="none" stroke="#00A3FF" strokeWidth="2" strokeDasharray="3 2" />
+                <line x1="590" y1="570" x2="650" y2="510" stroke="#00A3FF" strokeWidth="2" />
+                <text x="620" y="590" fill="#00A3FF" fontSize="9" fontWeight="800" textAnchor="middle">
+                  ▲ MAIN ENTRANCE
+                </text>
 
-                  {/* Long East Wing Corridor Labels */}
-                  <text x="670" y="280" fill={theme.textBright} fontSize="13" fontWeight="bold" textAnchor="middle">
-                    1st Floor Operations
-                  </text>
-                  <text x="670" y="300" fill={theme.text} fontSize="10" textAnchor="middle">
-                    North Workstation Wing
-                  </text>
+                {/* Reception Desk */}
+                <g transform="translate(565, 410)">
+                  <rect x="0" y="0" width="105" height="26" rx="4" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.4" />
+                  <circle cx="52" cy="40" r="8" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
+                </g>
 
-                  <text x="670" y="400" fill={theme.textBright} fontSize="13" fontWeight="bold" textAnchor="middle">
-                    Operations Center
-                  </text>
-                  <text x="670" y="420" fill={theme.text} fontSize="10" textAnchor="middle">
-                    Team Desks
-                  </text>
+                {/* 4. RIGHT SIDE WING: FISH TANK GALLERY & STORE ROOM (x = 750 to 905, y = 170 to 570) */}
+                {/* West dividing wall of right wing */}
+                <line x1="750" y1="170" x2="750" y2="460" stroke="#334155" strokeWidth="3.5" />
+                <line x1="750" y1="500" x2="750" y2="570" stroke="#334155" strokeWidth="3.5" />
+                {/* Doorway connecting Reception into Right Wing */}
+                <line x1="750" y1="460" x2="750" y2="500" stroke="#FFFFFF" strokeWidth="5" />
+                <path d="M 750 500 A 40 40 0 0 1 710 460" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="750" y1="500" x2="710" y2="460" stroke="#00A3FF" strokeWidth="1.8" />
 
-                  <text x="670" y="520" fill={theme.textBright} fontSize="13" fontWeight="bold" textAnchor="middle">
-                    Operations South
+                {/* Horizontal partition dividing Fish Tank Gallery and Store Room */}
+                <line x1="750" y1="445" x2="905" y2="445" stroke="#334155" strokeWidth="3.5" />
+
+                {/* --- A. FISH TANK GALLERY (Upper Right: y = 170 to 445) --- */}
+                <g id="right-wing-fish-tanks">
+                  <rect x="752" y="172" width="151" height="271" fill="rgba(14, 165, 233, 0.08)" />
+
+                  {/* Fish Tank Racks (Row 1) */}
+                  <rect x="765" y="190" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
+                  <line x1="768" y1="196" x2="818" y2="196" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
+                  <circle cx="778" cy="212" r="2" fill="#38BDF8" opacity="0.7" />
+                  <path d="M 788 214 Q 795 210 802 214 Q 806 211 806 217 Q 802 214 795 218 Z" fill="#00A3FF" opacity="0.85" />
+
+                  <rect x="835" y="190" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
+                  <line x1="838" y1="196" x2="888" y2="196" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
+                  <circle cx="875" cy="212" r="2" fill="#38BDF8" opacity="0.7" />
+                  <path d="M 855 214 Q 862 210 869 214 Q 873 211 873 217 Q 869 214 862 218 Z" fill="#38BDF8" opacity="0.85" />
+
+                  {/* Fish Tank Racks (Row 2) */}
+                  <rect x="765" y="246" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
+                  <line x1="768" y1="252" x2="818" y2="252" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
+                  <circle cx="805" cy="268" r="2.5" fill="#38BDF8" opacity="0.6" />
+                  <path d="M 778 270 Q 785 266 792 270 Q 796 267 796 273 Q 792 270 785 274 Z" fill="#00A3FF" opacity="0.85" />
+
+                  <rect x="835" y="246" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
+                  <line x1="838" y1="252" x2="888" y2="252" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
+                  <circle cx="848" cy="268" r="2" fill="#38BDF8" opacity="0.7" />
+                  <path d="M 858 270 Q 865 266 872 270 Q 876 267 876 273 Q 872 270 865 274 Z" fill="#38BDF8" opacity="0.85" />
+
+                  {/* Fish Tank Racks (Row 3) */}
+                  <rect x="765" y="302" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
+                  <line x1="768" y1="308" x2="818" y2="308" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
+                  <circle cx="780" cy="324" r="2" fill="#38BDF8" opacity="0.7" />
+                  <path d="M 790 326 Q 797 322 804 326 Q 808 323 808 329 Q 804 326 797 330 Z" fill="#00A3FF" opacity="0.85" />
+
+                  <rect x="835" y="302" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
+                  <line x1="838" y1="308" x2="888" y2="308" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
+                  <circle cx="870" cy="324" r="2" fill="#38BDF8" opacity="0.7" />
+                  <path d="M 850 326 Q 857 322 864 326 Q 868 323 868 329 Q 864 326 857 330 Z" fill="#38BDF8" opacity="0.85" />
+
+                  {/* Feature Main Aquarium Tank (Row 4 - Large Display) */}
+                  <rect x="765" y="358" width="126" height="52" rx="4" fill="rgba(14, 165, 233, 0.28)" stroke="#00A3FF" strokeWidth="2" />
+                  <line x1="769" y1="365" x2="887" y2="365" stroke="#38BDF8" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.9" />
+                  <circle cx="785" cy="385" r="3" fill="#38BDF8" opacity="0.7" />
+                  <circle cx="865" cy="388" r="2.5" fill="#38BDF8" opacity="0.7" />
+                  <path d="M 805 385 Q 815 380 822 385 Q 827 381 827 388 Q 822 385 815 389 Z" fill="#00A3FF" opacity="0.95" />
+                  <path d="M 845 390 Q 835 385 828 390 Q 823 386 823 393 Q 828 390 835 394 Z" fill="#38BDF8" opacity="0.95" />
+
+                  {/* Fish Tank Label */}
+                  <text x="828" y="426" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
+                    🐠 FISH TANK GALLERY
                   </text>
-                  <text x="670" y="540" fill={theme.text} fontSize="10" textAnchor="middle">
-                    Support Wing
+                  <text x="828" y="438" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
+                    Aquarium Display Racks
                   </text>
                 </g>
 
-                {/* Sub-corridor desk mockups */}
-                <g id="workstations-first" opacity="0.3">
-                  <rect x="615" y="220" width="85" height="38" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  <rect x="615" y="340" width="85" height="38" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
-                  <rect x="615" y="460" width="85" height="38" rx="4" fill="none" stroke="#60A5FA" strokeWidth="1.5" />
+                {/* --- B. STORE ROOM (Lower Right: y = 445 to 570) --- */}
+                <g id="right-wing-store-room">
+                  <rect x="752" y="447" width="151" height="121" fill="rgba(100, 116, 139, 0.14)" />
+
+                  {/* Storage Shelves / Racks along walls */}
+                  <rect x="762" y="455" width="131" height="16" rx="2" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.2" />
+                  <line x1="805" y1="455" x2="805" y2="471" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                  <line x1="850" y1="455" x2="850" y2="471" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+
+                  <rect x="882" y="475" width="16" height="60" rx="2" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.2" />
+                  <line x1="882" y1="505" x2="898" y2="505" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+
+                  {/* Store Room Labels */}
+                  <text x="818" y="500" fill="var(--text-primary)" fontSize="10.5" fontWeight="800" textAnchor="middle">
+                    📦 STORE ROOM
+                  </text>
+                  <text x="818" y="515" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
+                    IT & Utility Storage
+                  </text>
+
+                  {/* Store Room Bottom Door (drawn with blue highlight by user with arrow!) */}
+                  <line x1="790" y1="570" x2="850" y2="570" stroke="#00A3FF" strokeWidth="6" />
+                  <path d="M 790 570 A 60 60 0 0 1 850 510" fill="none" stroke="#00A3FF" strokeWidth="2" strokeDasharray="3 2" />
+                  <line x1="790" y1="570" x2="850" y2="510" stroke="#00A3FF" strokeWidth="2" />
+                  <text x="820" y="588" fill="#00A3FF" fontSize="9" fontWeight="800" textAnchor="middle">
+                    ▲ DOOR
+                  </text>
                 </g>
+
+                {/* 5. LEFT SIDE SECTION (Above Boss Office: x = 180 to 470, y = 515 to 570) */}
+                {/* Wall dividing Stairs from Boss Washroom */}
+                <line x1="285" y1="515" x2="285" y2="570" stroke="#334155" strokeWidth="3.5" />
+
+                {/* --- A. STAIRS UP (Left: x = 180 to 285, y = 515 to 570) --- */}
+                <g id="ground-stairs-up">
+                  <rect x="180" y="515" width="105" height="55" fill="rgba(148, 163, 184, 0.15)" stroke="#64748B" strokeWidth="1.5" />
+                  {/* Vertical Stair Treads matching user's ||||||| sketch */}
+                  {[195, 210, 225, 240, 255, 270].map(x => (
+                    <line key={x} x1={x} y1="515" x2={x} y2="570" stroke="#64748B" strokeWidth="1.5" />
+                  ))}
+                  <g transform="translate(232, 542)">
+                    <line x1="-30" y1="0" x2="30" y2="0" stroke="#F59E0B" strokeWidth="2" />
+                    <polyline points="20,-6 30,0 20,6" fill="none" stroke="#F59E0B" strokeWidth="2" />
+                  </g>
+                  <text x="232" y="563" fill="#64748B" fontSize="8" fontWeight="800" textAnchor="middle">
+                    ▲ STAIRS UP
+                  </text>
+                </g>
+
+                {/* --- B. BOSS PRIVATE WASHROOM ('washrom boss' annotated by user: x = 285 to 470, y = 515 to 570) --- */}
+                <g id="ground-boss-washroom">
+                  <rect x="285" y="515" width="185" height="55" fill="rgba(6, 182, 212, 0.12)" stroke="#334155" strokeWidth="2" />
+
+                  {/* Commode / Toilet Fixture */}
+                  <g transform="translate(440, 535)">
+                    <rect x="-8" y="-12" width="16" height="8" rx="2" fill="rgba(148, 163, 184, 0.4)" stroke="#64748B" strokeWidth="1" />
+                    <ellipse cx="0" cy="4" rx="7" ry="9" fill="rgba(241, 245, 249, 0.8)" stroke="#64748B" strokeWidth="1.2" />
+                  </g>
+
+                  {/* Wash Basin / Sink */}
+                  <g transform="translate(305, 535)">
+                    <rect x="-8" y="-10" width="16" height="12" rx="3" fill="rgba(241, 245, 249, 0.8)" stroke="#64748B" strokeWidth="1.2" />
+                    <circle cx="0" cy="-4" r="2" fill="#00A3FF" />
+                  </g>
+
+                  {/* Labels */}
+                  <text x="370" y="538" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
+                    🚽 BOSS WASHROOM
+                  </text>
+                  <text x="370" y="552" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
+                    Private En-suite Restroom
+                  </text>
+
+                  {/* Private Door connecting down into Boss Office on y = 570 */}
+                  <line x1="340" y1="570" x2="385" y2="570" stroke="#FFFFFF" strokeWidth="5" />
+                  <path d="M 340 570 A 45 45 0 0 1 385 615" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                  <line x1="340" y1="570" x2="385" y2="615" stroke="#00A3FF" strokeWidth="1.8" />
+                </g>
+
+                {/* Wall dividing upper building from lower wing (x = 180 to 470 at y = 570) */}
+                <line x1="180" y1="570" x2="340" y2="570" stroke="#334155" strokeWidth="4.5" />
+                <line x1="385" y1="570" x2="470" y2="570" stroke="#334155" strokeWidth="4.5" />
+
+                {/* 6. CORRIDOR PATHWAY ('CORRIDOR' red dotted line drawn by user) */}
+                <g id="ground-corridor">
+                  {/* Vertical Corridor Fill */}
+                  <rect x="470" y="570" width="55" height="350" fill="rgba(0, 163, 255, 0.05)" />
+                  {/* Subtle Floor Tile Grid in Vertical Corridor */}
+                  {[620, 670, 720, 770, 820, 870].map(y => (
+                    <line key={y} x1="472" y1={y} x2="523" y2={y} stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.35" />
+                  ))}
+
+                  {/* Pathway Directional Flow from Store Room Door past Main Entrance to Offices */}
+                  <path
+                    d="M 820 580 L 498 580 L 498 905"
+                    fill="none"
+                    stroke="#EF4444"
+                    strokeWidth="2"
+                    strokeDasharray="5 3"
+                    opacity="0.9"
+                  />
+                  <polyline points="494,900 498,908 502,900" fill="none" stroke="#EF4444" strokeWidth="2.2" />
+
+                  {/* Corridor Label */}
+                  <g transform="translate(509, 745) rotate(90)">
+                    <text x="0" y="0" fill="#EF4444" fontSize="9.5" fontWeight="800" textAnchor="middle" letterSpacing="4">
+                      CORRIDOR
+                    </text>
+                  </g>
+                </g>
+
+                {/* Wall dividing the 3 offices from Corridor (x = 470, y = 570 to 920) */}
+                <line x1="470" y1="570" x2="470" y2="595" stroke="#334155" strokeWidth="3.5" />
+                <line x1="470" y1="640" x2="470" y2="710" stroke="#334155" strokeWidth="3.5" />
+                <line x1="470" y1="755" x2="470" y2="860" stroke="#334155" strokeWidth="3.5" />
+                <line x1="470" y1="905" x2="470" y2="920" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Door: Corridor to Boss Office */}
+                <line x1="470" y1="595" x2="470" y2="640" stroke="#FFFFFF" strokeWidth="5" />
+                <path d="M 470 640 A 45 45 0 0 1 425 595" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="470" y1="640" x2="425" y2="595" stroke="#00A3FF" strokeWidth="1.8" />
+
+                {/* Door: Corridor to HR Office */}
+                <line x1="470" y1="710" x2="470" y2="755" stroke="#FFFFFF" strokeWidth="5" />
+                <path d="M 470 755 A 45 45 0 0 1 425 710" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="470" y1="755" x2="425" y2="710" stroke="#00A3FF" strokeWidth="1.8" />
+
+                {/* Door: Corridor to Other Office (Drawn with door swing by user at bottom right) */}
+                <line x1="470" y1="860" x2="470" y2="905" stroke="#FFFFFF" strokeWidth="5" />
+                <path d="M 470 905 A 45 45 0 0 1 425 860" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="470" y1="905" x2="425" y2="860" stroke="#00A3FF" strokeWidth="1.8" />
+
+                {/* 7. Partitions Between the 3 Lower Offices */}
+                {/* Partition between Boss Office & HR Office at y = 685 */}
+                <line x1="180" y1="685" x2="295" y2="685" stroke="#334155" strokeWidth="3.5" />
+                <line x1="345" y1="685" x2="470" y2="685" stroke="#334155" strokeWidth="3.5" />
+                {/* Inter-office Connecting Doorway between Boss & HR */}
+                <line x1="295" y1="685" x2="345" y2="685" stroke="#FFFFFF" strokeWidth="5" />
+                <path d="M 295 685 A 50 50 0 0 1 345 635" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="295" y1="685" x2="345" y2="635" stroke="#00A3FF" strokeWidth="1.8" />
+
+                {/* Partition between HR Office & Other Office at y = 800 */}
+                <line x1="180" y1="800" x2="470" y2="800" stroke="#334155" strokeWidth="3.5" />
+
+                {/* 8. Workstations and Office Furniture */}
+                {/* Operations Hall Desks */}
+                <g transform="translate(490, 200)">
+                  <rect x="0" y="0" width="140" height="26" rx="4" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.5" />
+                  <line x1="45" y1="0" x2="45" y2="26" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                  <line x1="95" y1="0" x2="95" y2="26" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                  <text x="70" y="16" fill="var(--text-muted)" fontSize="8.5" fontWeight="700" textAnchor="middle">Workstation Desk</text>
+                </g>
+
+                <g transform="translate(295, 230)">
+                  <rect x="0" y="0" width="26" height="110" rx="4" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.5" />
+                  <line x1="0" y1="55" x2="26" y2="55" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                </g>
+
+                <g transform="translate(310, 365)">
+                  <rect x="0" y="0" width="140" height="26" rx="4" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.5" />
+                  <line x1="45" y1="0" x2="45" y2="26" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                  <line x1="95" y1="0" x2="95" y2="26" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                  <text x="70" y="16" fill="var(--text-muted)" fontSize="8.5" fontWeight="700" textAnchor="middle">Workstation Desk</text>
+                </g>
+
+                {/* Boss Office Executive Furniture */}
+                <g transform="translate(245, 605)">
+                  <rect x="0" y="0" width="115" height="32" rx="4" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.4" />
+                  <rect x="0" y="32" width="28" height="22" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                  <rect x="42" y="8" width="26" height="11" rx="2" fill="#38BDF8" opacity="0.65" />
+                  <circle cx="56" cy="50" r="8.5" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
+                  <circle cx="28" cy="-10" r="6.5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                  <circle cx="85" cy="-10" r="6.5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                </g>
+
+                {/* HR Office Consultation Setup */}
+                <g transform="translate(245, 720)">
+                  <rect x="0" y="0" width="115" height="30" rx="4" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.4" />
+                  <circle cx="58" cy="44" r="8" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
+                  <circle cx="28" cy="-10" r="6.5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                  <circle cx="85" cy="-10" r="6.5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                  <rect x="175" y="-30" width="36" height="16" rx="2" fill="rgba(148, 163, 184, 0.18)" stroke="#94A3B8" strokeWidth="1" />
+                  <text x="193" y="-19" fill="var(--text-muted)" fontSize="7" fontWeight="700" textAnchor="middle">FILES</text>
+                </g>
+
+                {/* Other Office Workstations */}
+                <g transform="translate(240, 840)">
+                  <rect x="0" y="0" width="125" height="32" rx="4" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.4" />
+                  <line x1="62" y1="0" x2="62" y2="32" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                  <circle cx="31" cy="44" r="7.5" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
+                  <circle cx="93" cy="44" r="7.5" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
+                  <rect x="18" y="6" width="24" height="10" rx="2" fill="#38BDF8" opacity="0.65" />
+                  <rect x="80" y="6" width="24" height="10" rx="2" fill="#38BDF8" opacity="0.65" />
+                </g>
+
+                {/* 9. Physical Wall Mount Boxes for AC Units */}
+                <rect x="742" y="413" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.2" rx="2" />
+                <rect x="742" y="198" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.2" rx="2" />
+                <rect x="182" y="228" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.2" rx="2" />
+                <rect x="182" y="388" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.2" rx="2" />
+                <rect x="182" y="618" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.2" rx="2" />
+                <rect x="182" y="738" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.2" rx="2" />
+                <rect x="182" y="858" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.2" rx="2" />
+
+                {/* 10. Room Labels */}
+                {/* Kitchen */}
+                <text x="270" y="115" fill="var(--text-primary)" fontSize="13.5" fontWeight="800" textAnchor="middle">
+                  Kitchen
+                </text>
+                <text x="270" y="133" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
+                  Pantry & Break Area
+                </text>
+
+                {/* General Washroom */}
+                <text x="455" y="115" fill="var(--text-primary)" fontSize="13.5" fontWeight="800" textAnchor="middle">
+                  Wash room
+                </text>
+                <text x="455" y="133" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
+                  Restroom Facility
+                </text>
+
+                {/* Reception */}
+                <text x="620" y="445" fill="var(--text-primary)" fontSize="14" fontWeight="800" textAnchor="middle">
+                  Reception
+                </text>
+                <text x="620" y="465" fill="var(--text-muted)" fontSize="9.5" fontWeight="600" textAnchor="middle">
+                  Front Lobby & Counter
+                </text>
+
+                {/* Ground Operations Hall */}
+                <text x="390" y="280" fill="var(--text-primary)" fontSize="14" fontWeight="800" textAnchor="middle">
+                  Ground Operations Hall
+                </text>
+                <text x="390" y="298" fill="var(--text-muted)" fontSize="10" fontWeight="600" textAnchor="middle">
+                  Open Plan Workstations
+                </text>
+
+                {/* Boss Office */}
+                <text x="355" y="598" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
+                  Boss Office
+                </text>
+                <text x="355" y="613" fill="var(--text-muted)" fontSize="8.5" fontWeight="600" textAnchor="middle">
+                  Executive Suite
+                </text>
+
+                {/* HR Office */}
+                <text x="355" y="713" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
+                  HR Office
+                </text>
+                <text x="355" y="728" fill="var(--text-muted)" fontSize="8.5" fontWeight="600" textAnchor="middle">
+                  Human Resources
+                </text>
+
+                {/* Other Office */}
+                <text x="355" y="828" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
+                  Other Office
+                </text>
+                <text x="355" y="843" fill="var(--text-muted)" fontSize="8.5" fontWeight="600" textAnchor="middle">
+                  Accounts & Operations
+                </text>
               </g>
             )}
 
             {/* ======================================================== */}
-            {/* AIRFLOW DISCHARGE RIPPLE ANIMATIONS                      */}
+            {/* WALL-MOUNTED CIRCULAR FAN PIN MARKERS                    */}
             {/* ======================================================== */}
-            {showAirflow && (
-              <g id="airflow-discharge">
-                {units
-                  .filter(u => u.Status === 'Active')
-                  .map(unit => {
-                    const cx = unit.CoordX;
-                    const cy = unit.CoordY;
-                    const isTopWall = cy < 200;
-                    const isBottomWall = cy > 500;
-                    const isEastWall = cx > 700;
-
-                    // Compute discharge direction
-                    let dx = 0;
-                    let dy = 0;
-                    let angle = 90; // blowing downwards default
-
-                    if (isTopWall) {
-                      dy = 50;
-                      angle = 90;
-                    } else if (isBottomWall) {
-                      dy = -50;
-                      angle = -90;
-                    } else if (isEastWall) {
-                      dx = -55;
-                      angle = 180;
-                    } else {
-                      dy = 45;
-                      angle = 90;
-                    }
-
-                    return (
-                      <g key={`flow-${unit.UnitID}`} className="pointer-events-none">
-                        {/* Cooling Aura */}
-                        <circle
-                          cx={cx + dx * 0.4}
-                          cy={cy + dy * 0.4}
-                          r="34"
-                          fill="rgba(56, 189, 248, 0.08)"
-                          className="ac-pulse"
-                        />
-                        {/* Dynamic Cooling Breeze Waves */}
-                        <path
-                          d={`M ${cx - 16} ${cy + (isBottomWall ? -10 : 10)} Q ${cx + dx * 0.5} ${cy + dy * 0.5} ${cx + dx} ${cy + dy}`}
-                          fill="none"
-                          stroke="rgba(56, 189, 248, 0.45)"
-                          strokeWidth="2"
-                          className="air-wave"
-                        />
-                        <path
-                          d={`M ${cx + 16} ${cy + (isBottomWall ? -10 : 10)} Q ${cx + dx * 0.5} ${cy + dy * 0.5} ${cx + dx} ${cy + dy + 10}`}
-                          fill="none"
-                          stroke="rgba(56, 189, 248, 0.3)"
-                          strokeWidth="1.5"
-                          className="air-wave"
-                        />
-                      </g>
-                    );
-                  })}
-              </g>
-            )}
-
-            {/* ======================================================== */}
-            {/* INTERACTIVE AC UNIT MARKERS / NODES                      */}
-            {/* ======================================================== */}
-            <g id="ac-unit-markers">
+            <g id="komvent-wall-fan-pins">
               {units.map(unit => {
                 const isSelected = selectedUnit && selectedUnit.UnitID === unit.UnitID;
-                const isHovered = hoveredUnit && hoveredUnit.UnitID === unit.UnitID;
                 const statusColor = getStatusColor(unit.Status);
-                const isActive = unit.Status === 'Active';
-                const isRepair = unit.Status === 'Under Repair';
 
                 return (
                   <g
                     key={unit.UnitID}
                     transform={`translate(${unit.CoordX}, ${unit.CoordY})`}
-                    className="cursor-pointer transition-transform duration-200"
+                    style={{ cursor: 'pointer' }}
                     onClick={() => onSelectUnit(unit)}
                     onMouseEnter={() => setHoveredUnit(unit)}
                     onMouseLeave={() => setHoveredUnit(null)}
                   >
-                    {/* Selected Target Halo Ring */}
+                    {/* Static CAD Highlight Target on Selected Pin (No Animation) */}
                     {isSelected && (
                       <g>
                         <circle
                           cx="0"
                           cy="0"
-                          r="32"
-                          fill="none"
-                          stroke="#38BDF8"
-                          strokeWidth="2.5"
-                          strokeDasharray="4 3"
-                          className="animate-spin"
-                          style={{ animationDuration: '6s' }}
+                          r="24"
+                          fill="rgba(0, 163, 255, 0.2)"
+                          stroke="#00A3FF"
+                          strokeWidth="2"
                         />
                         <circle
                           cx="0"
                           cy="0"
-                          r="28"
-                          fill="rgba(56, 189, 248, 0.2)"
+                          r="30"
+                          fill="none"
+                          stroke="#00A3FF"
+                          strokeWidth="1.2"
+                          strokeDasharray="4 3"
+                          opacity="0.8"
                         />
                       </g>
                     )}
 
-                    {/* Outer status pulse ring */}
-                    {isActive && (
-                      <circle
-                        cx="0"
-                        cy="0"
-                        r="22"
-                        fill="none"
-                        stroke={statusColor}
-                        strokeWidth="1.5"
-                        opacity="0.6"
-                        className="animate-ping"
-                        style={{ animationDuration: '3s' }}
-                      />
-                    )}
-
-                    {/* Unit Box / Split AC Graphic Body */}
-                    <rect
-                      x="-24"
-                      y="-12"
-                      width="48"
-                      height="24"
-                      rx="6"
-                      fill="#0B132B"
-                      stroke={isSelected ? '#38BDF8' : statusColor}
-                      strokeWidth={isSelected ? 2.5 : 2}
-                      filter={isActive ? 'url(#glowActive)' : isRepair ? 'url(#glowRepair)' : undefined}
-                    />
-
-                    {/* AC Grille Lines */}
-                    <line x1="-16" y1="-4" x2="6" y2="-4" stroke={statusColor} strokeWidth="1.5" opacity="0.6" />
-                    <line x1="-16" y1="0" x2="6" y2="0" stroke={statusColor} strokeWidth="1.5" opacity="0.6" />
-                    <line x1="-16" y1="4" x2="6" y2="4" stroke={statusColor} strokeWidth="1.5" opacity="0.6" />
-
-                    {/* Status Indicator LED */}
+                    {/* Circular Dark / Cyan Base Pin */}
                     <circle
-                      cx="14"
+                      cx="0"
                       cy="0"
-                      r="3.5"
-                      fill={statusColor}
+                      r="16"
+                      fill={isSelected ? '#0084FF' : '#0F172A'}
+                      stroke={isSelected ? '#FFFFFF' : statusColor}
+                      strokeWidth={isSelected ? 2.5 : 2}
                     />
 
-                    {/* AC Unit Number Pin Pill */}
-                    <g transform="translate(0, -22)">
-                      <rect
-                        x="-16"
-                        y="-10"
-                        width="32"
-                        height="18"
-                        rx="9"
-                        fill={isSelected ? '#0284C7' : '#1E293B'}
-                        stroke={statusColor}
-                        strokeWidth="1.5"
-                      />
-                      <text
-                        x="0"
-                        y="3"
-                        fill="#FFFFFF"
-                        fontSize="10"
-                        fontWeight="bold"
-                        fontFamily="monospace"
-                        textAnchor="middle"
-                      >
-                        {unit.UnitNumber || unit.UnitID.slice(-2)}
-                      </text>
+                    {/* Clean Static CAD AC Symbol (Stationary, Clean, Crisp) */}
+                    <g>
+                      <circle cx="0" cy="0" r="3" fill="#FFFFFF" />
+                      <path d="M 0 -3 C 2.5 -7, 6 -7, 4 -3 Z" fill="#FFFFFF" opacity="0.95" />
+                      <path d="M 3 0 C 7 2.5, 7 6, 3 4 Z" fill="#FFFFFF" opacity="0.95" />
+                      <path d="M 0 3 C -2.5 7, -6 7, -4 3 Z" fill="#FFFFFF" opacity="0.95" />
+                      <path d="M -3 0 C -7 -2.5, -7 -6, -3 -4 Z" fill="#FFFFFF" opacity="0.95" />
                     </g>
 
-                    {/* Temperature Pill Tag underneath */}
-                    <g transform="translate(0, 24)">
-                      <rect
-                        x="-20"
-                        y="-8"
-                        width="40"
-                        height="16"
-                        rx="8"
-                        fill="rgba(15, 23, 42, 0.9)"
-                        stroke="rgba(148, 163, 184, 0.3)"
-                        strokeWidth="1"
-                      />
-                      <text
-                        x="0"
-                        y="4"
-                        fill={isActive ? '#38BDF8' : '#94A3B8'}
-                        fontSize="9.5"
-                        fontWeight="bold"
-                        fontFamily="sans-serif"
-                        textAnchor="middle"
-                      >
-                        {unit.TargetTemp ? `${unit.TargetTemp}°C` : 'OFF'}
-                      </text>
-                    </g>
+                    {/* Tooltip Tag Pill matching KOMVENT */}
+                    {isSelected ? (
+                      <g transform="translate(24, 0)">
+                        <line x1="-8" y1="0" x2="0" y2="0" stroke="#00A3FF" strokeWidth="2" />
+                        <rect
+                          x="0"
+                          y="-12"
+                          width="116"
+                          height="24"
+                          rx="12"
+                          fill="#FFFFFF"
+                          stroke="#00A3FF"
+                          strokeWidth="1.8"
+                          filter="drop-shadow(0 4px 10px rgba(0,0,0,0.25))"
+                        />
+                        <text
+                          x="58"
+                          y="4"
+                          fill="#0F172A"
+                          fontSize="9.5"
+                          fontWeight="800"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          AC Unit - {unit.UnitCode}
+                        </text>
+                      </g>
+                    ) : (
+                      <g transform="translate(0, -22)">
+                        <rect
+                          x="-14"
+                          y="-7"
+                          width="28"
+                          height="14"
+                          rx="7"
+                          fill="var(--bg-surface, #1E293B)"
+                          stroke={statusColor}
+                          strokeWidth="1.5"
+                        />
+                        <text
+                          x="0"
+                          y="3.5"
+                          fill="var(--text-primary, #FFFFFF)"
+                          fontSize="8.5"
+                          fontWeight="800"
+                          textAnchor="middle"
+                          fontFamily="monospace"
+                        >
+                          {unit.UnitNumber || unit.UnitID.slice(-2)}
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}
@@ -795,69 +816,70 @@ export default function ACFloorPlan({
           </svg>
         </div>
 
-        {/* Hover Tooltip Overlay */}
+        {/* Hover Tooltip */}
         {hoveredUnit && (
           <div
-            className="absolute bottom-5 left-5 max-w-sm p-4 rounded-xl bg-slate-950/95 border border-slate-700/80 shadow-2xl backdrop-blur-md pointer-events-none transition-all z-20 animate-in fade-in zoom-in-95 duration-150"
+            style={{
+              position: 'absolute',
+              bottom: 16,
+              left: 16,
+              background: 'var(--bg-surface-elevated, #0F172A)',
+              borderRadius: 12,
+              padding: '0.65rem 0.9rem',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+              border: '1px solid var(--border-subtle, #334155)',
+              zIndex: 30,
+              pointerEvents: 'none',
+              minWidth: 180
+            }}
           >
-            <div className="flex items-center justify-between gap-3 mb-1.5">
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm text-cyan-400">
-                  {hoveredUnit.UnitCode}
-                </span>
-                <span className="text-xs text-slate-300 font-semibold">
-                  {hoveredUnit.Brand} {hoveredUnit.Model}
-                </span>
-              </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${getStatusBadge(hoveredUnit.Status)}`}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#00A3FF', fontFamily: 'monospace' }}>
+                {hoveredUnit.UnitCode}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: 8,
+                  background: hoveredUnit.Status === 'Active' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  color: hoveredUnit.Status === 'Active' ? '#10B981' : '#F59E0B'
+                }}
+              >
                 {hoveredUnit.Status}
               </span>
             </div>
-
-            <p className="text-xs text-slate-300 mb-2 font-medium">
-              📍 {hoveredUnit.RoomName}
-            </p>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-900/80 p-2 rounded-lg border border-slate-800">
-              <div>
-                <span className="text-slate-400">Capacity: </span>
-                <span className="text-slate-200 font-semibold">{hoveredUnit.CapacityBTU}</span>
-              </div>
-              <div>
-                <span className="text-slate-400">Target: </span>
-                <span className="text-cyan-400 font-bold">{hoveredUnit.TargetTemp}°C</span>
-              </div>
-              <div>
-                <span className="text-slate-400">Purchase: </span>
-                <span className="text-emerald-400 font-semibold">
-                  LKR {Number(hoveredUnit.PurchasePrice || 0).toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400">Maint. Costs: </span>
-                <span className="text-amber-400 font-semibold">
-                  LKR {Number(hoveredUnit.lifetimeServiceCost || 0).toLocaleString()}
-                </span>
-              </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary, #F8FAFC)', marginTop: 4 }}>
+              {hoveredUnit.Brand} {hoveredUnit.Model}
             </div>
-
-            {hoveredUnit.Notes && (
-              <p className="text-[11px] text-slate-400 mt-2 line-clamp-1 italic">
-                "{hoveredUnit.Notes}"
-              </p>
-            )}
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)', marginTop: 2 }}>
+              📍 {hoveredUnit.RoomName}
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Blueprint Footer / Quick Stats Bar */}
-      <div className="px-5 py-2.5 bg-slate-950/80 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
-        <div className="flex items-center gap-4">
-          <span>Click any AC pin to view history, log service, or replace machine</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span>Building: Main Commercial Complex</span>
-          <span>Zoom: {Math.round(zoomLevel * 100)}%</span>
+        {/* Bottom Right Blueprint Tag */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 12,
+            right: 14,
+            background: 'var(--bg-surface-translucent, rgba(17, 24, 39, 0.85))',
+            border: '1px solid var(--border-subtle, #334155)',
+            borderRadius: 8,
+            padding: '3px 8px',
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            color: 'var(--text-muted, #94A3B8)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            backdropFilter: 'blur(6px)'
+          }}
+        >
+          <span>BG - {isGroundFloor ? 'Ground Floor' : '1st Floor (Level 1)'}</span>
+          <Maximize2 size={11} style={{ opacity: 0.7 }} />
         </div>
       </div>
     </div>
