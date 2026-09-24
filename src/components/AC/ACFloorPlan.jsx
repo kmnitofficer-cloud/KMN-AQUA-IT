@@ -66,7 +66,7 @@ export default function ACFloorPlan({
             </div>
             <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               {isGroundFloor
-                ? 'Kitchen, Washrooms, Reception, Fish Tank Gallery, Store Room, Stairs & 3 Offices (Boss, HR, Other)'
+                ? 'Kitchen, Washrooms, Hall (with Stairs), Reception (Single Entry), Fish Tank Gallery, Store Room & 3 Offices'
                 : 'Executive Suites, Main Conference & Hall • 7 AC Units'}
             </div>
           </div>
@@ -369,82 +369,30 @@ export default function ACFloorPlan({
                 </g>
 
                 {/* 4. RIGHT SIDE WING: FISH TANK GALLERY & STORE ROOM (x = 750 to 905, y = 170 to 570) */}
-                {/* West dividing wall of right wing */}
-                <line x1="750" y1="170" x2="750" y2="460" stroke="#334155" strokeWidth="3.5" />
-                <line x1="750" y1="500" x2="750" y2="570" stroke="#334155" strokeWidth="3.5" />
-                {/* Doorway connecting Reception into Right Wing */}
-                <line x1="750" y1="460" x2="750" y2="500" stroke="#FFFFFF" strokeWidth="5" />
-                <path d="M 750 500 A 40 40 0 0 1 710 460" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
-                <line x1="750" y1="500" x2="710" y2="460" stroke="#00A3FF" strokeWidth="1.8" />
+                {/* West dividing wall of right wing - solid continuous partition (Reception has ONLY ONE door at entrance) */}
+                <line x1="750" y1="170" x2="750" y2="570" stroke="#334155" strokeWidth="3.5" />
 
                 {/* Horizontal partition dividing Fish Tank Gallery and Store Room */}
-                <line x1="750" y1="445" x2="905" y2="445" stroke="#334155" strokeWidth="3.5" />
+                <line x1="299" y1="515" x2="480" y2="515" stroke="#334155" strokeWidth="3.5" />
 
                 {/* --- A. FISH TANK GALLERY (Upper Right: y = 170 to 445) --- */}
                 <g id="right-wing-fish-tanks">
-                  <rect x="752" y="172" width="151" height="271" fill="rgba(14, 165, 233, 0.08)" />
-
-                  {/* Fish Tank Racks (Row 1) */}
-                  <rect x="765" y="190" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
-                  <line x1="768" y1="196" x2="818" y2="196" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
-                  <circle cx="778" cy="212" r="2" fill="#38BDF8" opacity="0.7" />
-                  <path d="M 788 214 Q 795 210 802 214 Q 806 211 806 217 Q 802 214 795 218 Z" fill="#00A3FF" opacity="0.85" />
-
-                  <rect x="835" y="190" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
-                  <line x1="838" y1="196" x2="888" y2="196" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
-                  <circle cx="875" cy="212" r="2" fill="#38BDF8" opacity="0.7" />
-                  <path d="M 855 214 Q 862 210 869 214 Q 873 211 873 217 Q 869 214 862 218 Z" fill="#38BDF8" opacity="0.85" />
-
-                  {/* Fish Tank Racks (Row 2) */}
-                  <rect x="765" y="246" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
-                  <line x1="768" y1="252" x2="818" y2="252" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
-                  <circle cx="805" cy="268" r="2.5" fill="#38BDF8" opacity="0.6" />
-                  <path d="M 778 270 Q 785 266 792 270 Q 796 267 796 273 Q 792 270 785 274 Z" fill="#00A3FF" opacity="0.85" />
-
-                  <rect x="835" y="246" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
-                  <line x1="838" y1="252" x2="888" y2="252" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
-                  <circle cx="848" cy="268" r="2" fill="#38BDF8" opacity="0.7" />
-                  <path d="M 858 270 Q 865 266 872 270 Q 876 267 876 273 Q 872 270 865 274 Z" fill="#38BDF8" opacity="0.85" />
-
-                  {/* Fish Tank Racks (Row 3) */}
-                  <rect x="765" y="302" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
-                  <line x1="768" y1="308" x2="818" y2="308" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
-                  <circle cx="780" cy="324" r="2" fill="#38BDF8" opacity="0.7" />
-                  <path d="M 790 326 Q 797 322 804 326 Q 808 323 808 329 Q 804 326 797 330 Z" fill="#00A3FF" opacity="0.85" />
-
-                  <rect x="835" y="302" width="56" height="42" rx="3" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="1.6" />
-                  <line x1="838" y1="308" x2="888" y2="308" stroke="#38BDF8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
-                  <circle cx="870" cy="324" r="2" fill="#38BDF8" opacity="0.7" />
-                  <path d="M 850 326 Q 857 322 864 326 Q 868 323 868 329 Q 864 326 857 330 Z" fill="#38BDF8" opacity="0.85" />
 
                   {/* Feature Main Aquarium Tank (Row 4 - Large Display) */}
-                  <rect x="765" y="358" width="126" height="52" rx="4" fill="rgba(14, 165, 233, 0.28)" stroke="#00A3FF" strokeWidth="2" />
-                  <line x1="769" y1="365" x2="887" y2="365" stroke="#38BDF8" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.9" />
-                  <circle cx="785" cy="385" r="3" fill="#38BDF8" opacity="0.7" />
-                  <circle cx="865" cy="388" r="2.5" fill="#38BDF8" opacity="0.7" />
-                  <path d="M 805 385 Q 815 380 822 385 Q 827 381 827 388 Q 822 385 815 389 Z" fill="#00A3FF" opacity="0.95" />
-                  <path d="M 845 390 Q 835 385 828 390 Q 823 386 823 393 Q 828 390 835 394 Z" fill="#38BDF8" opacity="0.95" />
+                  <rect x="335" y="510" width="126" height="52" rx="4" fill="rgba(14, 165, 233, 0.28)" stroke="#00A3FF" strokeWidth="2" />
+
 
                   {/* Fish Tank Label */}
-                  <text x="828" y="426" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
+                  <text x="395" y="526" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
                     🐠 FISH TANK GALLERY
                   </text>
-                  <text x="828" y="438" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
+                  <text x="335" y="438" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
                     Aquarium Display Racks
                   </text>
                 </g>
 
                 {/* --- B. STORE ROOM (Lower Right: y = 445 to 570) --- */}
                 <g id="right-wing-store-room">
-                  <rect x="752" y="447" width="151" height="121" fill="rgba(100, 116, 139, 0.14)" />
-
-                  {/* Storage Shelves / Racks along walls */}
-                  <rect x="762" y="455" width="131" height="16" rx="2" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.2" />
-                  <line x1="805" y1="455" x2="805" y2="471" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
-                  <line x1="850" y1="455" x2="850" y2="471" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
-
-                  <rect x="882" y="475" width="16" height="60" rx="2" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.2" />
-                  <line x1="882" y1="505" x2="898" y2="505" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
 
                   {/* Store Room Labels */}
                   <text x="818" y="500" fill="var(--text-primary)" fontSize="10.5" fontWeight="800" textAnchor="middle">
@@ -463,70 +411,74 @@ export default function ACFloorPlan({
                   </text>
                 </g>
 
-                {/* 5. LEFT SIDE SECTION (Above Boss Office: x = 180 to 470, y = 515 to 570) */}
-                {/* Wall dividing Stairs from Boss Washroom */}
-                <line x1="285" y1="515" x2="285" y2="570" stroke="#334155" strokeWidth="3.5" />
-
-                {/* --- A. STAIRS UP (Left: x = 180 to 285, y = 515 to 570) --- */}
-                <g id="ground-stairs-up">
-                  <rect x="180" y="515" width="105" height="55" fill="rgba(148, 163, 184, 0.15)" stroke="#64748B" strokeWidth="1.5" />
-                  {/* Vertical Stair Treads matching user's ||||||| sketch */}
-                  {[195, 210, 225, 240, 255, 270].map(x => (
-                    <line key={x} x1={x} y1="515" x2={x} y2="570" stroke="#64748B" strokeWidth="1.5" />
+                {/* 5. STAIRS INSIDE GROUND OPERATIONS HALL (x = 180 to 300, y = 450 to 515) */}
+                <g id="ground-hall-stairs">
+                  <rect x="180" y="450" width="120" height="65" fill="rgba(148, 163, 184, 0.15)" stroke="#64748B" strokeWidth="1.5" />
+                  {/* Vertical Stair Treads inside Ground Operations Hall */}
+                  {[195, 210, 225, 240, 255, 270, 285].map(x => (
+                    <line key={x} x1={x} y1="450" x2={x} y2="515" stroke="#64748B" strokeWidth="1.5" />
                   ))}
-                  <g transform="translate(232, 542)">
-                    <line x1="-30" y1="0" x2="30" y2="0" stroke="#F59E0B" strokeWidth="2" />
-                    <polyline points="20,-6 30,0 20,6" fill="none" stroke="#F59E0B" strokeWidth="2" />
+                  <g transform="translate(240, 482)">
+                    <line x1="0" y1="15" x2="0" y2="-15" stroke="#F59E0B" strokeWidth="2.2" />
+                    <polyline points="-5,-7 0,-15 5,-7" fill="none" stroke="#F59E0B" strokeWidth="2.2" />
                   </g>
-                  <text x="232" y="563" fill="#64748B" fontSize="8" fontWeight="800" textAnchor="middle">
+                  <text x="240" y="506" fill="#64748B" fontSize="8" fontWeight="800" textAnchor="middle">
                     ▲ STAIRS UP
                   </text>
                 </g>
 
-                {/* --- B. BOSS PRIVATE WASHROOM ('washrom boss' annotated by user: x = 285 to 470, y = 515 to 570) --- */}
+                {/* 6. BOSS PRIVATE WASHROOM (Directly below Stairs, above Boss Office: x = 180 to 300, y = 515 to 570) */}
+                {/* Horizontal wall dividing Ground Operations Hall / Stairs from Boss Washroom */}
+                <line x1="180" y1="515" x2="300" y2="515" stroke="#334155" strokeWidth="3.5" />
+                {/* Vertical wall dividing Boss Washroom from Corridor */}
+                <line x1="300" y1="515" x2="300" y2="570" stroke="#334155" strokeWidth="3.5" />
+
                 <g id="ground-boss-washroom">
-                  <rect x="285" y="515" width="185" height="55" fill="rgba(6, 182, 212, 0.12)" stroke="#334155" strokeWidth="2" />
+                  <rect x="180" y="515" width="120" height="55" fill="rgba(6, 182, 212, 0.12)" stroke="#334155" strokeWidth="1.5" />
 
                   {/* Commode / Toilet Fixture */}
-                  <g transform="translate(440, 535)">
-                    <rect x="-8" y="-12" width="16" height="8" rx="2" fill="rgba(148, 163, 184, 0.4)" stroke="#64748B" strokeWidth="1" />
-                    <ellipse cx="0" cy="4" rx="7" ry="9" fill="rgba(241, 245, 249, 0.8)" stroke="#64748B" strokeWidth="1.2" />
+                  <g transform="translate(275, 538)">
+                    <rect x="-7" y="-10" width="14" height="6" rx="2" fill="rgba(148, 163, 184, 0.4)" stroke="#64748B" strokeWidth="1" />
+                    <ellipse cx="0" cy="3" rx="6" ry="8" fill="rgba(241, 245, 249, 0.8)" stroke="#64748B" strokeWidth="1.2" />
                   </g>
 
                   {/* Wash Basin / Sink */}
-                  <g transform="translate(305, 535)">
-                    <rect x="-8" y="-10" width="16" height="12" rx="3" fill="rgba(241, 245, 249, 0.8)" stroke="#64748B" strokeWidth="1.2" />
-                    <circle cx="0" cy="-4" r="2" fill="#00A3FF" />
+                  <g transform="translate(205, 538)">
+                    <rect x="-7" y="-9" width="14" height="10" rx="3" fill="rgba(241, 245, 249, 0.8)" stroke="#64748B" strokeWidth="1.2" />
+                    <circle cx="0" cy="-3" r="1.8" fill="#00A3FF" />
                   </g>
 
                   {/* Labels */}
-                  <text x="370" y="538" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
+                  <text x="240" y="536" fill="#00A3FF" fontSize="8.5" fontWeight="800" textAnchor="middle">
                     🚽 BOSS WASHROOM
                   </text>
-                  <text x="370" y="552" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
-                    Private En-suite Restroom
+                  <text x="240" y="549" fill="var(--text-muted)" fontSize="7" fontWeight="600" textAnchor="middle">
+                    Private Restroom
                   </text>
 
                   {/* Private Door connecting down into Boss Office on y = 570 */}
-                  <line x1="340" y1="570" x2="385" y2="570" stroke="#FFFFFF" strokeWidth="5" />
-                  <path d="M 340 570 A 45 45 0 0 1 385 615" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
-                  <line x1="340" y1="570" x2="385" y2="615" stroke="#00A3FF" strokeWidth="1.8" />
+                  <line x1="220" y1="570" x2="265" y2="570" stroke="#FFFFFF" strokeWidth="5" />
+                  <path d="M 220 570 A 45 45 0 0 1 265 615" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                  <line x1="220" y1="570" x2="265" y2="615" stroke="#00A3FF" strokeWidth="1.8" />
                 </g>
 
-                {/* Wall dividing upper building from lower wing (x = 180 to 470 at y = 570) */}
-                <line x1="180" y1="570" x2="340" y2="570" stroke="#334155" strokeWidth="4.5" />
-                <line x1="385" y1="570" x2="470" y2="570" stroke="#334155" strokeWidth="4.5" />
+                {/* Wall dividing upper level from Boss Office (y = 570, x = 180 to 470) */}
+                <line x1="180" y1="570" x2="220" y2="570" stroke="#334155" strokeWidth="4.5" />
+                <line x1="265" y1="570" x2="470" y2="570" stroke="#334155" strokeWidth="4.5" />
 
-                {/* 6. CORRIDOR PATHWAY ('CORRIDOR' red dotted line drawn by user) */}
+                {/* 7. CORRIDOR PATHWAY ('CORRIDOR' red dotted line drawn by user) */}
                 <g id="ground-corridor">
+                  {/* Hallway connection between Ground Operations Hall and vertical corridor (x = 300 to 525, y = 515 to 570) */}
+                  <rect x="300" y="515" width="225" height="55" fill="rgba(0, 163, 255, 0.05)" />
                   {/* Vertical Corridor Fill */}
                   <rect x="470" y="570" width="55" height="350" fill="rgba(0, 163, 255, 0.05)" />
+
                   {/* Subtle Floor Tile Grid in Vertical Corridor */}
                   {[620, 670, 720, 770, 820, 870].map(y => (
                     <line key={y} x1="472" y1={y} x2="523" y2={y} stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.35" />
                   ))}
 
-                  {/* Pathway Directional Flow from Store Room Door past Main Entrance to Offices */}
+                  {/* Pathway Directional Flow from Store Room Door / Main Entrance to Offices */}
                   <path
                     d="M 820 580 L 498 580 L 498 905"
                     fill="none"
