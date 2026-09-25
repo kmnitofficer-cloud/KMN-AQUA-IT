@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import './ACStyles.css';
 
-export default function ACFloorPlan({
+function ACFloorPlan({
   floor = 'Ground Floor',
   units = [],
   selectedUnit = null,
@@ -1366,3 +1366,5 @@ export default function ACFloorPlan({
     </div>
   );
 }
+
+export default React.memo(ACFloorPlan);

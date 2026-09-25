@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Wind,
   Wrench,
@@ -46,19 +46,22 @@ export default function ACView() {
   const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
   const [unitToEdit, setUnitToEdit] = useState(null);
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     const allUnits = acService.getACUnits();
     setUnits(allUnits);
     setSummary(acService.getACSummary());
 
-    if (selectedUnit) {
-      const refreshedSelected = allUnits.find(u => u.UnitID === selectedUnit.UnitID);
-      setSelectedUnit(refreshedSelected || allUnits[0] || null);
-    } else if (allUnits.length > 0) {
-      const firstOnFloor = allUnits.find(u => u.Floor === selectedFloor) || allUnits[0];
-      setSelectedUnit(firstOnFloor);
-    }
-  };
+    setSelectedUnit(prevSelected => {
+      if (prevSelected) {
+        const refreshedSelected = allUnits.find(u => u.UnitID === prevSelected.UnitID);
+        return refreshedSelected || allUnits[0] || null;
+      } else if (allUnits.length > 0) {
+        const firstOnFloor = allUnits.find(u => u.Floor === selectedFloor) || allUnits[0];
+        return firstOnFloor || null;
+      }
+      return null;
+    });
+  }, [selectedFloor]);
 
   useEffect(() => {
     loadData();
@@ -66,44 +69,52 @@ export default function ACView() {
       loadData();
     });
     return () => unsubscribe();
-  }, []);
+  }, [loadData]);
 
-  // Filter units for the floor plan
-  const floorUnits = units.filter(u => {
-    const matchesFloor =
-      u.Floor === selectedFloor ||
-      (selectedFloor === 'First Floor' && (u.Floor === 'New Lab' || u.RoomName === 'LAB' || u.UnitID === 'AC-0014'));
-    const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
-    return matchesFloor && matchesStatus;
-  });
+  // Filter units for the floor plan (memoized to eliminate unnecessary SVG re-renders)
+  const floorUnits = useMemo(() => {
+    return units.filter(u => {
+      const matchesFloor =
+        u.Floor === selectedFloor ||
+        (selectedFloor === 'First Floor' && (u.Floor === 'New Lab' || u.RoomName === 'LAB' || u.UnitID === 'AC-0014'));
+      const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
+      return matchesFloor && matchesStatus;
+    });
+  }, [units, selectedFloor, statusFilter]);
 
-  // Filter units for the comprehensive table
-  const tableUnits = units.filter(u => {
-    const matchesFloor =
-      selectedFloor === 'All' ||
-      u.Floor === selectedFloor ||
-      (selectedFloor === 'First Floor' && (u.Floor === 'New Lab' || u.RoomName === 'LAB' || u.UnitID === 'AC-0014'));
-    const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
-    const matchesSearch =
-      !searchQuery ||
-      (u.UnitCode && u.UnitCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.RoomName && u.RoomName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.Brand && u.Brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.Model && u.Model.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesFloor && matchesStatus && matchesSearch;
-  });
+  // Filter units for the comprehensive table (memoized)
+  const tableUnits = useMemo(() => {
+    return units.filter(u => {
+      const matchesFloor =
+        selectedFloor === 'All' ||
+        u.Floor === selectedFloor ||
+        (selectedFloor === 'First Floor' && (u.Floor === 'New Lab' || u.RoomName === 'LAB' || u.UnitID === 'AC-0014'));
+      const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
+      const matchesSearch =
+        !searchQuery ||
+        (u.UnitCode && u.UnitCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (u.RoomName && u.RoomName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (u.Brand && u.Brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (u.Model && u.Model.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesFloor && matchesStatus && matchesSearch;
+    });
+  }, [units, selectedFloor, statusFilter, searchQuery]);
 
   const handleTempAdjust = async delta => {
     if (!selectedUnit) return;
     const newTemp = Math.min(Math.max(16, (Number(selectedUnit.TargetTemp) || 22) + delta), 28);
+    // Instant optimistic local update (zero flicker)
+    setSelectedUnit(prev => (prev ? { ...prev, TargetTemp: newTemp } : null));
+    setUnits(prev => prev.map(u => u.UnitID === selectedUnit.UnitID ? { ...u, TargetTemp: newTemp } : u));
     await acService.updateACUnit(selectedUnit.UnitID, { TargetTemp: newTemp });
-    loadData();
   };
 
   const handleModeChange = async newMode => {
     if (!selectedUnit) return;
+    // Instant optimistic local update (zero flicker)
+    setSelectedUnit(prev => (prev ? { ...prev, WorkMode: newMode } : null));
+    setUnits(prev => prev.map(u => u.UnitID === selectedUnit.UnitID ? { ...u, WorkMode: newMode } : u));
     await acService.updateACUnit(selectedUnit.UnitID, { WorkMode: newMode });
-    loadData();
   };
 
   const getStatusBadgeClass = status => {

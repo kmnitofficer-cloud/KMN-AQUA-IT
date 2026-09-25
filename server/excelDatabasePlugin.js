@@ -110,6 +110,7 @@ function readFullDatabase() {
 }
 
 let isInternalSaving = false;
+let lastDiskMtime = 0;
 
 function saveFullDatabase(data) {
   ensureDirectories();
@@ -142,6 +143,12 @@ function saveFullDatabase(data) {
     });
 
     XLSX.writeFile(wb, DB_PATH);
+    try {
+      if (fs.existsSync(DB_PATH)) {
+        lastDiskMtime = fs.statSync(DB_PATH).mtimeMs;
+      }
+    } catch (e) {}
+
     return { success: true, timestamp: new Date().toISOString() };
   } finally {
     setTimeout(() => {
@@ -155,9 +162,8 @@ export function excelDatabasePlugin() {
     name: 'excel-database-server',
     configureServer(server) {
       // Watch DB_PATH for manual edits in Microsoft Excel on disk
-      let lastDiskMtime = 0;
       try {
-        if (fs.existsSync(DB_PATH)) {
+        if (fs.existsSync(DB_PATH) && lastDiskMtime === 0) {
           lastDiskMtime = fs.statSync(DB_PATH).mtimeMs;
         }
       } catch (e) {}

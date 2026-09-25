@@ -40,13 +40,18 @@ class DBRepository {
   }
 
   notify() {
-    for (const cb of this.listeners) {
-      try {
-        cb(this.database);
-      } catch (e) {
-        console.error('Error notifying DB listener:', e);
+    if (this._notifyScheduled) return;
+    this._notifyScheduled = true;
+    queueMicrotask(() => {
+      this._notifyScheduled = false;
+      for (const cb of this.listeners) {
+        try {
+          cb(this.database);
+        } catch (e) {
+          console.error('Error notifying DB listener:', e);
+        }
       }
-    }
+    });
   }
 
   async init() {
@@ -264,6 +269,15 @@ class DBRepository {
     return db[tableName] || [];
   }
 
+  scheduleSave() {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+    this.saveTimeout = setTimeout(() => {
+      this.persistToExcel();
+    }, 250);
+  }
+
   async updateTable(tableName, updaterOrNewRecords) {
     const db = this.getDB();
     const current = db[tableName] || [];
@@ -274,8 +288,8 @@ class DBRepository {
     this.saveToLocalCache();
     this.notify();
 
-    // Persist asynchronously to the Excel file on disk
-    await this.persistToExcel();
+    // Debounced asynchronous persistence to Excel on disk
+    this.scheduleSave();
     return updated;
   }
 
@@ -283,7 +297,7 @@ class DBRepository {
     this.database = this.validateAndNormalize(newDb);
     this.saveToLocalCache();
     this.notify();
-    await this.persistToExcel();
+    this.scheduleSave();
   }
 
   getNextId(tableName, prefix = 'AST-', idField = 'AssetID', padLength = 4) {
