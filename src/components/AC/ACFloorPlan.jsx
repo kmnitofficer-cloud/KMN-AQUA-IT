@@ -39,58 +39,89 @@ export default function ACFloorPlan({
     }
   };
 
-  const getUnitCoordinates = unit => {
-    if (isGroundFloor) {
-      return { x: unit.CoordX, y: unit.CoordY };
-    }
+  const getUnitDisplayNumber = unit => {
+    if (!unit) return '';
+    if (isGroundFloor) return unit.UnitNumber || unit.UnitID.slice(-2);
     const code = unit.UnitCode || '';
     const num = String(unit.UnitNumber || unit.UnitID.slice(-2)).padStart(2, '0');
     const room = unit.RoomName || '';
 
-    // Main Conference Room (East Wall):
-    if (code === '1F-AC-08' || num === '08' || room.includes('Conference')) {
-      return { x: 844, y: 170 };
+    // Exact 1F unit number assignment per blueprint revision:
+    // 08: Nadun's Office
+    if (code === '1F-AC-08' || num === '08' || room.includes('Nadun')) return '08';
+    // 09: 1st Floor Main Hall (East Wall)
+    if (code === '1F-AC-09' || num === '09' || (room.includes('Main Hall') && !room.includes('Nadun') && !room.includes('Old'))) return '09';
+    // 10: Main Auditorium (East Unit)
+    if (code === '1F-AC-10' || num === '10' || room.includes('Auditorium (East)')) return '10';
+    // 11: Main Auditorium (Center Unit)
+    if (code === '1F-AC-11' || num === '11' || room.includes('Auditorium (Center)')) return '11';
+    // 12: Main Auditorium (West Unit)
+    if (code === '1F-AC-12' || num === '12' || room.includes('Auditorium (West)')) return '12';
+    // 13: LUNCH ROOM
+    if (code === '1F-AC-13' || num === '13' || room.includes('Connector')) return '13';
+    // 14: Main Conference Room
+    if (code === '1F-AC-14' || num === '14' || (room.includes('Conference') && !room.includes('Discussion'))) return '14';
+
+    return unit.UnitNumber || unit.UnitID.slice(-2);
+  };
+
+  const getUnitDisplayCode = unit => {
+    if (!unit) return '';
+    if (isGroundFloor) return unit.UnitCode || '';
+    const num = getUnitDisplayNumber(unit);
+    return `1F-AC-${num}`;
+  };
+
+  const getUnitCoordinates = unit => {
+    if (isGroundFloor) {
+      return { x: unit.CoordX, y: unit.CoordY };
     }
-    // Main Auditorium 3 AC units along South Wall:
-    if (code === '1F-AC-09' || (num === '09' && !room.includes('Connector')) || room.includes('Auditorium (West)')) {
-      return { x: 210, y: 546 };
+    const num = getUnitDisplayNumber(unit);
+
+    // 08: Nadun's Office (Dedicated AC on East Wall)
+    if (num === '08') {
+      return { x: 845, y: 405 };
     }
-    if (code === '1F-AC-10' || num === '10' || room.includes('Auditorium (Center)')) {
-      return { x: 300, y: 546 };
+    // 09: 1st Floor Main Hall (East Wall AC)
+    if (num === '09') {
+      return { x: 860, y: 506 };
     }
-    if (code === '1F-AC-11' || num === '11' || room.includes('Auditorium (East)')) {
+    // 10: Main Auditorium (East Unit along South Wall)
+    if (num === '10') {
       return { x: 390, y: 546 };
     }
-    // 1st Floor Main Hall & Nadun's Office (East Wall AC - pointed by user red arrow):
-    if (code === '1F-AC-15' || (code === '1F-AC-12' && !room.includes('Auditorium')) || num === '15' || room.includes('Main Hall & Nadun') || room.includes('East Wall')) {
-      return { x: 844, y: 460 };
+    // 11: Main Auditorium (Center Unit along South Wall)
+    if (num === '11') {
+      return { x: 300, y: 546 };
     }
-    // All other units on 1st Floor (bottom wall units 16, 18, and middle connector 14) were removed by user request
+    // 12: Main Auditorium (West Unit along South Wall)
+    if (num === '12') {
+      return { x: 210, y: 546 };
+    }
+    // 13: LUNCH ROOM (East Wall)
+    if (num === '13') {
+      return { x: 860, y: 315 };
+    }
+    // 14: Main Conference Room (Below Discussion Room)
+    if (num === '14') {
+      return { x: 860, y: 210 };
+    }
+    // Decommissioned units (15, 16) return null
     return null;
   };
 
   const getUnitRoomName = unit => {
     if (!unit) return '';
     if (isGroundFloor) return unit.RoomName;
-    const code = unit.UnitCode || '';
-    const num = String(unit.UnitNumber || unit.UnitID.slice(-2)).padStart(2, '0');
-    const room = unit.RoomName || '';
+    const num = getUnitDisplayNumber(unit);
 
-    if (code === '1F-AC-08' || num === '08' || room.includes('Conference')) {
-      return 'Main Conference Room (East Wall)';
-    }
-    if (code === '1F-AC-09' || (num === '09' && !room.includes('Connector')) || room.includes('Auditorium (West)')) {
-      return 'Main Auditorium (West Unit)';
-    }
-    if (code === '1F-AC-10' || num === '10' || room.includes('Auditorium (Center)')) {
-      return 'Main Auditorium (Center Unit)';
-    }
-    if (code === '1F-AC-11' || num === '11' || room.includes('Auditorium (East)')) {
-      return 'Main Auditorium (East Unit)';
-    }
-    if (code === '1F-AC-15' || (code === '1F-AC-12' && !room.includes('Auditorium')) || num === '15' || room.includes('Main Hall & Nadun') || room.includes('East Wall')) {
-      return '1st Floor Main Hall & Nadun\'s Office (East Wall)';
-    }
+    if (num === '08') return "Nadun's Office (Executive Cabin)";
+    if (num === '09') return '1st Floor Main Hall (East Wall)';
+    if (num === '10') return 'Main Auditorium (East Unit)';
+    if (num === '11') return 'Main Auditorium (Center Unit)';
+    if (num === '12') return 'Main Auditorium (West Unit)';
+    if (num === '13') return 'LUNCH ROOM';
+    if (num === '14') return 'Main Conference Room';
     return unit.RoomName;
   };
 
@@ -122,7 +153,7 @@ export default function ACFloorPlan({
             <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               {isGroundFloor
                 ? 'Kitchen, Washrooms, Hall (with Stairs), Reception (Single Entry), Fish Tank Gallery, Store Room & 3 Offices'
-                : 'Auditorium (2 Doors, 3 ACs), Washroom, 1st Floor Main Hall (Direct Corridor & Auditorium Access, Nadun\'s Office, Stairs Down) & Main Conference Room'}
+                : 'Auditorium (3 ACs), Washroom, Extended Main Corridor, Discussion Room (Top Wing, Non-AC), Main Conference Room (AC), LUNCH ROOM (AC) & 1st Floor Main Hall (Nadun\'s Office [AC], Stairs Down, Main Hall [AC])'}
             </div>
           </div>
         </div>
@@ -207,19 +238,19 @@ export default function ACFloorPlan({
                 <g id="first-floor-open-atrium" opacity="0.5">
                   <rect
                     x="150"
-                    y="80"
+                    y="60"
                     width="360"
-                    height="215"
+                    height="235"
                     rx="8"
                     fill="none"
                     stroke="#94A3B8"
                     strokeWidth="1.2"
                     strokeDasharray="6 4"
                   />
-                  <text x="330" y="175" fill="#64748B" fontSize="11" fontWeight="800" textAnchor="middle" letterSpacing="3">
+                  <text x="330" y="165" fill="#64748B" fontSize="11" fontWeight="800" textAnchor="middle" letterSpacing="3">
                     OPEN ATRIUM / TERRACE
                   </text>
-                  <text x="330" y="195" fill="#94A3B8" fontSize="8.5" fontWeight="600" textAnchor="middle">
+                  <text x="330" y="185" fill="#94A3B8" fontSize="8.5" fontWeight="600" textAnchor="middle">
                     Open To Ground Operations Hall Below
                   </text>
                 </g>
@@ -227,9 +258,9 @@ export default function ACFloorPlan({
                 {/* 2. Outer Building Double Walls for 1st Floor */}
                 <path
                   d="
-                    M 525 70 
-                    L 860 70 
-                    L 860 560 
+                    M 525 45 
+                    L 880 45 
+                    L 880 560 
                     L 140 560 
                     L 140 310 
                     L 525 310 
@@ -243,9 +274,9 @@ export default function ACFloorPlan({
 
                 <path
                   d="
-                    M 533 78 
-                    L 852 78 
-                    L 852 552 
+                    M 533 53 
+                    L 872 53 
+                    L 872 552 
                     L 148 552 
                     L 148 318 
                     L 533 318 
@@ -258,32 +289,38 @@ export default function ACFloorPlan({
                 />
 
                 {/* 3. Outer Windows */}
-                {/* Window at North of Vertical Corridor */}
-                <line x1="535" y1="70" x2="570" y2="70" stroke="#00A3FF" strokeWidth="3" />
+                {/* Window at North of Extended Vertical Corridor */}
+                <line x1="535" y1="45" x2="570" y2="45" stroke="#00A3FF" strokeWidth="3" />
                 {/* Windows along Horizontal Corridor (facing the open atrium) */}
                 <line x1="260" y1="310" x2="330" y2="310" stroke="#00A3FF" strokeWidth="2.5" />
                 <line x1="390" y1="310" x2="470" y2="310" stroke="#00A3FF" strokeWidth="2.5" />
-                {/* Window along North of Conference Room */}
-                <line x1="620" y1="70" x2="650" y2="70" stroke="#00A3FF" strokeWidth="2.5" />
-                <line x1="720" y1="70" x2="810" y2="70" stroke="#00A3FF" strokeWidth="2.5" />
-                {/* Window along East wall of Conference Room */}
-                <line x1="860" y1="120" x2="860" y2="210" stroke="#00A3FF" strokeWidth="2.5" />
+                {/* Window along North of Discussion Room (Top Room) */}
+                <line x1="660" y1="45" x2="780" y2="45" stroke="#00A3FF" strokeWidth="2.5" />
+                {/* Window along East wall of Discussion Room */}
+                <line x1="880" y1="75" x2="880" y2="125" stroke="#00A3FF" strokeWidth="2.5" />
+                {/* Window along East wall of Main Conference Room */}
+                <line x1="880" y1="180" x2="880" y2="245" stroke="#00A3FF" strokeWidth="2.5" />
+                {/* Window along East wall of 1st Floor Main Hall */}
+                <line x1="880" y1="410" x2="880" y2="520" stroke="#00A3FF" strokeWidth="2.5" />
 
                 {/* 4. Partitions Between Rooms */}
-                {/* Vertical partition between Vertical Corridor and Conference Room (x = 580, y = 70 to 270) */}
-                <line x1="580" y1="70" x2="580" y2="140" stroke="#334155" strokeWidth="3.5" />
-                <line x1="580" y1="185" x2="580" y2="270" stroke="#334155" strokeWidth="3.5" />
-
-                {/* Horizontal partition dividing Conference Room and Middle Connector (y = 270, x = 580 to 860) */}
-                <line x1="580" y1="270" x2="860" y2="270" stroke="#334155" strokeWidth="3.5" />
-
-                {/* Partition dividing Middle Connector from Corridor & Main Hall */}
-                {/* West wall of Middle Connector (x = 580, y = 270 to 365) */}
-                <line x1="580" y1="270" x2="580" y2="310" stroke="#334155" strokeWidth="3.5" />
+                {/* Vertical partition dividing Extended Corridor from East Wing (x = 580, y = 45 to 365) */}
+                <line x1="580" y1="45" x2="580" y2="70" stroke="#334155" strokeWidth="3.5" />
+                <line x1="580" y1="115" x2="580" y2="180" stroke="#334155" strokeWidth="3.5" />
+                <line x1="580" y1="225" x2="580" y2="310" stroke="#334155" strokeWidth="3.5" />
                 <line x1="580" y1="355" x2="580" y2="365" stroke="#334155" strokeWidth="3.5" />
-                {/* South wall of Middle Connector (y = 365, x = 580 to 860) */}
+
+                {/* Horizontal partition dividing Discussion Room (Top) and Main Conference Room (y = 150, x = 580 to 880) */}
+                <line x1="580" y1="150" x2="705" y2="150" stroke="#334155" strokeWidth="3.5" />
+                <line x1="750" y1="150" x2="880" y2="150" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Horizontal partition dividing Main Conference Room and LUNCH ROOM (y = 270, x = 580 to 880) */}
+                <line x1="580" y1="270" x2="680" y2="270" stroke="#334155" strokeWidth="3.5" />
+                <line x1="750" y1="270" x2="880" y2="270" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Horizontal partition dividing LUNCH ROOM and 1st Floor Main Hall (y = 365, x = 580 to 880) */}
                 <line x1="580" y1="365" x2="700" y2="365" stroke="#334155" strokeWidth="3.5" />
-                <line x1="745" y1="365" x2="860" y2="365" stroke="#334155" strokeWidth="3.5" />
+                <line x1="745" y1="365" x2="880" y2="365" stroke="#334155" strokeWidth="3.5" />
 
                 {/* Partition dividing Horizontal Corridor from Auditorium & 1st Floor Main Hall (y = 365, x = 140 to 580) */}
                 <line x1="140" y1="365" x2="210" y2="365" stroke="#334155" strokeWidth="3.5" />
@@ -299,59 +336,64 @@ export default function ACFloorPlan({
                 <line x1="460" y1="365" x2="460" y2="435" stroke="#334155" strokeWidth="3.5" />
                 <line x1="460" y1="480" x2="460" y2="560" stroke="#334155" strokeWidth="3.5" />
 
-                {/* Architectural column opening around stairs: seamless continuous floor space */}
+                {/* Architectural column opening around stairs */}
                 <line x1="580" y1="365" x2="580" y2="385" stroke="#334155" strokeWidth="3.5" />
                 <line x1="580" y1="475" x2="580" y2="495" stroke="#334155" strokeWidth="3.5" />
 
                 {/* 5. Doors and Entryways */}
-                {/* Door: Vertical Corridor to Main Conference Room */}
-                <line x1="580" y1="140" x2="580" y2="185" stroke="#FFFFFF" strokeWidth="6" />
-                <path d="M 580 140 A 45 45 0 0 1 625 185" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
-                <line x1="580" y1="140" x2="625" y2="185" stroke="#00A3FF" strokeWidth="1.8" />
+                {/* Door 1: Extended Vertical Corridor into Discussion Room (Top Room) */}
+                <line x1="580" y1="70" x2="580" y2="115" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 580 70 A 45 45 0 0 1 625 115" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="580" y1="70" x2="625" y2="115" stroke="#00A3FF" strokeWidth="1.8" />
 
-                {/* Double Door: Conference Room to Middle Connector */}
-                <g transform="translate(710, 270)">
-                  <line x1="-36" y1="0" x2="36" y2="0" stroke="#FFFFFF" strokeWidth="6" />
-                  <path d="M -36 0 A 36 36 0 0 1 0 -36" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
-                  <path d="M 36 0 A 36 36 0 0 0 0 -36" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
-                  <text x="-20" y="16" fill="#00A3FF" fontSize="10" fontWeight="800">D</text>
-                  <text x="10" y="16" fill="#00A3FF" fontSize="10" fontWeight="800">D</text>
+                {/* Door 2: Extended Vertical Corridor into Main Conference Room */}
+                <line x1="580" y1="180" x2="580" y2="225" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 580 180 A 45 45 0 0 1 625 225" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="580" y1="180" x2="625" y2="225" stroke="#00A3FF" strokeWidth="1.8" />
+
+                {/* Door 3: Inter-Connecting Door between Discussion Room & Conference Room */}
+                <line x1="705" y1="150" x2="750" y2="150" stroke="#334155" strokeWidth="6" />
+
+
+                {/* Door 4: Double Door from Main Conference Room to LUNCH ROOM */}
+                <g transform="translate(715, 270)">
+                  <line x1="-35" y1="0" x2="35" y2="0" stroke="#334155" strokeWidth="6" />
+
                 </g>
 
-                {/* Door: Vertical Corridor to Middle Connector */}
+                {/* Door 5: Vertical Corridor into LUNCH ROOM */}
                 <line x1="580" y1="310" x2="580" y2="355" stroke="#FFFFFF" strokeWidth="6" />
                 <path d="M 580 355 A 45 45 0 0 0 625 310" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
 
-                {/* Door: Middle Connector to 1st Floor Main Hall */}
-                <line x1="700" y1="365" x2="745" y2="365" stroke="#FFFFFF" strokeWidth="6" />
-                <path d="M 700 365 A 45 45 0 0 1 745 320" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                {/* Door 6: LUNCH ROOM into 1st Floor Main Hall */}
+                <line x1="700" y1="365" x2="745" y2="365" stroke="#334155" strokeWidth="6" />
 
-                {/* Door: Horizontal Corridor into Washroom */}
+
+                {/* Door 7: Horizontal Corridor into Washroom */}
                 <line x1="210" y1="320" x2="210" y2="355" stroke="#FFFFFF" strokeWidth="5" />
                 <path d="M 210 355 A 35 35 0 0 1 175 320" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
                 <line x1="210" y1="355" x2="175" y2="320" stroke="#00A3FF" strokeWidth="1.5" />
 
-                {/* Door 1: Corridor into Auditorium (West Door) */}
+                {/* Door 8: Corridor into Auditorium (West Door D1) */}
                 <line x1="210" y1="365" x2="255" y2="365" stroke="#FFFFFF" strokeWidth="6" />
                 <path d="M 210 365 A 45 45 0 0 0 255 410" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
                 <line x1="210" y1="365" x2="255" y2="410" stroke="#00A3FF" strokeWidth="1.8" />
                 <text x="232" y="380" fill="#00A3FF" fontSize="8.5" fontWeight="800" textAnchor="middle">D1</text>
 
-                {/* Door 2: Corridor into Auditorium (East Door) */}
+                {/* Door 9: Corridor into Auditorium (East Door D2) */}
                 <line x1="345" y1="365" x2="390" y2="365" stroke="#FFFFFF" strokeWidth="6" />
                 <path d="M 345 365 A 45 45 0 0 0 390 410" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
                 <line x1="345" y1="365" x2="390" y2="410" stroke="#00A3FF" strokeWidth="1.8" />
                 <text x="367" y="380" fill="#00A3FF" fontSize="8.5" fontWeight="800" textAnchor="middle">D2</text>
 
-                {/* DIRECT CONNECTING DOOR: 1st Floor Main Hall Left Wall to Auditorium */}
-                <line x1="460" y1="435" x2="460" y2="480" stroke="#FFFFFF" strokeWidth="6" />
-                <path d="M 460 480 A 45 45 0 0 1 505 435" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
-                <line x1="460" y1="480" x2="505" y2="435" stroke="#00A3FF" strokeWidth="1.8" />
+                {/* Door 10: DIRECT CONNECTING DOOR: 1st Main Hall Left Wall to Auditorium */}
+                <line x1="460" y1="435" x2="460" y2="480" stroke="#334155" strokeWidth="6" />
+
                 <text x="442" y="460" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="middle" transform="rotate(-90 442 460)">
                   AUDITORIUM ACCESS
                 </text>
 
-                {/* DIRECT ENTRANCE DOOR: Corridor into 1st Floor Main Hall */}
+                {/* Door 11: DIRECT ENTRANCE DOOR: Corridor into 1st Floor Main Hall */}
                 <line x1="500" y1="365" x2="545" y2="365" stroke="#FFFFFF" strokeWidth="6" />
                 <path d="M 500 365 A 45 45 0 0 0 545 410" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
                 <line x1="500" y1="365" x2="545" y2="410" stroke="#00A3FF" strokeWidth="1.8" />
@@ -359,34 +401,44 @@ export default function ACFloorPlan({
                   MAIN HALL ENTRANCE
                 </text>
 
-                {/* 6. Corridors with Floor Tiles & Flow Paths */}
+                {/* 6. Extended Corridor with Floor Tiles & Flow Paths */}
+                {/* Vertical Corridor (extends all the way up to y = 45!) */}
+                <rect x="525" y="45" width="55" height="320" fill="rgba(0, 163, 255, 0.05)" />
+                {/* Horizontal Corridor */}
+                <rect x="210" y="310" width="315" height="55" fill="rgba(0, 163, 255, 0.04)" />
+
                 {/* Vertical Corridor Floor Tiles */}
-                {[105, 140, 175, 210, 245, 280].map(y => (
+                {[60, 95, 130, 165, 200, 235, 270, 305, 340].map(y => (
                   <line key={`vct-${y}`} x1="528" y1={y} x2="577" y2={y} stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
                 ))}
                 {/* Horizontal Corridor Floor Tiles */}
                 {[255, 300, 345, 390, 435, 480].map(x => (
                   <line key={`hct-${x}`} x1={x} y1="313" x2={x} y2="362" stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
                 ))}
-                {/* Directional Corridor Path */}
+
+                {/* Extended Directional Corridor Path Going More to Top */}
                 <path
-                  d="M 552 85 L 552 337 L 225 337"
+                  d="M 225 337 L 552 337 L 552 65"
                   fill="none"
                   stroke="#EF4444"
-                  strokeWidth="2"
+                  strokeWidth="2.2"
                   strokeDasharray="6 4"
-                  opacity="0.85"
+                  opacity="0.9"
                 />
-                {[552].map(x => [100, 140, 180, 220, 260, 300].map(y => (
-                  <circle key={`cp-v-${y}`} cx={x} cy={y} r="2.5" fill="#EF4444" opacity="0.9" />
-                )))}
-                {[520, 475, 430, 385, 340, 295, 250].map(x => (
+                <polyline points="547,75 552,62 557,75" fill="none" stroke="#EF4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+
+                {/* Red Waypoint Dots */}
+                {[250, 295, 340, 385, 430, 475, 520].map(x => (
                   <circle key={`cp-h-${x}`} cx={x} cy="337" r="2.5" fill="#EF4444" opacity="0.9" />
                 ))}
+                {[337, 300, 260, 220, 180, 140, 100, 70].map(y => (
+                  <circle key={`cp-v-${y}`} cx="552" cy={y} r="2.5" fill="#EF4444" opacity="0.9" />
+                ))}
+
                 {/* Corridor Labels */}
-                <g transform="translate(562, 210) rotate(90)">
+                <g transform="translate(564, 200) rotate(90)">
                   <text x="0" y="0" fill="#EF4444" fontSize="9" fontWeight="800" textAnchor="middle" letterSpacing="3">
-                    CORRIDOR
+                    MAIN CORRIDOR
                   </text>
                 </g>
                 <text x="360" y="332" fill="#EF4444" fontSize="9" fontWeight="800" textAnchor="middle" letterSpacing="4">
@@ -395,10 +447,8 @@ export default function ACFloorPlan({
 
                 {/* 7. Washroom Interior */}
                 <g id="washroom-interior">
-                  {/* WC toilet bowl & tank */}
                   <rect x="146" y="316" width="10" height="18" rx="2" fill="rgba(241, 245, 249, 0.85)" stroke="#64748B" strokeWidth="1" />
                   <ellipse cx="164" cy="325" rx="7" ry="6" fill="rgba(241, 245, 249, 0.85)" stroke="#64748B" strokeWidth="1" />
-                  {/* Vanity basin */}
                   <rect x="146" y="342" width="22" height="15" rx="3" fill="rgba(14, 165, 233, 0.15)" stroke="#00A3FF" strokeWidth="1.2" />
                   <circle cx="157" cy="349.5" r="3.5" fill="#FFFFFF" stroke="#00A3FF" strokeWidth="0.8" />
                   <text x="180" y="337" fill="var(--text-primary)" fontSize="9.5" fontWeight="800" textAnchor="middle">
@@ -411,14 +461,12 @@ export default function ACFloorPlan({
 
                 {/* 8. Main Auditorium Interior Architecture */}
                 <g id="auditorium-interior">
-                  {/* Presentation Stage / Podium */}
                   <rect x="250" y="375" width="100" height="22" rx="4" fill="rgba(0, 163, 255, 0.12)" stroke="#00A3FF" strokeWidth="1.4" strokeDasharray="3 2" />
                   <text x="300" y="389" fill="#00A3FF" fontSize="8" fontWeight="800" textAnchor="middle">
                     STAGE / PRESENTATION SCREEN
                   </text>
 
-                  {/* Auditorium Tiered Seating Rows */}
-                  {/* Row 1 */}
+                  {/* Tiered Seating Rows */}
                   <g transform="translate(170, 420)">
                     <rect x="0" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
                     {[21, 42, 63, 84].map(sx => (
@@ -430,7 +478,6 @@ export default function ACFloorPlan({
                     ))}
                   </g>
 
-                  {/* Row 2 */}
                   <g transform="translate(170, 452)">
                     <rect x="0" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
                     {[21, 42, 63, 84].map(sx => (
@@ -442,7 +489,6 @@ export default function ACFloorPlan({
                     ))}
                   </g>
 
-                  {/* Row 3 */}
                   <g transform="translate(170, 484)">
                     <rect x="0" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
                     {[21, 42, 63, 84].map(sx => (
@@ -459,7 +505,7 @@ export default function ACFloorPlan({
                   </text>
                 </g>
 
-                {/* 9. 1st Floor Main Hall: West Staging & Circulation Wing */}
+                {/* 9. 1st Floor Main Hall: West Staging Wing */}
                 <g id="main-hall-west-wing">
                   <rect x="478" y="445" width="76" height="28" rx="4" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
                   <circle cx="500" cy="486" r="6" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
@@ -469,58 +515,113 @@ export default function ACFloorPlan({
                   </text>
                 </g>
 
-                {/* 10. Nadun's Office (Executive Cabin inside 1st Floor Main Hall) */}
+                {/* 10. Discussion Room (Top of Main Conference Room - Non-AC Room) */}
+                <g id="discussion-top-room">
+                  {/* Discussion Round / Oval Table & Chairs */}
+                  <rect x="665" y="78" width="110" height="38" rx="14" fill="rgba(148, 163, 184, 0.22)" stroke="#64748B" strokeWidth="1.4" />
+                  {/* Chairs */}
+                  {[685, 720, 755].map(cx => (
+                    <circle key={`dt-top-${cx}`} cx={cx} cy="66" r="5.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  ))}
+                  {[685, 720, 755].map(cx => (
+                    <circle key={`dt-bot-${cx}`} cx={cx} cy="128" r="5.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  ))}
+                  <circle cx="650" cy="97" r="5.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  <circle cx="790" cy="97" r="5.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+
+                  {/* Archive File Credenza */}
+                  <rect x="835" y="65" width="35" height="60" rx="3" fill="rgba(148, 163, 184, 0.18)" stroke="#94A3B8" strokeWidth="1" />
+                  <text x="852" y="98" fill="var(--text-muted)" fontSize="6" fontWeight="700" textAnchor="middle" transform="rotate(90 852 98)">ARCHIVE</text>
+
+                  {/* Room Label */}
+                  <text x="720" y="93" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
+                    Discussion Room
+                  </text>
+                  <text x="720" y="107" fill="var(--text-muted)" fontSize="8" fontWeight="600" textAnchor="middle">
+                    Meeting Room 2 • Archive (Top Wing)
+                  </text>
+
+                  {/* Prominent Non-AC Badge */}
+                  <g transform="translate(620, 65)">
+                    <rect x="-35" y="-8" width="70" height="16" rx="8" fill="rgba(239, 68, 68, 0.12)" stroke="#EF4444" strokeWidth="1" />
+                    <text x="0" y="3.5" fill="#EF4444" fontSize="7" fontWeight="800" textAnchor="middle" letterSpacing="0.5">
+                      NON-AC ROOM
+                    </text>
+                  </g>
+                </g>
+
+                {/* 11. Main Conference Room (Below Discussion Room - With AC) */}
+                <g id="conference-furniture">
+                  <rect x="660" y="188" width="130" height="42" rx="16" fill="rgba(148, 163, 184, 0.22)" stroke="#64748B" strokeWidth="1.4" />
+                  <rect x="685" y="200" width="80" height="16" rx="4" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1" strokeDasharray="3 2" />
+                  {/* Chairs */}
+                  {[675, 705, 735, 765].map(cx => (
+                    <circle key={`cf-top-${cx}`} cx={cx} cy="174" r="6" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  ))}
+                  {[675, 705, 735, 765].map(cx => (
+                    <circle key={`cf-bot-${cx}`} cx={cx} cy="242" r="6" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  ))}
+                  <circle cx="645" cy="209" r="6" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  <circle cx="805" cy="209" r="6" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  {/* Presentation screen */}
+                  <rect x="584" y="160" width="5" height="36" rx="1.5" fill="#00A3FF" opacity="0.8" />
+
+                  {/* Room Label */}
+                  <text x="725" y="166" fill="var(--text-primary)" fontSize="12.5" fontWeight="800" textAnchor="middle">
+                    Main Conference Room
+                  </text>
+                  <text x="725" y="179" fill="var(--text-muted)" fontSize="8" fontWeight="600" textAnchor="middle">
+                    Executive Boardroom & AV
+                  </text>
+                </g>
+
+                {/* 12. LUNCH ROOM */}
+                <g id="middle-connector-layout">
+                  <text x="655" y="325" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
+                    LUNCH ROOM
+                  </text>
+                  <g transform="translate(815, 318)">
+                    <circle cx="0" cy="0" r="16" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1.5" />
+                    <text x="0" y="5" fill="#00A3FF" fontSize="13" fontWeight="800" textAnchor="middle">1</text>
+                    <text x="0" y="24" fill="var(--text-muted)" fontSize="9" fontWeight="700" textAnchor="middle">1st Floor</text>
+                  </g>
+                </g>
+
+                {/* 13. Nadun's Office (Executive Cabin inside 1st Floor Main Hall with Dedicated AC) */}
                 <g id="naduns-executive-cabin">
                   <rect
-                    x="685"
+                    x="690"
                     y="375"
-                    width="156"
-                    height="85"
+                    width="175"
+                    height="80"
                     rx="5"
-                    fill="rgba(0, 163, 255, 0.06)"
+                    fill="rgba(0, 163, 255, 0.05)"
                     stroke="#00A3FF"
                     strokeWidth="1.2"
                     strokeDasharray="4 2"
                   />
                   {/* Executive L-shaped Desk */}
-                  <rect x="696" y="388" width="68" height="25" rx="3" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.4" />
+                  <rect x="702" y="388" width="65" height="24" rx="3" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.4" />
                   {/* Laptop screen */}
-                  <rect x="718" y="393" width="18" height="8" rx="1.5" fill="#38BDF8" opacity="0.85" />
+                  <rect x="724" y="392" width="18" height="8" rx="1.5" fill="#38BDF8" opacity="0.85" />
                   {/* Executive high-back chair */}
-                  <circle cx="730" cy="425" r="7.5" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
+                  <circle cx="736" cy="424" r="7.5" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
                   {/* Visitor consultation chairs */}
-                  <circle cx="708" cy="376" r="5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
-                  <circle cx="740" cy="376" r="5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                  <circle cx="712" cy="378" r="5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                  <circle cx="745" cy="378" r="5" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
                   {/* Document Credenza */}
-                  <rect x="780" y="388" width="52" height="14" rx="2" fill="rgba(148, 163, 184, 0.18)" stroke="#94A3B8" strokeWidth="1" />
-                  <text x="806" y="398" fill="var(--text-muted)" fontSize="6" fontWeight="700" textAnchor="middle">FILES</text>
+                  <rect x="780" y="388" width="45" height="14" rx="2" fill="rgba(148, 163, 184, 0.18)" stroke="#94A3B8" strokeWidth="1" />
+                  <text x="802" y="398" fill="var(--text-muted)" fontSize="6" fontWeight="700" textAnchor="middle">FILES</text>
 
-                  <text x="762" y="442" fill="var(--text-primary)" fontSize="10.5" fontWeight="800" textAnchor="middle">
+                  <text x="765" y="438" fill="var(--text-primary)" fontSize="10.5" fontWeight="800" textAnchor="middle">
                     Nadun's Office
                   </text>
-                  <text x="762" y="454" fill="var(--text-muted)" fontSize="7" fontWeight="600" textAnchor="middle">
-                    Executive Cabin • 1st Main Hall
+                  <text x="765" y="450" fill="var(--text-muted)" fontSize="7" fontWeight="600" textAnchor="middle">
+                    Executive Cabin • Dedicated AC
                   </text>
                 </g>
 
-                {/* 11. Main Conference Room Furniture */}
-                <g id="conference-furniture">
-                  <rect x="635" y="130" width="130" height="52" rx="20" fill="rgba(148, 163, 184, 0.22)" stroke="#64748B" strokeWidth="1.4" />
-                  <rect x="660" y="148" width="80" height="16" rx="4" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1" strokeDasharray="3 2" />
-                  {/* Chairs */}
-                  {[650, 680, 710, 740].map(cx => (
-                    <circle key={`cf-top-${cx}`} cx={cx} cy="115" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
-                  ))}
-                  {[650, 680, 710, 740].map(cx => (
-                    <circle key={`cf-bot-${cx}`} cx={cx} cy="197" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
-                  ))}
-                  <circle cx="620" cy="156" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
-                  <circle cx="780" cy="156" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
-                  {/* Presentation screen */}
-                  <rect x="852" y="125" width="5" height="60" rx="1.5" fill="#00A3FF" opacity="0.8" />
-                </g>
-
-                {/* 12. Main Hall Workstations */}
+                {/* 14. Main Hall Workstations */}
                 <g id="main-hall-workstations">
                   <rect x="690" y="488" width="130" height="26" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
                   <line x1="755" y1="488" x2="755" y2="514" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
@@ -530,7 +631,7 @@ export default function ACFloorPlan({
                   <rect x="776" y="493" width="22" height="8" rx="1.5" fill="#38BDF8" opacity="0.6" />
                 </g>
 
-                {/* 13. Stairwell Down */}
+                {/* 15. Stairwell Down */}
                 <g id="first-floor-stairwell" transform="translate(590, 375)">
                   <rect x="0" y="0" width="80" height="110" fill="rgba(148, 163, 184, 0.15)" stroke="#94A3B8" strokeWidth="1.5" />
                   {[18, 36, 54, 72, 90].map(y => (
@@ -545,38 +646,29 @@ export default function ACFloorPlan({
                   </text>
                 </g>
 
-                {/* 14. Physical AC Wall Mount Boxes */}
-                {/* Main Conference Room: East Wall (matching user red box) */}
-                <rect x="844" y="148" width="12" height="42" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.5" rx="2" />
+                {/* 16. Physical AC Wall Mount Boxes */}
+                {/* Main Conference Room: Wall Mounted AC */}
+                <rect x="866" y="190" width="10" height="38" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
+                <text x="856" y="213" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="end">AC</text>
+
+                {/* LUNCH ROOM: East Wall AC */}
+                <rect x="866" y="295" width="10" height="38" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
+                <text x="856" y="318" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="end">AC</text>
+
+                {/* Nadun's Office: Dedicated AC Unit */}
+                <rect x="852" y="388" width="10" height="36" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
+                <text x="842" y="410" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="end">AC</text>
+
+                {/* 1st Floor Main Hall: East Wall AC */}
+                <rect x="866" y="485" width="10" height="42" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
+                <text x="854" y="510" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="end">AC UNIT</text>
+
                 {/* Auditorium 3 AC units: South Wall (West, Center, East) */}
                 <rect x="190" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
                 <rect x="280" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
                 <rect x="370" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
-                {/* 1st Floor Main Hall: East Wall AC (pointed by user red arrow!) */}
-                <rect x="844" y="440" width="12" height="45" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.5" rx="2" />
-                <text x="830" y="466" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="end">AC UNIT</text>
 
-                {/* 15. Room Labels */}
-                {/* Main Conference Room */}
-                <text x="700" y="152" fill="var(--text-primary)" fontSize="13.5" fontWeight="800" textAnchor="middle">
-                  Main Conference Room
-                </text>
-                <text x="700" y="168" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
-                  Executive Boardroom & AV Meetings
-                </text>
-
-                {/* Middle Connector */}
-                <text x="715" y="325" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
-                  Middle Connector
-                </text>
-
-                {/* Level 1 Badge in Middle Connector */}
-                <g transform="translate(800, 318)">
-                  <circle cx="0" cy="0" r="16" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1.5" />
-                  <text x="0" y="5" fill="#00A3FF" fontSize="13" fontWeight="800" textAnchor="middle">1</text>
-                  <text x="0" y="24" fill="var(--text-muted)" fontSize="9" fontWeight="700" textAnchor="middle">1st Floor</text>
-                </g>
-
+                {/* 17. Room Labels */}
                 {/* 1st Floor Main Hall (Main Office) */}
                 <text x="520" y="520" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
                   1st Floor Main Hall
@@ -1057,8 +1149,15 @@ export default function ACFloorPlan({
 
                     {/* Tooltip Tag Pill matching KOMVENT */}
                     {isSelected ? (
-                      <g transform="translate(24, 0)">
-                        <line x1="-8" y1="0" x2="0" y2="0" stroke="#00A3FF" strokeWidth="2" />
+                      <g transform={coords.x > 780 ? "translate(-140, 0)" : "translate(24, 0)"}>
+                        <line
+                          x1={coords.x > 780 ? "124" : "-8"}
+                          y1="0"
+                          x2={coords.x > 780 ? "116" : "0"}
+                          y2="0"
+                          stroke="#00A3FF"
+                          strokeWidth="2"
+                        />
                         <rect
                           x="0"
                           y="-12"
@@ -1079,7 +1178,7 @@ export default function ACFloorPlan({
                           textAnchor="middle"
                           fontFamily="monospace"
                         >
-                          AC Unit - {unit.UnitCode}
+                          AC Unit - {getUnitDisplayCode(unit)}
                         </text>
                       </g>
                     ) : (
@@ -1103,7 +1202,7 @@ export default function ACFloorPlan({
                           textAnchor="middle"
                           fontFamily="monospace"
                         >
-                          {unit.UnitNumber || unit.UnitID.slice(-2)}
+                          {getUnitDisplayNumber(unit)}
                         </text>
                       </g>
                     )}
@@ -1133,7 +1232,7 @@ export default function ACFloorPlan({
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#00A3FF', fontFamily: 'monospace' }}>
-                {hoveredUnit.UnitCode}
+                {getUnitDisplayCode(hoveredUnit)}
               </span>
               <span
                 style={{

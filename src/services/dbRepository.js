@@ -196,6 +196,31 @@ class DBRepository {
       });
     }
 
+    // Normalize 1F AC Units to exact assigned numbers and locations
+    if (Array.isArray(normalized.ACUnits)) {
+      const ac1FMap = {
+        'AC-0008': { UnitNumber: '08', UnitCode: '1F-AC-08', RoomName: "Nadun's Office (Executive Cabin)", WallPosition: "East Wall (Nadun's Office)", CoordX: 800, CoordY: 412, Status: 'Active' },
+        'AC-0009': { UnitNumber: '09', UnitCode: '1F-AC-09', RoomName: '1st Floor Main Hall (East Wall)', WallPosition: 'East Wall (Main Hall)', CoordX: 830, CoordY: 506, Status: 'Active' },
+        'AC-0010': { UnitNumber: '10', UnitCode: '1F-AC-10', RoomName: 'Main Auditorium (East)', WallPosition: 'South Wall (East Section)', CoordX: 390, CoordY: 546, Status: 'Active' },
+        'AC-0011': { UnitNumber: '11', UnitCode: '1F-AC-11', RoomName: 'Main Auditorium (Center)', WallPosition: 'South Wall (Center Section)', CoordX: 300, CoordY: 546, Status: 'Active' },
+        'AC-0012': { UnitNumber: '12', UnitCode: '1F-AC-12', RoomName: 'Main Auditorium (West)', WallPosition: 'South Wall (West Section)', CoordX: 210, CoordY: 546, Status: 'Active' },
+        'AC-0013': { UnitNumber: '13', UnitCode: '1F-AC-13', RoomName: 'Middle Connector', WallPosition: 'East Wall (Middle Connector)', CoordX: 740, CoordY: 315, Status: 'Active' },
+        'AC-0014': { UnitNumber: '14', UnitCode: '1F-AC-14', RoomName: 'Main Conference Room', WallPosition: 'East Partition Wall', CoordX: 730, CoordY: 210, Status: 'Active' },
+        'AC-0015': { UnitNumber: '15', UnitCode: '1F-AC-15', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' },
+        'AC-0016': { UnitNumber: '16', UnitCode: '1F-AC-16', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' }
+      };
+
+      normalized.ACUnits = normalized.ACUnits.map(unit => {
+        if (unit && unit.UnitID && ac1FMap[unit.UnitID]) {
+          return {
+            ...unit,
+            ...ac1FMap[unit.UnitID]
+          };
+        }
+        return unit;
+      });
+    }
+
     return normalized;
   }
 

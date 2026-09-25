@@ -52,28 +52,45 @@ export const acService = {
         let normalizedRoomName = unit.RoomName;
         let normalizedCoordX = unit.CoordX;
         let normalizedCoordY = unit.CoordY;
+        let normalizedUnitNumber = unit.UnitNumber;
+        let normalizedUnitCode = unit.UnitCode;
+        let normalizedStatus = unit.Status;
+        let normalizedWallPosition = unit.WallPosition;
 
         if (unit.Floor === 'First Floor') {
-          const roomMap = {
-            '1F-AC-08': { room: 'Main Conference Room (East Wall)', x: 844, y: 170 },
-            '1F-AC-09': { room: 'Main Auditorium (West Unit)', x: 210, y: 546 },
-            '1F-AC-10': { room: 'Main Auditorium (Center Unit)', x: 300, y: 546 },
-            '1F-AC-11': { room: 'Main Auditorium (East Unit)', x: 390, y: 546 },
-            '1F-AC-12': { room: "1st Floor Main Hall & Nadun's Office (East Wall)", x: 844, y: 460 },
-            '1F-AC-15': { room: "1st Floor Main Hall & Nadun's Office (East Wall)", x: 844, y: 460 }
+          const ac1FMap = {
+            'AC-0008': { UnitNumber: '08', UnitCode: '1F-AC-08', RoomName: "Nadun's Office (Executive Cabin)", WallPosition: "East Wall (Nadun's Office)", CoordX: 800, CoordY: 412, Status: 'Active' },
+            'AC-0009': { UnitNumber: '09', UnitCode: '1F-AC-09', RoomName: '1st Floor Main Hall (East Wall)', WallPosition: 'East Wall (Main Hall)', CoordX: 830, CoordY: 506, Status: 'Active' },
+            'AC-0010': { UnitNumber: '10', UnitCode: '1F-AC-10', RoomName: 'Main Auditorium (East Unit)', WallPosition: 'South Wall (East Section)', CoordX: 390, CoordY: 546, Status: 'Active' },
+            'AC-0011': { UnitNumber: '11', UnitCode: '1F-AC-11', RoomName: 'Main Auditorium (Center Unit)', WallPosition: 'South Wall (Center Section)', CoordX: 300, CoordY: 546, Status: 'Active' },
+            'AC-0012': { UnitNumber: '12', UnitCode: '1F-AC-12', RoomName: 'Main Auditorium (West Unit)', WallPosition: 'South Wall (West Section)', CoordX: 210, CoordY: 546, Status: 'Active' },
+            'AC-0013': { UnitNumber: '13', UnitCode: '1F-AC-13', RoomName: 'Middle Connector', WallPosition: 'East Wall (Middle Connector)', CoordX: 740, CoordY: 315, Status: 'Active' },
+            'AC-0014': { UnitNumber: '14', UnitCode: '1F-AC-14', RoomName: 'Main Conference Room', WallPosition: 'East Partition Wall', CoordX: 730, CoordY: 210, Status: 'Active' },
+            'AC-0015': { UnitNumber: '15', UnitCode: '1F-AC-15', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' },
+            'AC-0016': { UnitNumber: '16', UnitCode: '1F-AC-16', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' }
           };
-          if (unit.UnitCode && roomMap[unit.UnitCode]) {
-            normalizedRoomName = roomMap[unit.UnitCode].room;
-            normalizedCoordX = roomMap[unit.UnitCode].x;
-            normalizedCoordY = roomMap[unit.UnitCode].y;
+
+          const target = ac1FMap[unit.UnitID];
+          if (target) {
+            normalizedUnitNumber = target.UnitNumber;
+            normalizedUnitCode = target.UnitCode;
+            normalizedRoomName = target.RoomName;
+            normalizedCoordX = target.CoordX;
+            normalizedCoordY = target.CoordY;
+            normalizedStatus = target.Status;
+            normalizedWallPosition = target.WallPosition;
           }
         }
 
         return {
           ...unit,
+          UnitNumber: normalizedUnitNumber,
+          UnitCode: normalizedUnitCode,
           RoomName: normalizedRoomName,
           CoordX: normalizedCoordX,
           CoordY: normalizedCoordY,
+          Status: normalizedStatus,
+          WallPosition: normalizedWallPosition,
           PurchasePrice: purchasePrice,
           lifetimeServiceCost,
           lifetimeRepairCost,
