@@ -55,15 +55,12 @@ export const acService = {
 
         if (unit.Floor === 'First Floor') {
           const roomMap = {
-            '1F-AC-08': { room: 'Main Conference Room', x: 680, y: 88 },
-            '1F-AC-09': { room: 'Main Auditorium (West)', x: 210, y: 535 },
-            '1F-AC-10': { room: 'Main Auditorium (Center)', x: 300, y: 535 },
-            '1F-AC-11': { room: 'Main Auditorium (East)', x: 390, y: 535 },
-            '1F-AC-12': { room: "Nadun's Office", x: 520, y: 535 },
-            '1F-AC-13': { room: '1st Floor Main Hall (West)', x: 660, y: 535 },
-            '1F-AC-14': { room: 'Middle Connector', x: 595, y: 315 },
-            '1F-AC-15': { room: '1st Floor Main Hall (Center)', x: 752, y: 360 },
-            '1F-AC-16': { room: '1st Floor Main Hall (South)', x: 770, y: 535 }
+            '1F-AC-08': { room: 'Main Conference Room (East Wall)', x: 844, y: 170 },
+            '1F-AC-09': { room: 'Main Auditorium (West Unit)', x: 210, y: 546 },
+            '1F-AC-10': { room: 'Main Auditorium (Center Unit)', x: 300, y: 546 },
+            '1F-AC-11': { room: 'Main Auditorium (East Unit)', x: 390, y: 546 },
+            '1F-AC-12': { room: "1st Floor Main Hall & Nadun's Office (East Wall)", x: 844, y: 460 },
+            '1F-AC-15': { room: "1st Floor Main Hall & Nadun's Office (East Wall)", x: 844, y: 460 }
           };
           if (unit.UnitCode && roomMap[unit.UnitCode]) {
             normalizedRoomName = roomMap[unit.UnitCode].room;
