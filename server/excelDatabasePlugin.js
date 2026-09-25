@@ -101,8 +101,8 @@ function readFullDatabase() {
       result[sheetName] = [];
     }
 
-    // If table is missing or empty on disk but exists in relationalDatabaseSeed, populate from seed!
-    if ((!result[sheetName] || result[sheetName].length === 0) && relationalDatabaseSeed[sheetName]?.length > 0) {
+    // If sheet does not exist in workbook at all, populate from seed!
+    if (wb.Sheets[sheetName] === undefined && relationalDatabaseSeed[sheetName]?.length > 0) {
       result[sheetName] = relationalDatabaseSeed[sheetName];
     }
   });
@@ -126,10 +126,11 @@ function saveFullDatabase(data) {
     // 2. Write new workbook
     const wb = XLSX.utils.book_new();
     TABLE_NAMES.forEach(sheetName => {
-      let records = data[sheetName] || [];
-      if ((!records || records.length === 0) && relationalDatabaseSeed[sheetName]?.length > 0) {
+      let records = data[sheetName];
+      if (records === undefined && relationalDatabaseSeed[sheetName]?.length > 0) {
         records = relationalDatabaseSeed[sheetName];
       }
+      records = records || [];
 
       if (records && records.length > 0) {
         const ws = XLSX.utils.json_to_sheet(records);

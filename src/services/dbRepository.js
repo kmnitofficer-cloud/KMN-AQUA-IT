@@ -98,10 +98,9 @@ class DBRepository {
   validateAndNormalize(db) {
     const normalized = {};
     TABLE_NAMES.forEach(table => {
-      let rawRecords = Array.isArray(db[table]) ? db[table] : [];
-      if ((!rawRecords || rawRecords.length === 0) && relationalDatabaseSeed[table]?.length > 0) {
-        rawRecords = relationalDatabaseSeed[table];
-      }
+      let rawRecords = db && db[table] !== undefined && db[table] !== null
+        ? (Array.isArray(db[table]) ? db[table] : [])
+        : (relationalDatabaseSeed[table] || []);
       normalized[table] = rawRecords.map(r => {
         if (!r || typeof r !== 'object') return r;
         const copy = { ...r };
@@ -196,25 +195,26 @@ class DBRepository {
       });
     }
 
-    // Normalize 1F AC Units to exact assigned numbers and locations
+    // Normalize 1F AC Units coordinates fallback without overwriting user manual data
     if (Array.isArray(normalized.ACUnits)) {
-      const ac1FMap = {
-        'AC-0008': { UnitNumber: '08', UnitCode: '1F-AC-08', RoomName: "Nadun's Office (Executive Cabin)", WallPosition: "East Wall (Nadun's Office)", CoordX: 800, CoordY: 412, Status: 'Active' },
-        'AC-0009': { UnitNumber: '09', UnitCode: '1F-AC-09', RoomName: '1st Floor Main Hall (East Wall)', WallPosition: 'East Wall (Main Hall)', CoordX: 830, CoordY: 506, Status: 'Active' },
-        'AC-0010': { UnitNumber: '10', UnitCode: '1F-AC-10', RoomName: 'Main Auditorium (East)', WallPosition: 'South Wall (East Section)', CoordX: 390, CoordY: 546, Status: 'Active' },
-        'AC-0011': { UnitNumber: '11', UnitCode: '1F-AC-11', RoomName: 'Main Auditorium (Center)', WallPosition: 'South Wall (Center Section)', CoordX: 300, CoordY: 546, Status: 'Active' },
-        'AC-0012': { UnitNumber: '12', UnitCode: '1F-AC-12', RoomName: 'Main Auditorium (West)', WallPosition: 'South Wall (West Section)', CoordX: 210, CoordY: 546, Status: 'Active' },
-        'AC-0013': { UnitNumber: '13', UnitCode: '1F-AC-13', RoomName: 'Middle Connector', WallPosition: 'East Wall (Middle Connector)', CoordX: 740, CoordY: 315, Status: 'Active' },
-        'AC-0014': { UnitNumber: '14', UnitCode: '1F-AC-14', RoomName: 'Main Conference Room', WallPosition: 'East Partition Wall', CoordX: 730, CoordY: 210, Status: 'Active' },
-        'AC-0015': { UnitNumber: '15', UnitCode: '1F-AC-15', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' },
-        'AC-0016': { UnitNumber: '16', UnitCode: '1F-AC-16', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' }
+      const ac1FCoordsFallback = {
+        'AC-0008': { UnitNumber: '08', CoordX: 845, CoordY: 405 },
+        'AC-0009': { UnitNumber: '09', CoordX: 860, CoordY: 506 },
+        'AC-0010': { UnitNumber: '10', CoordX: 390, CoordY: 546 },
+        'AC-0011': { UnitNumber: '11', CoordX: 300, CoordY: 546 },
+        'AC-0012': { UnitNumber: '12', CoordX: 210, CoordY: 546 },
+        'AC-0013': { UnitNumber: '13', CoordX: 860, CoordY: 210 },
+        'AC-0014': { UnitNumber: '14', CoordX: 375, CoordY: 153 }
       };
 
       normalized.ACUnits = normalized.ACUnits.map(unit => {
-        if (unit && unit.UnitID && ac1FMap[unit.UnitID]) {
+        if (unit && unit.UnitID && ac1FCoordsFallback[unit.UnitID]) {
+          const fallback = ac1FCoordsFallback[unit.UnitID];
           return {
-            ...unit,
-            ...ac1FMap[unit.UnitID]
+            ...unit, // ALL USER VALUES TAKE PRECEDENCE - DO NOT OVERWRITE!
+            CoordX: (unit.CoordX !== undefined && unit.CoordX !== 0) ? unit.CoordX : fallback.CoordX,
+            CoordY: (unit.CoordY !== undefined && unit.CoordY !== 0) ? unit.CoordY : fallback.CoordY,
+            UnitNumber: unit.UnitNumber || fallback.UnitNumber
           };
         }
         return unit;

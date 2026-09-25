@@ -57,19 +57,19 @@ export default function ACFloorPlan({
     if (code === '1F-AC-11' || num === '11' || room.includes('Auditorium (Center)')) return '11';
     // 12: Main Auditorium (West Unit)
     if (code === '1F-AC-12' || num === '12' || room.includes('Auditorium (West)')) return '12';
-    // 13: LUNCH ROOM
-    if (code === '1F-AC-13' || num === '13' || room.includes('Connector')) return '13';
-    // 14: Main Conference Room
-    if (code === '1F-AC-14' || num === '14' || (room.includes('Conference') && !room.includes('Discussion'))) return '14';
+    // 13: Main Conference Room
+    if (code === '1F-AC-13' || num === '13' || (room.includes('Conference') && !room.includes('Discussion'))) return '13';
+    // 14: New Lab (Separate Building)
+    if (code === '1F-AC-14' || num === '14' || room.toLowerCase().includes('lab')) return '14';
 
     return unit.UnitNumber || unit.UnitID.slice(-2);
   };
 
   const getUnitDisplayCode = unit => {
     if (!unit) return '';
-    if (isGroundFloor) return unit.UnitCode || '';
+    if (unit.UnitCode) return unit.UnitCode;
     const num = getUnitDisplayNumber(unit);
-    return `1F-AC-${num}`;
+    return isGroundFloor ? `GF-AC-${num}` : `1F-AC-${num}`;
   };
 
   const getUnitCoordinates = unit => {
@@ -98,31 +98,33 @@ export default function ACFloorPlan({
     if (num === '12') {
       return { x: 210, y: 546 };
     }
-    // 13: LUNCH ROOM (East Wall)
+    // 13: Main Conference Room / Executive Office 2 (Below Discussion Room - East Wall AC)
     if (num === '13') {
-      return { x: 860, y: 315 };
-    }
-    // 14: Main Conference Room (Below Discussion Room)
-    if (num === '14') {
       return { x: 860, y: 210 };
     }
-    // Decommissioned units (15, 16) return null
+    // 14: New Lab (Separate Building - East Wall AC)
+    if (num === '14') {
+      return { x: 375, y: 153 };
+    }
+    if (unit.CoordX && unit.CoordY) {
+      return { x: unit.CoordX, y: unit.CoordY };
+    }
     return null;
   };
 
   const getUnitRoomName = unit => {
     if (!unit) return '';
-    if (isGroundFloor) return unit.RoomName;
+    if (unit.RoomName) return unit.RoomName;
     const num = getUnitDisplayNumber(unit);
 
-    if (num === '08') return "Nadun's Office (Executive Cabin)";
-    if (num === '09') return '1st Floor Main Hall (East Wall)';
+    if (num === '08') return "Nadun's Office (North)";
+    if (num === '09') return "1st Floor Operations Hall (Center Nadun's Lobbby)";
     if (num === '10') return 'Main Auditorium (East Unit)';
     if (num === '11') return 'Main Auditorium (Center Unit)';
     if (num === '12') return 'Main Auditorium (West Unit)';
-    if (num === '13') return 'LUNCH ROOM';
-    if (num === '14') return 'Main Conference Room';
-    return unit.RoomName;
+    if (num === '13') return 'Executive Office 2 / Main Conference Room';
+    if (num === '14') return 'LAB (New Lab)';
+    return unit.RoomName || '';
   };
 
   return (
@@ -153,7 +155,7 @@ export default function ACFloorPlan({
             <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               {isGroundFloor
                 ? 'Kitchen, Washrooms, Hall (with Stairs), Reception (Single Entry), Fish Tank Gallery, Store Room & 3 Offices'
-                : 'Auditorium (3 ACs), Washroom, Extended Main Corridor, Discussion Room (Top Wing, Non-AC), Main Conference Room (AC), LUNCH ROOM (AC) & 1st Floor Main Hall (Nadun\'s Office [AC], Stairs Down, Main Hall [AC])'}
+                : 'Auditorium (3 ACs), Washroom, Extended Main Corridor, Discussion Room (Non-AC), Main Conference Room (AC), Lunch Room (Non-AC), New Lab (Separate Annex, AC) & 1st Floor Main Hall (Nadun\'s Office [AC], Stairs Down, Main Hall [AC])'}
             </div>
           </div>
         </div>
@@ -234,25 +236,103 @@ export default function ACFloorPlan({
             {/* ======================================================== */}
             {!isGroundFloor && (
               <g id="blueprint-1st-floor">
-                {/* 1. Open Atrium / Cut-out indicator for removed top-left area */}
-                <g id="first-floor-open-atrium" opacity="0.5">
+                {/* 1. SEPARATE BUILDING: NEW LAB (Small Square with Dedicated AC) */}
+                <g id="first-floor-new-lab-annex">
+                  {/* Surrounding Grounds / Courtyard Context */}
                   <rect
                     x="150"
-                    y="60"
+                    y="55"
                     width="360"
-                    height="235"
+                    height="245"
                     rx="8"
                     fill="none"
                     stroke="#94A3B8"
-                    strokeWidth="1.2"
+                    strokeWidth="1"
                     strokeDasharray="6 4"
+                    opacity="0.3"
                   />
-                  <text x="330" y="165" fill="#64748B" fontSize="11" fontWeight="800" textAnchor="middle" letterSpacing="3">
-                    OPEN ATRIUM / TERRACE
+                  <text x="200" y="74" fill="#64748B" fontSize="8" fontWeight="700" letterSpacing="1.5" opacity="0.7">
+                    FACILITY COMPOUND / GROUNDS
                   </text>
-                  <text x="330" y="185" fill="#94A3B8" fontSize="8.5" fontWeight="600" textAnchor="middle">
-                    Open To Ground Operations Hall Below
+
+                  {/* Paved Walkway from Main Building Horizontal Corridor to New Lab South Door */}
+                  <path
+                    d="M 325 310 L 325 235"
+                    fill="none"
+                    stroke="#00A3FF"
+                    strokeWidth="1.8"
+                    strokeDasharray="4 3"
+                    opacity="0.6"
+                  />
+                  <polygon points="321,242 325,234 329,242" fill="#00A3FF" opacity="0.8" />
+                  <text x="334" y="280" fill="#00A3FF" fontSize="7" fontWeight="800" letterSpacing="1">
+                    LAB ACCESS
                   </text>
+
+                  {/* Standalone Square Building: Double CAD Walls */}
+                  <rect
+                    x="250"
+                    y="85"
+                    width="150"
+                    height="150"
+                    rx="4"
+                    fill="rgba(241, 245, 249, 0.45)"
+                    stroke="#334155"
+                    strokeWidth="4"
+                  />
+                  <rect
+                    x="258"
+                    y="93"
+                    width="134"
+                    height="134"
+                    rx="2"
+                    fill="none"
+                    stroke="#64748B"
+                    strokeWidth="1.5"
+                    opacity="0.5"
+                  />
+
+                  {/* Windows on North & West Walls */}
+                  <line x1="285" y1="85" x2="365" y2="85" stroke="#00A3FF" strokeWidth="2.5" />
+                  <line x1="250" y1="125" x2="250" y2="195" stroke="#00A3FF" strokeWidth="2.5" />
+
+                  {/* Entrance Doorway at South Wall (facing walkway) */}
+                  <line x1="305" y1="235" x2="345" y2="235" stroke="#FFFFFF" strokeWidth="5" />
+                  <path d="M 305 235 A 40 40 0 0 1 345 195" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                  <line x1="305" y1="235" x2="345" y2="195" stroke="#00A3FF" strokeWidth="1.5" />
+
+                  {/* Lab Furniture & Workbenches */}
+                  {/* North Analytical Bench */}
+                  <rect x="264" y="99" width="122" height="18" rx="2" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.2" />
+                  <rect x="310" y="102" width="24" height="11" rx="1.5" fill="#38BDF8" opacity="0.8" />
+                  {/* West Chemical / Testing Bench */}
+                  <rect x="264" y="123" width="22" height="78" rx="2" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.2" />
+                  <rect x="268" y="145" width="14" height="18" rx="1.5" fill="#10B981" opacity="0.75" />
+                  {/* Lab stools */}
+                  <circle cx="322" cy="126" r="6" fill="rgba(100, 116, 139, 0.3)" stroke="#64748B" strokeWidth="1" />
+                  <circle cx="296" cy="154" r="6" fill="rgba(100, 116, 139, 0.3)" stroke="#64748B" strokeWidth="1" />
+
+                  {/* Separate Building Category Tag */}
+                  <g transform="translate(325, 68)">
+                    <rect x="-48" y="-8" width="96" height="16" rx="8" fill="rgba(0, 163, 255, 0.12)" stroke="#00A3FF" strokeWidth="1" />
+                    <text x="0" y="3.5" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="middle" letterSpacing="0.8">
+                      SEPARATE BUILDING
+                    </text>
+                  </g>
+
+                  {/* Lab Title & Subtitle */}
+                  <text x="330" y="148" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
+                    New Lab
+                  </text>
+                  <text x="330" y="162" fill="var(--text-muted)" fontSize="8" fontWeight="600" textAnchor="middle">
+                    Testing & Analytical Annex
+                  </text>
+                  <g transform="translate(330, 180)">
+                    <rect x="-38" y="-7" width="76" height="15" rx="7.5" fill="rgba(0, 163, 255, 0.15)" stroke="#00A3FF" strokeWidth="1" />
+                    <text x="0" y="3.5" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="middle" letterSpacing="0.5">
+                      AC UNIT 14
+                    </text>
+                  </g>
                 </g>
 
                 {/* 2. Outer Building Double Walls for 1st Floor */}
@@ -575,11 +655,15 @@ export default function ACFloorPlan({
                   </text>
                 </g>
 
-                {/* 12. LUNCH ROOM */}
+                {/* 12. LUNCH ROOM (Non-AC) */}
                 <g id="middle-connector-layout">
-                  <text x="655" y="325" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
+                  <text x="655" y="322" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
                     LUNCH ROOM
                   </text>
+                  <g transform="translate(655, 338)">
+                    <rect x="-30" y="-7" width="60" height="14" rx="7" fill="rgba(239, 68, 68, 0.12)" stroke="#EF4444" strokeWidth="0.8" />
+                    <text x="0" y="3" fill="#EF4444" fontSize="6.5" fontWeight="800" textAnchor="middle" letterSpacing="0.5">NON-AC</text>
+                  </g>
                   <g transform="translate(815, 318)">
                     <circle cx="0" cy="0" r="16" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1.5" />
                     <text x="0" y="5" fill="#00A3FF" fontSize="13" fontWeight="800" textAnchor="middle">1</text>
@@ -647,21 +731,21 @@ export default function ACFloorPlan({
                 </g>
 
                 {/* 16. Physical AC Wall Mount Boxes */}
-                {/* Main Conference Room: Wall Mounted AC */}
+                {/* Main Conference Room: Wall Mounted AC (Unit 13) */}
                 <rect x="866" y="190" width="10" height="38" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
-                <text x="856" y="213" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="end">AC</text>
+                <text x="856" y="213" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="end">AC 13</text>
 
-                {/* LUNCH ROOM: East Wall AC */}
-                <rect x="866" y="295" width="10" height="38" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
-                <text x="856" y="318" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="end">AC</text>
+                {/* New Lab: East Wall AC Unit (Unit 14) */}
+                <rect x="390" y="135" width="8" height="36" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
+                <text x="382" y="157" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="end">AC 14</text>
 
-                {/* Nadun's Office: Dedicated AC Unit */}
+                {/* Nadun's Office: Dedicated AC Unit (Unit 08) */}
                 <rect x="852" y="388" width="10" height="36" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
-                <text x="842" y="410" fill="#00A3FF" fontSize="7" fontWeight="800" textAnchor="end">AC</text>
+                <text x="842" y="410" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="end">AC 08</text>
 
-                {/* 1st Floor Main Hall: East Wall AC */}
+                {/* 1st Floor Main Hall: East Wall AC (Unit 09) */}
                 <rect x="866" y="485" width="10" height="42" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1.4" rx="2" />
-                <text x="854" y="510" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="end">AC UNIT</text>
+                <text x="854" y="510" fill="#00A3FF" fontSize="7.5" fontWeight="800" textAnchor="end">AC 09</text>
 
                 {/* Auditorium 3 AC units: South Wall (West, Center, East) */}
                 <rect x="190" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />

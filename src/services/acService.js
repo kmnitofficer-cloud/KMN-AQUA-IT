@@ -27,7 +27,10 @@ export const acService = {
     return rawUnits
       .filter(u => {
         if (!u) return false;
-        const matchesFloor = floorFilter === 'All' || u.Floor === floorFilter;
+        const matchesFloor =
+          floorFilter === 'All' ||
+          u.Floor === floorFilter ||
+          (floorFilter === 'First Floor' && (u.Floor === 'New Lab' || u.RoomName === 'LAB' || u.UnitID === 'AC-0014'));
         const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
         return matchesFloor && matchesStatus;
       })
@@ -57,28 +60,22 @@ export const acService = {
         let normalizedStatus = unit.Status;
         let normalizedWallPosition = unit.WallPosition;
 
-        if (unit.Floor === 'First Floor') {
-          const ac1FMap = {
-            'AC-0008': { UnitNumber: '08', UnitCode: '1F-AC-08', RoomName: "Nadun's Office (Executive Cabin)", WallPosition: "East Wall (Nadun's Office)", CoordX: 800, CoordY: 412, Status: 'Active' },
-            'AC-0009': { UnitNumber: '09', UnitCode: '1F-AC-09', RoomName: '1st Floor Main Hall (East Wall)', WallPosition: 'East Wall (Main Hall)', CoordX: 830, CoordY: 506, Status: 'Active' },
-            'AC-0010': { UnitNumber: '10', UnitCode: '1F-AC-10', RoomName: 'Main Auditorium (East Unit)', WallPosition: 'South Wall (East Section)', CoordX: 390, CoordY: 546, Status: 'Active' },
-            'AC-0011': { UnitNumber: '11', UnitCode: '1F-AC-11', RoomName: 'Main Auditorium (Center Unit)', WallPosition: 'South Wall (Center Section)', CoordX: 300, CoordY: 546, Status: 'Active' },
-            'AC-0012': { UnitNumber: '12', UnitCode: '1F-AC-12', RoomName: 'Main Auditorium (West Unit)', WallPosition: 'South Wall (West Section)', CoordX: 210, CoordY: 546, Status: 'Active' },
-            'AC-0013': { UnitNumber: '13', UnitCode: '1F-AC-13', RoomName: 'Middle Connector', WallPosition: 'East Wall (Middle Connector)', CoordX: 740, CoordY: 315, Status: 'Active' },
-            'AC-0014': { UnitNumber: '14', UnitCode: '1F-AC-14', RoomName: 'Main Conference Room', WallPosition: 'East Partition Wall', CoordX: 730, CoordY: 210, Status: 'Active' },
-            'AC-0015': { UnitNumber: '15', UnitCode: '1F-AC-15', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' },
-            'AC-0016': { UnitNumber: '16', UnitCode: '1F-AC-16', RoomName: '1st Floor Main Hall (Old South Wall - Removed)', WallPosition: 'South Wall', CoordX: 0, CoordY: 0, Status: 'Decommissioned' }
+        if (unit.Floor === 'First Floor' || unit.Floor === 'New Lab' || unit.UnitID === 'AC-0014') {
+          const ac1FCoordsFallback = {
+            'AC-0008': { UnitNumber: '08', CoordX: 845, CoordY: 405 },
+            'AC-0009': { UnitNumber: '09', CoordX: 860, CoordY: 506 },
+            'AC-0010': { UnitNumber: '10', CoordX: 390, CoordY: 546 },
+            'AC-0011': { UnitNumber: '11', CoordX: 300, CoordY: 546 },
+            'AC-0012': { UnitNumber: '12', CoordX: 210, CoordY: 546 },
+            'AC-0013': { UnitNumber: '13', CoordX: 860, CoordY: 210 },
+            'AC-0014': { UnitNumber: '14', CoordX: 375, CoordY: 153 }
           };
 
-          const target = ac1FMap[unit.UnitID];
+          const target = ac1FCoordsFallback[unit.UnitID];
           if (target) {
-            normalizedUnitNumber = target.UnitNumber;
-            normalizedUnitCode = target.UnitCode;
-            normalizedRoomName = target.RoomName;
-            normalizedCoordX = target.CoordX;
-            normalizedCoordY = target.CoordY;
-            normalizedStatus = target.Status;
-            normalizedWallPosition = target.WallPosition;
+            normalizedUnitNumber = unit.UnitNumber || target.UnitNumber;
+            normalizedCoordX = (unit.CoordX !== undefined && unit.CoordX !== 0) ? unit.CoordX : target.CoordX;
+            normalizedCoordY = (unit.CoordY !== undefined && unit.CoordY !== 0) ? unit.CoordY : target.CoordY;
           }
         }
 
@@ -133,7 +130,7 @@ export const acService = {
 
     // Floor breakdown
     const groundFloorUnits = units.filter(u => u.Floor === 'Ground Floor');
-    const firstFloorUnits = units.filter(u => u.Floor === 'First Floor');
+    const firstFloorUnits = units.filter(u => u.Floor === 'First Floor' || u.Floor === 'New Lab');
 
     return {
       totalUnits,

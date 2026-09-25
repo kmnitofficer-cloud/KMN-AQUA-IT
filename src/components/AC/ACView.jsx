@@ -70,14 +70,19 @@ export default function ACView() {
 
   // Filter units for the floor plan
   const floorUnits = units.filter(u => {
-    const matchesFloor = u.Floor === selectedFloor;
+    const matchesFloor =
+      u.Floor === selectedFloor ||
+      (selectedFloor === 'First Floor' && (u.Floor === 'New Lab' || u.RoomName === 'LAB' || u.UnitID === 'AC-0014'));
     const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
     return matchesFloor && matchesStatus;
   });
 
   // Filter units for the comprehensive table
   const tableUnits = units.filter(u => {
-    const matchesFloor = selectedFloor === 'All' || u.Floor === selectedFloor;
+    const matchesFloor =
+      selectedFloor === 'All' ||
+      u.Floor === selectedFloor ||
+      (selectedFloor === 'First Floor' && (u.Floor === 'New Lab' || u.RoomName === 'LAB' || u.UnitID === 'AC-0014'));
     const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
     const matchesSearch =
       !searchQuery ||
