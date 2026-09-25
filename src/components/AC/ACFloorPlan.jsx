@@ -335,9 +335,9 @@ export default function ACFloorPlan({
                 {/* Partition dividing Kitchen and General Washroom */}
                 <line x1="365" y1="60" x2="365" y2="170" stroke="#334155" strokeWidth="3" strokeDasharray="8 4" />
 
-                {/* 3. Reception Section (Middle Right: x = 480 to 750, y = 350 to 570) */}
-                {/* West wall of Reception */}
-                <line x1="480" y1="350" x2="480" y2="570" stroke="#334155" strokeWidth="3.5" />
+                {/* 3. Reception Section (Middle: x = 480 to 750, y = 350 to 520) */}
+                {/* West wall of Reception (stops at y = 520 to allow horizontal corridor) */}
+                <line x1="480" y1="350" x2="480" y2="520" stroke="#334155" strokeWidth="3.5" />
 
                 {/* North partition / Reception counter */}
                 <line x1="480" y1="350" x2="550" y2="350" stroke="#334155" strokeWidth="3.5" />
@@ -354,55 +354,58 @@ export default function ACFloorPlan({
                   COUNTER
                 </text>
 
-                {/* Main Front Entrance Door of the Building */}
-                <line x1="590" y1="570" x2="650" y2="570" stroke="#FFFFFF" strokeWidth="6" />
-                <path d="M 590 570 A 60 60 0 0 1 650 510" fill="none" stroke="#00A3FF" strokeWidth="2" strokeDasharray="3 2" />
-                <line x1="590" y1="570" x2="650" y2="510" stroke="#00A3FF" strokeWidth="2" />
-                <text x="620" y="590" fill="#00A3FF" fontSize="9" fontWeight="800" textAnchor="middle">
-                  ▲ MAIN ENTRANCE
-                </text>
+                {/* South Wall of Reception with Arched Doorway (y = 520, x = 480 to 750) */}
+                <line x1="480" y1="520" x2="595" y2="520" stroke="#334155" strokeWidth="3.5" />
+                <line x1="645" y1="520" x2="750" y2="520" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Reception Entrance Door Opening into Reception */}
+                <line x1="595" y1="520" x2="645" y2="520" stroke="#FFFFFF" strokeWidth="5" />
+                <g transform="translate(620, 520)">
+                  <path d="M -25 0 C -25 -28, 25 -28, 25 0" fill="none" stroke="#00A3FF" strokeWidth="2" strokeDasharray="3 2" />
+                  <line x1="-25" y1="0" x2="-8" y2="-20" stroke="#00A3FF" strokeWidth="1.8" />
+                  <line x1="25" y1="0" x2="8" y2="-20" stroke="#00A3FF" strokeWidth="1.8" />
+                </g>
 
                 {/* Reception Desk */}
-                <g transform="translate(565, 410)">
+                <g transform="translate(565, 390)">
                   <rect x="0" y="0" width="105" height="26" rx="4" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.4" />
                   <circle cx="52" cy="40" r="8" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
                 </g>
 
-                {/* 4. RIGHT SIDE WING: FISH TANK GALLERY & STORE ROOM (x = 750 to 905, y = 170 to 570) */}
-                {/* West dividing wall of right wing - solid continuous partition (Reception has ONLY ONE door at entrance) */}
-                <line x1="750" y1="170" x2="750" y2="570" stroke="#334155" strokeWidth="3.5" />
+                {/* 4. RIGHT SIDE WING: STORE ROOM & FISH TANK GALLERY */}
+                {/* West dividing wall of Store Room with Corridor Doorway */}
+                <line x1="750" y1="170" x2="750" y2="525" stroke="#334155" strokeWidth="3.5" />
+                {/* Store Room Door Opening from Horizontal Corridor */}
+                <line x1="750" y1="525" x2="750" y2="565" stroke="#FFFFFF" strokeWidth="5" />
+                <path d="M 750 565 A 40 40 0 0 1 790 525" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="750" y1="565" x2="780" y2="535" stroke="#00A3FF" strokeWidth="1.8" />
+                <line x1="750" y1="565" x2="750" y2="570" stroke="#334155" strokeWidth="3.5" />
 
-                {/* Horizontal partition dividing Fish Tank Gallery and Store Room */}
+                {/* Horizontal partition dividing Fish Tank Gallery and Hall */}
                 <line x1="299" y1="515" x2="480" y2="515" stroke="#334155" strokeWidth="3.5" />
 
-                {/* --- A. FISH TANK GALLERY (Upper Right: y = 170 to 445) --- */}
-                <g id="right-wing-fish-tanks">
-
-                  {/* Feature Main Aquarium Tank (Row 4 - Large Display) */}
+                {/* --- A. FISH TANK GALLERY --- */}
+                <g id="ground-fish-tanks">
                   <rect x="335" y="510" width="126" height="52" rx="4" fill="rgba(14, 165, 233, 0.28)" stroke="#00A3FF" strokeWidth="2" />
-
-
-                  {/* Fish Tank Label */}
-                  <text x="395" y="526" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
+                  <text x="398" y="534" fill="#00A3FF" fontSize="9.5" fontWeight="800" textAnchor="middle">
                     🐠 FISH TANK GALLERY
                   </text>
-                  <text x="335" y="438" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
+                  <text x="398" y="549" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
                     Aquarium Display Racks
                   </text>
                 </g>
 
-                {/* --- B. STORE ROOM (Lower Right: y = 445 to 570) --- */}
+                {/* --- B. STORE ROOM (Lower Right: x = 750 to 905, y = 445 to 570) --- */}
                 <g id="right-wing-store-room">
-
                   {/* Store Room Labels */}
-                  <text x="818" y="500" fill="var(--text-primary)" fontSize="10.5" fontWeight="800" textAnchor="middle">
+                  <text x="830" y="495" fill="var(--text-primary)" fontSize="10.5" fontWeight="800" textAnchor="middle">
                     📦 STORE ROOM
                   </text>
-                  <text x="818" y="515" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
+                  <text x="830" y="512" fill="var(--text-muted)" fontSize="7.5" fontWeight="600" textAnchor="middle">
                     IT & Utility Storage
                   </text>
 
-                  {/* Store Room Bottom Door (drawn with blue highlight by user with arrow!) */}
+                  {/* Store Room Bottom Outer Door */}
                   <line x1="790" y1="570" x2="850" y2="570" stroke="#00A3FF" strokeWidth="6" />
                   <path d="M 790 570 A 60 60 0 0 1 850 510" fill="none" stroke="#00A3FF" strokeWidth="2" strokeDasharray="3 2" />
                   <line x1="790" y1="570" x2="850" y2="510" stroke="#00A3FF" strokeWidth="2" />
@@ -410,6 +413,14 @@ export default function ACFloorPlan({
                     ▲ DOOR
                   </text>
                 </g>
+
+                {/* Main Front Entrance Door on Bottom Wall into Corridor */}
+                <line x1="590" y1="570" x2="650" y2="570" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 590 570 A 50 50 0 0 1 635 528" fill="none" stroke="#00A3FF" strokeWidth="2" strokeDasharray="3 2" />
+                <line x1="590" y1="570" x2="635" y2="528" stroke="#00A3FF" strokeWidth="2" />
+                <text x="620" y="590" fill="#00A3FF" fontSize="9" fontWeight="800" textAnchor="middle">
+                  ▲ MAIN ENTRANCE
+                </text>
 
                 {/* 5. STAIRS INSIDE GROUND OPERATIONS HALL (x = 180 to 300, y = 450 to 515) */}
                 <g id="ground-hall-stairs">
@@ -466,28 +477,43 @@ export default function ACFloorPlan({
                 <line x1="180" y1="570" x2="220" y2="570" stroke="#334155" strokeWidth="4.5" />
                 <line x1="265" y1="570" x2="470" y2="570" stroke="#334155" strokeWidth="4.5" />
 
-                {/* 7. CORRIDOR PATHWAY ('CORRIDOR' red dotted line drawn by user) */}
+                {/* 7. CORRIDOR PATHWAY (Seamless L-shaped corridor connecting Main Entrance, Reception, Store Room & Offices) */}
                 <g id="ground-corridor">
-                  {/* Hallway connection between Ground Operations Hall and vertical corridor (x = 300 to 525, y = 515 to 570) */}
-                  <rect x="300" y="515" width="225" height="55" fill="rgba(0, 163, 255, 0.05)" />
-                  {/* Vertical Corridor Fill */}
+                  {/* Horizontal Corridor Under Reception (x = 470 to 750, y = 520 to 570) */}
+                  <rect x="470" y="520" width="280" height="50" fill="rgba(0, 163, 255, 0.05)" />
+                  {/* Hallway connection between Ground Operations Hall and vertical corridor */}
+                  <rect x="300" y="515" width="170" height="55" fill="rgba(0, 163, 255, 0.04)" />
+                  {/* Vertical Corridor Fill (x = 470 to 525, y = 570 to 920) */}
                   <rect x="470" y="570" width="55" height="350" fill="rgba(0, 163, 255, 0.05)" />
+
+                  {/* Subtle Floor Tile Grid in Horizontal Corridor */}
+                  {[520, 570, 620, 670, 720].map(x => (
+                    <line key={`th-${x}`} x1={x} y1="522" x2={x} y2="568" stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
+                  ))}
 
                   {/* Subtle Floor Tile Grid in Vertical Corridor */}
                   {[620, 670, 720, 770, 820, 870].map(y => (
-                    <line key={y} x1="472" y1={y} x2="523" y2={y} stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.35" />
+                    <line key={`tv-${y}`} x1="472" y1={y} x2="523" y2={y} stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.35" />
                   ))}
 
-                  {/* Pathway Directional Flow from Store Room Door / Main Entrance to Offices */}
+                  {/* Pathway Directional Flow from Store Room Door past Main Entrance & Reception to 3 Offices */}
                   <path
-                    d="M 820 580 L 498 580 L 498 905"
+                    d="M 740 545 L 498 545 L 498 905"
                     fill="none"
                     stroke="#EF4444"
-                    strokeWidth="2"
-                    strokeDasharray="5 3"
+                    strokeWidth="2.2"
+                    strokeDasharray="6 4"
                     opacity="0.9"
                   />
-                  <polyline points="494,900 498,908 502,900" fill="none" stroke="#EF4444" strokeWidth="2.2" />
+                  <polyline points="494,900 498,908 502,900" fill="none" stroke="#EF4444" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+
+                  {/* Distinct Red Waypoint Dots matching user markup */}
+                  {[735, 705, 675, 645, 615, 585, 555, 525, 498].map(x => (
+                    <circle key={`dot-h-${x}`} cx={x} cy="545" r="2.8" fill="#EF4444" opacity="0.95" />
+                  ))}
+                  {[575, 610, 645, 680, 715, 750, 785, 820, 855, 890].map(y => (
+                    <circle key={`dot-v-${y}`} cx="498" cy={y} r="2.8" fill="#EF4444" opacity="0.95" />
+                  ))}
 
                   {/* Corridor Label */}
                   <g transform="translate(509, 745) rotate(90)">
@@ -504,9 +530,8 @@ export default function ACFloorPlan({
                 <line x1="470" y1="905" x2="470" y2="920" stroke="#334155" strokeWidth="3.5" />
 
                 {/* Door: Corridor to Boss Office */}
-                <line x1="470" y1="595" x2="470" y2="640" stroke="#FFFFFF" strokeWidth="5" />
-                <path d="M 470 640 A 45 45 0 0 1 425 595" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
-                <line x1="470" y1="640" x2="425" y2="595" stroke="#00A3FF" strokeWidth="1.8" />
+                <line x1="470" y1="595" x2="470" y2="640" stroke="#334155" strokeWidth="5" />
+
 
                 {/* Door: Corridor to HR Office */}
                 <line x1="470" y1="710" x2="470" y2="755" stroke="#FFFFFF" strokeWidth="5" />
