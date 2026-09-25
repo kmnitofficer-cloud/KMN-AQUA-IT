@@ -2655,7 +2655,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 22,
       "CoordX": 752,
       "CoordY": 440,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-10-10",
       "Notes": "Ground floor front reception cooling"
     },
@@ -2676,7 +2676,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 23,
       "CoordX": 752,
       "CoordY": 245,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-10-10",
       "Notes": "Main hall east zone cooling unit"
     },
@@ -2697,7 +2697,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 21,
       "CoordX": 208,
       "CoordY": 270,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-09-18",
       "Notes": "Main hall west upper zone cooling unit"
     },
@@ -2718,7 +2718,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 22,
       "CoordX": 208,
       "CoordY": 415,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-07-12",
       "Notes": "Scheduled for chemical condenser wash"
     },
@@ -2739,9 +2739,10 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 21,
       "CoordX": 208,
       "CoordY": 628,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-07-13",
       "NextServiceDue": "2026-09-18",
-      "Notes": "Ground floor Boss office executive suite cooling unit"
+      "Notes": "Haier 24,000 BTU Dual Inverter installed on 2026-07-13. Replaced old Abans AC which was moved due to low cooling.",
+      "PurchaseDate": "2026-07-13"
     },
     {
       "UnitID": "AC-0006",
@@ -2760,7 +2761,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 22,
       "CoordX": 208,
       "CoordY": 742,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-10-10",
       "Notes": "Ground floor HR department cooling unit"
     },
@@ -2781,7 +2782,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 22,
       "CoordX": 208,
       "CoordY": 860,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-10-10",
       "Notes": "Ground floor Other Office (Accounts & Operations) cooling unit"
     },
@@ -2802,7 +2803,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 21,
       "CoordX": 752,
       "CoordY": 240,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-09-18",
       "Notes": "High-capacity unit covering upper floor main workstation wing"
     },
@@ -2823,7 +2824,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 22,
       "CoordX": 752,
       "CoordY": 360,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-09-18",
       "Notes": "Center wing cooling unit"
     },
@@ -2844,7 +2845,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 22,
       "CoordX": 752,
       "CoordY": 480,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-09-18",
       "Notes": "South corridor cooling unit"
     },
@@ -2865,7 +2866,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 23,
       "CoordX": 670,
       "CoordY": 88,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-11-02",
       "Notes": "Dedicated conference room cooling"
     },
@@ -2886,7 +2887,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 24,
       "CoordX": 515,
       "CoordY": 88,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-11-02",
       "Notes": "Director office unit"
     },
@@ -2907,7 +2908,7 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 0,
       "CoordX": 385,
       "CoordY": 88,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-08-10",
       "Notes": "Compressor capacitor faulty, fan motor noisy. Service technician called."
     },
@@ -2927,14 +2928,153 @@ export const relationalDatabaseSeed = {
       "TargetTemp": 23,
       "CoordX": 162,
       "CoordY": 288,
-      "LastServiceDate": 46274,
+      "LastServiceDate": "2026-09-09",
       "NextServiceDue": "2026-10-25",
       "Notes": "Accounts staff room cooling unit"
     }
   ],
-  "ACServices": [],
-  "ACRepairs": [],
-  "ACReplacements": [],
+  "ACServices": [
+    {
+      "ServiceID": "ACS-0005",
+      "UnitID": "AC-0002",
+      "ServiceDate": "2026-09-09",
+      "ServiceType": "Routine Maintenance",
+      "Cost": 2500,
+      "Technician": "Saman Ref Enginering",
+      "InvoiceNo": "",
+      "GasRefillPSI": "Normal",
+      "FilterCleaned": true,
+      "CoilCleaned": true,
+      "NextServiceDue": "",
+      "Notes": "",
+      "FilePath": "",
+      "FileName": "",
+      "FileSize": ""
+    },
+    {
+      "ServiceID": "ACS-0004",
+      "UnitID": "AC-0001",
+      "ServiceDate": "2026-09-09",
+      "ServiceType": "Routine Maintenance",
+      "Cost": 2500,
+      "Technician": "Saman Ref Engineering",
+      "InvoiceNo": "",
+      "GasRefillPSI": "Normal",
+      "FilterCleaned": true,
+      "CoilCleaned": true,
+      "NextServiceDue": "",
+      "Notes": "",
+      "FilePath": "",
+      "FileName": "",
+      "FileSize": ""
+    },
+    {
+      "ServiceID": "ACS-0003",
+      "UnitID": "AC-0004",
+      "ServiceDate": "2026-09-09",
+      "ServiceType": "Routine Maintenance",
+      "Cost": 2500,
+      "Technician": "Saman Ref Engineering",
+      "InvoiceNo": "",
+      "GasRefillPSI": "Normal",
+      "FilterCleaned": true,
+      "CoilCleaned": true,
+      "NextServiceDue": "",
+      "Notes": "",
+      "FilePath": "",
+      "FileName": "",
+      "FileSize": ""
+    },
+    {
+      "ServiceID": "ACS-0002",
+      "UnitID": "AC-0003",
+      "ServiceDate": "2026-09-09",
+      "ServiceType": "Routine Maintenance",
+      "Cost": 2500,
+      "Technician": "Saman Ref Engineering",
+      "InvoiceNo": "",
+      "GasRefillPSI": "Normal",
+      "FilterCleaned": true,
+      "CoilCleaned": true,
+      "NextServiceDue": "",
+      "Notes": "",
+      "FilePath": "",
+      "FileName": "",
+      "FileSize": ""
+    },
+    {
+      "ServiceID": "ACS-0006",
+      "UnitID": "AC-0005",
+      "ServiceDate": "2026-07-13",
+      "ServiceType": "Replacement & Installation",
+      "Cost": 20000,
+      "Technician": "Saman Ref. Engineering (Ruchira)",
+      "InvoiceNo": "",
+      "GasRefillPSI": "Normal",
+      "FilterCleaned": true,
+      "CoilCleaned": true,
+      "NextServiceDue": "",
+      "Notes": "Abans AC එකක් Cool එක මදි කියල Haier 240000 AC එකට මාරු කරා (Old Abans AC moved due to low cooling, replaced with Haier 24,000 BTU)",
+      "FilePath": "",
+      "FileName": "",
+      "FileSize": ""
+    },
+    {
+      "ServiceID": "ACS-0001",
+      "UnitID": "AC-0001",
+      "ServiceDate": "2026-05-26",
+      "ServiceType": "Emergency Service",
+      "Cost": 2500,
+      "Technician": "Saman Ref Engineering",
+      "InvoiceNo": "",
+      "GasRefillPSI": "Normal",
+      "FilterCleaned": true,
+      "CoilCleaned": true,
+      "NextServiceDue": "",
+      "Notes": "",
+      "FilePath": "",
+      "FileName": "",
+      "FileSize": ""
+    }
+  ],
+  "ACRepairs": [
+    {
+      "RepairID": "ACR-0001",
+      "UnitID": "AC-0006",
+      "IssueDate": "2026-09-25",
+      "ResolvedDate": "2026-05-13",
+      "IssueDescription": "Drain leak Repair",
+      "PartsReplaced": "",
+      "RepairCost": 2500,
+      "Technician": "Saman Ref Engineer",
+      "Status": "Completed",
+      "InvoiceNo": "",
+      "Notes": "",
+      "FilePath": "",
+      "FileName": "",
+      "FileSize": ""
+    }
+  ],
+  "ACReplacements": [
+    {
+      "ReplacementID": "ACREP-0001",
+      "SpotCode": "CHW/AC/005",
+      "RoomName": "Boss Office (Executive Suite)",
+      "Floor": "Ground Floor",
+      "OldUnitBrand": "Abans",
+      "OldUnitModel": "Abans AC (Relocated)",
+      "OldUnitPurchaseYear": "",
+      "OldUnitLifetimeServiceCost": 0,
+      "OldUnitLifetimeRepairCost": 0,
+      "RemovalDate": "2026-07-13",
+      "RemovalReason": "Abans AC cooling insufficient, replaced with Haier 240000 AC (Abans AC එකක් Cool එක මදි කියල Haier 240000 AC එකට මාරු කරා)",
+      "FinalCondition": "Moved / Relocated",
+      "NewUnitID": "AC-0005",
+      "Technician": "Saman Ref. Engineering (Ruchira)",
+      "Cost": 20000,
+      "Notes": "Abans AC එකක් Cool එක මදි කියල Haier 240000 AC එකට මාරු කරා. Technician: Saman Ref. Engineering (Ruchira), Cost: Rs. 20,000"
+    }
+  ],
   "LegacyRawImport": []
 };
 
