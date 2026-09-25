@@ -39,6 +39,52 @@ export default function ACFloorPlan({
     }
   };
 
+  const getUnitCoordinates = unit => {
+    if (isGroundFloor) {
+      return { x: unit.CoordX, y: unit.CoordY };
+    }
+    // 1st Floor mapping
+    const mapByCode = {
+      '1F-AC-08': { x: 680, y: 88 },  // Main Conference Room
+      '1F-AC-09': { x: 210, y: 535 }, // Auditorium West Unit
+      '1F-AC-10': { x: 300, y: 535 }, // Auditorium Center Unit
+      '1F-AC-11': { x: 390, y: 535 }, // Auditorium East Unit
+      '1F-AC-12': { x: 520, y: 535 }, // Nadun's Office
+      '1F-AC-13': { x: 660, y: 535 }, // Main Hall West
+      '1F-AC-14': { x: 595, y: 315 }, // Middle Connector
+      '1F-AC-15': { x: 752, y: 360 }, // Main Hall Center
+      '1F-AC-16': { x: 770, y: 535 }  // Main Hall South
+    };
+    if (unit.UnitCode && mapByCode[unit.UnitCode]) {
+      return mapByCode[unit.UnitCode];
+    }
+    // If unit has coordinates in the removed top-left area (x < 530, y < 310), reposition to 1F slots
+    if (unit.CoordX < 530 && unit.CoordY < 310) {
+      if (unit.CoordX < 250) return { x: 210, y: 535 };
+      if (unit.CoordX < 350) return { x: 300, y: 535 };
+      if (unit.CoordX < 450) return { x: 390, y: 535 };
+      return { x: 520, y: 535 };
+    }
+    return { x: unit.CoordX || 700, y: unit.CoordY || 300 };
+  };
+
+  const getUnitRoomName = unit => {
+    if (!unit) return '';
+    if (isGroundFloor) return unit.RoomName;
+    const roomMap = {
+      '1F-AC-08': 'Main Conference Room',
+      '1F-AC-09': 'Main Auditorium (West)',
+      '1F-AC-10': 'Main Auditorium (Center)',
+      '1F-AC-11': 'Main Auditorium (East)',
+      '1F-AC-12': "Nadun's Office",
+      '1F-AC-13': '1st Floor Main Hall (West)',
+      '1F-AC-14': 'Middle Connector',
+      '1F-AC-15': '1st Floor Main Hall (Center)',
+      '1F-AC-16': '1st Floor Main Hall (South)'
+    };
+    return (unit.UnitCode && roomMap[unit.UnitCode]) || unit.RoomName;
+  };
+
   return (
     <div className="komvent-blueprint-card">
       {/* Blueprint Header */}
@@ -67,7 +113,7 @@ export default function ACFloorPlan({
             <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               {isGroundFloor
                 ? 'Kitchen, Washrooms, Hall (with Stairs), Reception (Single Entry), Fish Tank Gallery, Store Room & 3 Offices'
-                : 'Executive Suites, Main Conference & Hall • 7 AC Units'}
+                : 'Auditorium (2 Doors, 3 ACs), Washroom, Nadun\'s Office, Stairs Down & 3 Rooms (Conference, Middle Connector, Main Hall)'}
             </div>
           </div>
         </div>
@@ -142,19 +188,42 @@ export default function ACFloorPlan({
             <rect width="960" height={isGroundFloor ? 970 : 620} fill="url(#komventCadGrid)" />
 
             {/* ======================================================== */}
-            {/* LEVEL 1: 1ST FLOOR DRAWING (7 AC UNITS)                  */}
+            {/* LEVEL 1: 1ST FLOOR DRAWING                               */}
+            {/* Auditorium (2 doors, 3 ACs), Nadun's Office, Washroom,   */}
+            {/* Corridor, Stairs & 3 Rooms (Conference, Middle, Hall)    */}
             {/* ======================================================== */}
             {!isGroundFloor && (
               <g id="blueprint-1st-floor">
-                {/* Outer Double Walls for 1st Floor L-Shape */}
+                {/* 1. Open Atrium / Cut-out indicator for removed top-left area */}
+                <g id="first-floor-open-atrium" opacity="0.5">
+                  <rect
+                    x="150"
+                    y="80"
+                    width="360"
+                    height="215"
+                    rx="8"
+                    fill="none"
+                    stroke="#94A3B8"
+                    strokeWidth="1.2"
+                    strokeDasharray="6 4"
+                  />
+                  <text x="330" y="175" fill="#64748B" fontSize="11" fontWeight="800" textAnchor="middle" letterSpacing="3">
+                    OPEN ATRIUM / TERRACE
+                  </text>
+                  <text x="330" y="195" fill="#94A3B8" fontSize="8.5" fontWeight="600" textAnchor="middle">
+                    Open To Ground Operations Hall Below
+                  </text>
+                </g>
+
+                {/* 2. Outer Building Double Walls for 1st Floor */}
                 <path
                   d="
-                    M 140 70 
+                    M 525 70 
                     L 860 70 
                     L 860 560 
-                    L 580 560 
-                    L 580 310 
+                    L 140 560 
                     L 140 310 
+                    L 525 310 
                     Z
                   "
                   fill="rgba(241, 245, 249, 0.4)"
@@ -165,12 +234,12 @@ export default function ACFloorPlan({
 
                 <path
                   d="
-                    M 148 78 
+                    M 533 78 
                     L 852 78 
                     L 852 552 
-                    L 588 552 
-                    L 588 302 
-                    L 148 302 
+                    L 148 552 
+                    L 148 318 
+                    L 533 318 
                     Z
                   "
                   fill="none"
@@ -179,24 +248,57 @@ export default function ACFloorPlan({
                   opacity="0.5"
                 />
 
-                {/* Partitions */}
-                <line x1="380" y1="70" x2="380" y2="302" stroke="#334155" strokeWidth="3.5" />
-                <line x1="540" y1="70" x2="540" y2="310" stroke="#334155" strokeWidth="3.5" />
-                <line x1="540" y1="270" x2="860" y2="270" stroke="#334155" strokeWidth="3.5" />
-                <line x1="580" y1="365" x2="860" y2="365" stroke="#334155" strokeWidth="3.5" />
+                {/* 3. Outer Windows */}
+                {/* Window at North of Vertical Corridor */}
+                <line x1="535" y1="70" x2="570" y2="70" stroke="#00A3FF" strokeWidth="3" />
+                {/* Windows along Horizontal Corridor (facing the open atrium) */}
+                <line x1="260" y1="310" x2="330" y2="310" stroke="#00A3FF" strokeWidth="2.5" />
+                <line x1="390" y1="310" x2="470" y2="310" stroke="#00A3FF" strokeWidth="2.5" />
+                {/* Window along North of Conference Room */}
+                <line x1="620" y1="70" x2="650" y2="70" stroke="#00A3FF" strokeWidth="2.5" />
+                <line x1="720" y1="70" x2="810" y2="70" stroke="#00A3FF" strokeWidth="2.5" />
+                {/* Window along East wall of Conference Room */}
+                <line x1="860" y1="120" x2="860" y2="210" stroke="#00A3FF" strokeWidth="2.5" />
 
-                {/* Doors */}
-                <line x1="300" y1="302" x2="350" y2="302" stroke="#FFFFFF" strokeWidth="6" />
-                <path d="M 300 302 A 45 45 0 0 1 345 257" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
-                <line x1="300" y1="302" x2="345" y2="257" stroke="#00A3FF" strokeWidth="1.5" />
+                {/* 4. Partitions Between Rooms */}
+                {/* Vertical partition between Vertical Corridor and Conference Room (x = 580, y = 70 to 270) */}
+                <line x1="580" y1="70" x2="580" y2="140" stroke="#334155" strokeWidth="3.5" />
+                <line x1="580" y1="185" x2="580" y2="270" stroke="#334155" strokeWidth="3.5" />
 
-                <line x1="400" y1="302" x2="445" y2="302" stroke="#FFFFFF" strokeWidth="6" />
-                <path d="M 400 302 A 45 45 0 0 1 445 257" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
-                <line x1="400" y1="302" x2="445" y2="257" stroke="#00A3FF" strokeWidth="1.5" />
+                {/* Horizontal partition dividing Conference Room and Middle Connector (y = 270, x = 580 to 860) */}
+                <line x1="580" y1="270" x2="860" y2="270" stroke="#334155" strokeWidth="3.5" />
 
-                <line x1="540" y1="140" x2="540" y2="185" stroke="#FFFFFF" strokeWidth="6" />
-                <path d="M 540 185 A 45 45 0 0 0 585 140" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                {/* Partition dividing Middle Connector from Corridor & Main Hall */}
+                {/* West wall of Middle Connector (x = 580, y = 270 to 365) */}
+                <line x1="580" y1="270" x2="580" y2="310" stroke="#334155" strokeWidth="3.5" />
+                <line x1="580" y1="355" x2="580" y2="365" stroke="#334155" strokeWidth="3.5" />
+                {/* South wall of Middle Connector (y = 365, x = 580 to 860) */}
+                <line x1="580" y1="365" x2="700" y2="365" stroke="#334155" strokeWidth="3.5" />
+                <line x1="745" y1="365" x2="860" y2="365" stroke="#334155" strokeWidth="3.5" />
 
+                {/* Partition dividing Horizontal Corridor from Auditorium & Nadun's Office (y = 365, x = 140 to 580) */}
+                <line x1="140" y1="365" x2="210" y2="365" stroke="#334155" strokeWidth="3.5" />
+                <line x1="255" y1="365" x2="345" y2="365" stroke="#334155" strokeWidth="3.5" />
+                <line x1="390" y1="365" x2="500" y2="365" stroke="#334155" strokeWidth="3.5" />
+                <line x1="545" y1="365" x2="580" y2="365" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Partition dividing Washroom from Horizontal Corridor (x = 210, y = 310 to 365) */}
+                <line x1="210" y1="310" x2="210" y2="320" stroke="#334155" strokeWidth="3.5" />
+                <line x1="210" y1="355" x2="210" y2="365" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Partition dividing Auditorium and Nadun's Office (x = 460, y = 365 to 560) */}
+                <line x1="460" y1="365" x2="460" y2="435" stroke="#334155" strokeWidth="3.5" />
+                <line x1="460" y1="480" x2="460" y2="560" stroke="#334155" strokeWidth="3.5" />
+
+                {/* Partition dividing Nadun's Office from Stairs (x = 580, y = 365 to 560) */}
+                <line x1="580" y1="365" x2="580" y2="560" stroke="#334155" strokeWidth="3.5" />
+
+                {/* 5. Doors and Entryways */}
+                {/* Door: Vertical Corridor to Main Conference Room */}
+                <line x1="580" y1="140" x2="580" y2="185" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 580 185 A 45 45 0 0 0 625 140" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+
+                {/* Double Door: Conference Room to Middle Connector */}
                 <g transform="translate(710, 270)">
                   <line x1="-36" y1="0" x2="36" y2="0" stroke="#FFFFFF" strokeWidth="6" />
                   <path d="M -36 0 A 36 36 0 0 1 0 -36" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
@@ -205,74 +307,261 @@ export default function ACFloorPlan({
                   <text x="10" y="16" fill="#00A3FF" fontSize="10" fontWeight="800">D</text>
                 </g>
 
+                {/* Door: Vertical Corridor to Middle Connector */}
                 <line x1="580" y1="310" x2="580" y2="355" stroke="#FFFFFF" strokeWidth="6" />
                 <path d="M 580 355 A 45 45 0 0 0 625 310" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
 
+                {/* Door: Middle Connector to 1st Floor Main Hall */}
                 <line x1="700" y1="365" x2="745" y2="365" stroke="#FFFFFF" strokeWidth="6" />
                 <path d="M 700 365 A 45 45 0 0 1 745 320" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
 
-                {/* Stairwell Down */}
-                <g id="first-floor-stairwell" transform="translate(590, 375)">
-                  <rect x="0" y="0" width="85" height="110" fill="rgba(148, 163, 184, 0.15)" stroke="#94A3B8" strokeWidth="1.5" />
-                  {[18, 36, 54, 72, 90].map(y => (
-                    <line key={y} x1="0" y1={y} x2="85" y2={y} stroke="#94A3B8" strokeWidth="1.2" />
+                {/* Door: Horizontal Corridor into Washroom */}
+                <line x1="210" y1="320" x2="210" y2="355" stroke="#FFFFFF" strokeWidth="5" />
+                <path d="M 210 355 A 35 35 0 0 1 175 320" fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
+                <line x1="210" y1="355" x2="175" y2="320" stroke="#00A3FF" strokeWidth="1.5" />
+
+                {/* Door 1: Corridor into Auditorium (West Door) */}
+                <line x1="210" y1="365" x2="255" y2="365" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 210 365 A 45 45 0 0 0 255 410" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="210" y1="365" x2="255" y2="410" stroke="#00A3FF" strokeWidth="1.8" />
+                <text x="232" y="380" fill="#00A3FF" fontSize="8.5" fontWeight="800" textAnchor="middle">D1</text>
+
+                {/* Door 2: Corridor into Auditorium (East Door) */}
+                <line x1="345" y1="365" x2="390" y2="365" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 345 365 A 45 45 0 0 0 390 410" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="345" y1="365" x2="390" y2="410" stroke="#00A3FF" strokeWidth="1.8" />
+                <text x="367" y="380" fill="#00A3FF" fontSize="8.5" fontWeight="800" textAnchor="middle">D2</text>
+
+                {/* Door: Auditorium to Nadun's Office (Connecting Door) */}
+                <line x1="460" y1="435" x2="460" y2="480" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 460 480 A 45 45 0 0 1 505 435" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="460" y1="480" x2="505" y2="435" stroke="#00A3FF" strokeWidth="1.8" />
+
+                {/* Door: Corridor into Nadun's Office */}
+                <line x1="500" y1="365" x2="545" y2="365" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M 500 365 A 45 45 0 0 0 545 410" fill="none" stroke="#00A3FF" strokeWidth="1.8" strokeDasharray="3 2" />
+                <line x1="500" y1="365" x2="545" y2="410" stroke="#00A3FF" strokeWidth="1.8" />
+
+                {/* 6. Corridors with Floor Tiles & Flow Paths */}
+                {/* Vertical Corridor Floor Tiles */}
+                {[105, 140, 175, 210, 245, 280].map(y => (
+                  <line key={`vct-${y}`} x1="528" y1={y} x2="577" y2={y} stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
+                ))}
+                {/* Horizontal Corridor Floor Tiles */}
+                {[255, 300, 345, 390, 435, 480].map(x => (
+                  <line key={`hct-${x}`} x1={x} y1="313" x2={x} y2="362" stroke="#94A3B8" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
+                ))}
+                {/* Directional Corridor Path */}
+                <path
+                  d="M 552 85 L 552 337 L 225 337"
+                  fill="none"
+                  stroke="#EF4444"
+                  strokeWidth="2"
+                  strokeDasharray="6 4"
+                  opacity="0.85"
+                />
+                {[552].map(x => [100, 140, 180, 220, 260, 300].map(y => (
+                  <circle key={`cp-v-${y}`} cx={x} cy={y} r="2.5" fill="#EF4444" opacity="0.9" />
+                )))}
+                {[520, 475, 430, 385, 340, 295, 250].map(x => (
+                  <circle key={`cp-h-${x}`} cx={x} cy="337" r="2.5" fill="#EF4444" opacity="0.9" />
+                ))}
+                {/* Corridor Labels */}
+                <g transform="translate(562, 210) rotate(90)">
+                  <text x="0" y="0" fill="#EF4444" fontSize="9" fontWeight="800" textAnchor="middle" letterSpacing="3">
+                    CORRIDOR
+                  </text>
+                </g>
+                <text x="360" y="332" fill="#EF4444" fontSize="9" fontWeight="800" textAnchor="middle" letterSpacing="4">
+                  CORRIDOR
+                </text>
+
+                {/* 7. Washroom Interior */}
+                <g id="washroom-interior">
+                  {/* WC toilet bowl & tank */}
+                  <rect x="146" y="316" width="10" height="18" rx="2" fill="rgba(241, 245, 249, 0.85)" stroke="#64748B" strokeWidth="1" />
+                  <ellipse cx="164" cy="325" rx="7" ry="6" fill="rgba(241, 245, 249, 0.85)" stroke="#64748B" strokeWidth="1" />
+                  {/* Vanity basin */}
+                  <rect x="146" y="342" width="22" height="15" rx="3" fill="rgba(14, 165, 233, 0.15)" stroke="#00A3FF" strokeWidth="1.2" />
+                  <circle cx="157" cy="349.5" r="3.5" fill="#FFFFFF" stroke="#00A3FF" strokeWidth="0.8" />
+                  <text x="180" y="337" fill="var(--text-primary)" fontSize="9.5" fontWeight="800" textAnchor="middle">
+                    Washroom
+                  </text>
+                  <text x="180" y="348" fill="var(--text-muted)" fontSize="7" fontWeight="600" textAnchor="middle">
+                    Restroom
+                  </text>
+                </g>
+
+                {/* 8. Main Auditorium Interior Architecture */}
+                <g id="auditorium-interior">
+                  {/* Presentation Stage / Podium */}
+                  <rect x="250" y="375" width="100" height="22" rx="4" fill="rgba(0, 163, 255, 0.12)" stroke="#00A3FF" strokeWidth="1.4" strokeDasharray="3 2" />
+                  <text x="300" y="389" fill="#00A3FF" fontSize="8" fontWeight="800" textAnchor="middle">
+                    STAGE / PRESENTATION SCREEN
+                  </text>
+
+                  {/* Auditorium Tiered Seating Rows */}
+                  {/* Row 1 */}
+                  <g transform="translate(170, 420)">
+                    <rect x="0" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                    {[21, 42, 63, 84].map(sx => (
+                      <line key={`r1l-${sx}`} x1={sx} y1="0" x2={sx} y2="14" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 1" />
+                    ))}
+                    <rect x="155" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                    {[176, 197, 218, 239].map(sx => (
+                      <line key={`r1r-${sx}`} x1={sx} y1="0" x2={sx} y2="14" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 1" />
+                    ))}
+                  </g>
+
+                  {/* Row 2 */}
+                  <g transform="translate(170, 452)">
+                    <rect x="0" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                    {[21, 42, 63, 84].map(sx => (
+                      <line key={`r2l-${sx}`} x1={sx} y1="0" x2={sx} y2="14" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 1" />
+                    ))}
+                    <rect x="155" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                    {[176, 197, 218, 239].map(sx => (
+                      <line key={`r2r-${sx}`} x1={sx} y1="0" x2={sx} y2="14" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 1" />
+                    ))}
+                  </g>
+
+                  {/* Row 3 */}
+                  <g transform="translate(170, 484)">
+                    <rect x="0" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                    {[21, 42, 63, 84].map(sx => (
+                      <line key={`r3l-${sx}`} x1={sx} y1="0" x2={sx} y2="14" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 1" />
+                    ))}
+                    <rect x="155" y="0" width="105" height="14" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                    {[176, 197, 218, 239].map(sx => (
+                      <line key={`r3r-${sx}`} x1={sx} y1="0" x2={sx} y2="14" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 1" />
+                    ))}
+                  </g>
+
+                  <text x="300" y="458" fill="#64748B" fontSize="7.5" fontWeight="700" textAnchor="middle" letterSpacing="1">
+                    AISLE
+                  </text>
+                </g>
+
+                {/* 9. Nadun's Office Interior Furniture */}
+                <g id="naduns-office-furniture">
+                  {/* Executive L-shaped Desk */}
+                  <rect x="478" y="455" width="68" height="24" rx="3" fill="rgba(148, 163, 184, 0.25)" stroke="#64748B" strokeWidth="1.4" />
+                  <rect x="526" y="479" width="20" height="20" rx="2" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                  {/* Laptop screen */}
+                  <rect x="495" y="460" width="18" height="8" rx="1.5" fill="#38BDF8" opacity="0.8" />
+                  {/* Executive high-back chair */}
+                  <circle cx="505" cy="495" r="8" fill="rgba(100, 116, 139, 0.35)" stroke="#64748B" strokeWidth="1.2" />
+                  {/* Visitor consultation chairs */}
+                  <circle cx="492" cy="436" r="6" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                  <circle cx="525" cy="436" r="6" fill="rgba(100, 116, 139, 0.2)" stroke="#94A3B8" strokeWidth="1" />
+                  {/* Document Storage Credenza */}
+                  <rect x="558" y="465" width="14" height="45" rx="2" fill="rgba(148, 163, 184, 0.18)" stroke="#94A3B8" strokeWidth="1" />
+                  <text x="565" y="490" fill="var(--text-muted)" fontSize="6" fontWeight="700" textAnchor="middle">FILES</text>
+                </g>
+
+                {/* 10. Main Conference Room Furniture */}
+                <g id="conference-furniture">
+                  <rect x="635" y="130" width="130" height="52" rx="20" fill="rgba(148, 163, 184, 0.22)" stroke="#64748B" strokeWidth="1.4" />
+                  <rect x="660" y="148" width="80" height="16" rx="4" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1" strokeDasharray="3 2" />
+                  {/* Chairs */}
+                  {[650, 680, 710, 740].map(cx => (
+                    <circle key={`cf-top-${cx}`} cx={cx} cy="115" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
                   ))}
-                  <g transform="translate(42, 55)">
+                  {[650, 680, 710, 740].map(cx => (
+                    <circle key={`cf-bot-${cx}`} cx={cx} cy="197" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  ))}
+                  <circle cx="620" cy="156" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  <circle cx="780" cy="156" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  {/* Presentation screen */}
+                  <rect x="852" y="135" width="5" height="42" rx="1.5" fill="#00A3FF" opacity="0.8" />
+                </g>
+
+                {/* 11. Main Hall Workstations */}
+                <g id="main-hall-workstations">
+                  <rect x="690" y="445" width="125" height="26" rx="3" fill="rgba(148, 163, 184, 0.2)" stroke="#64748B" strokeWidth="1.2" />
+                  <line x1="752" y1="445" x2="752" y2="471" stroke="#94A3B8" strokeWidth="1" strokeDasharray="2 2" />
+                  <circle cx="721" cy="485" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  <circle cx="783" cy="485" r="6.5" fill="rgba(100, 116, 139, 0.25)" stroke="#64748B" strokeWidth="1" />
+                  <rect x="710" y="450" width="22" height="8" rx="1.5" fill="#38BDF8" opacity="0.6" />
+                  <rect x="772" y="450" width="22" height="8" rx="1.5" fill="#38BDF8" opacity="0.6" />
+                </g>
+
+                {/* 12. Stairwell Down */}
+                <g id="first-floor-stairwell" transform="translate(590, 375)">
+                  <rect x="0" y="0" width="80" height="110" fill="rgba(148, 163, 184, 0.15)" stroke="#94A3B8" strokeWidth="1.5" />
+                  {[18, 36, 54, 72, 90].map(y => (
+                    <line key={y} x1="0" y1={y} x2="80" y2={y} stroke="#94A3B8" strokeWidth="1.2" />
+                  ))}
+                  <g transform="translate(40, 55)">
                     <line x1="0" y1="-20" x2="0" y2="20" stroke="#F59E0B" strokeWidth="2.5" />
                     <polyline points="-6,12 0,20 6,12" fill="none" stroke="#F59E0B" strokeWidth="2.5" />
                   </g>
-                  <text x="42" y="104" fill="#64748B" fontSize="8.5" fontWeight="800" textAnchor="middle">
+                  <text x="40" y="104" fill="#64748B" fontSize="8" fontWeight="800" textAnchor="middle">
                     STAIRS DOWN
                   </text>
                 </g>
 
-                {/* 1F AC Wall Boxes */}
-                <rect x="230" y="295" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
-                <rect x="440" y="72" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
-                <rect x="680" y="72" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
-                <rect x="582" y="315" width="12" height="40" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
-                <rect x="750" y="367" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
-                <rect x="660" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
-                <rect x="770" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                {/* 13. Physical AC Wall Mount Boxes */}
+                {/* Main Conference Room: North Wall */}
+                <rect x="660" y="72" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                {/* Middle Connector: West Wall */}
+                <rect x="582" y="295" width="12" height="40" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                {/* Auditorium 3 AC units: South Wall (West, Center, East) */}
+                <rect x="190" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="280" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="370" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                {/* Nadun's Office: South Wall */}
+                <rect x="500" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                {/* Main Hall: South Wall (West & East units) */}
+                <rect x="640" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                <rect x="750" y="546" width="40" height="12" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
+                {/* Main Hall: East Center Wall */}
+                <rect x="844" y="440" width="12" height="40" fill="#E2E8F0" stroke="#00A3FF" strokeWidth="1" rx="2" />
 
-                {/* 1F Room Labels */}
-                <text x="260" y="180" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
-                  Executive Suite 1
-                </text>
-                <text x="260" y="198" fill="var(--text-muted)" fontSize="9.5" fontWeight="600" textAnchor="middle">
-                  West Wing Office
-                </text>
-
-                <text x="460" y="180" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
-                  Suite 2
-                </text>
-                <text x="460" y="196" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
-                  Center
-                </text>
-
-                <text x="700" y="160" fill="var(--text-primary)" fontSize="14" fontWeight="800" textAnchor="middle">
+                {/* 14. Room Labels */}
+                {/* Main Conference Room */}
+                <text x="700" y="152" fill="var(--text-primary)" fontSize="13.5" fontWeight="800" textAnchor="middle">
                   Main Conference Room
                 </text>
-                <text x="700" y="180" fill="var(--text-muted)" fontSize="10" fontWeight="600" textAnchor="middle">
-                  Boardroom & Meetings
+                <text x="700" y="168" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
+                  Boardroom & AV Meetings
                 </text>
 
-                <text x="735" y="325" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
+                {/* Middle Connector */}
+                <text x="715" y="325" fill="var(--text-primary)" fontSize="12" fontWeight="800" textAnchor="middle">
                   Middle Connector
                 </text>
 
-                <text x="755" y="460" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
+                {/* Level 1 Badge in Middle Connector */}
+                <g transform="translate(800, 318)">
+                  <circle cx="0" cy="0" r="16" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1.5" />
+                  <text x="0" y="5" fill="#00A3FF" fontSize="13" fontWeight="800" textAnchor="middle">1</text>
+                  <text x="0" y="24" fill="var(--text-muted)" fontSize="9" fontWeight="700" textAnchor="middle">1st Floor</text>
+                </g>
+
+                {/* 1st Floor Main Hall */}
+                <text x="760" y="405" fill="var(--text-primary)" fontSize="13" fontWeight="800" textAnchor="middle">
                   1st Floor Main Hall
                 </text>
-                <text x="755" y="478" fill="var(--text-muted)" fontSize="10" fontWeight="600" textAnchor="middle">
+                <text x="760" y="421" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
                   Operations & Staging
                 </text>
 
-                <g transform="translate(800, 320)">
-                  <circle cx="0" cy="0" r="16" fill="rgba(0, 163, 255, 0.1)" stroke="#00A3FF" strokeWidth="1.5" />
-                  <text x="0" y="5" fill="#00A3FF" fontSize="13" fontWeight="800" textAnchor="middle">1</text>
-                  <text x="0" y="26" fill="var(--text-muted)" fontSize="10" fontWeight="700" textAnchor="middle">1st Floor</text>
-                </g>
+                {/* Main Auditorium */}
+                <text x="300" y="515" fill="var(--text-primary)" fontSize="13.5" fontWeight="800" textAnchor="middle">
+                  Main Auditorium
+                </text>
+                <text x="300" y="530" fill="var(--text-muted)" fontSize="9" fontWeight="600" textAnchor="middle">
+                  Conference & Events • 2 Doors • 3 AC Units
+                </text>
+
+                {/* Nadun's Office */}
+                <text x="520" y="515" fill="var(--text-primary)" fontSize="12.5" fontWeight="800" textAnchor="middle">
+                  Nadun's Office
+                </text>
+                <text x="520" y="530" fill="var(--text-muted)" fontSize="8.5" fontWeight="600" textAnchor="middle">
+                  Executive Suite
+                </text>
               </g>
             )}
 
@@ -679,13 +968,14 @@ export default function ACFloorPlan({
             {/* ======================================================== */}
             <g id="komvent-wall-fan-pins">
               {units.map(unit => {
+                const coords = getUnitCoordinates(unit);
                 const isSelected = selectedUnit && selectedUnit.UnitID === unit.UnitID;
                 const statusColor = getStatusColor(unit.Status);
 
                 return (
                   <g
                     key={unit.UnitID}
-                    transform={`translate(${unit.CoordX}, ${unit.CoordY})`}
+                    transform={`translate(${coords.x}, ${coords.y})`}
                     style={{ cursor: 'pointer' }}
                     onClick={() => onSelectUnit(unit)}
                     onMouseEnter={() => setHoveredUnit(unit)}
@@ -831,7 +1121,7 @@ export default function ACFloorPlan({
               {hoveredUnit.Brand} {hoveredUnit.Model}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)', marginTop: 2 }}>
-              📍 {hoveredUnit.RoomName}
+              📍 {getUnitRoomName(hoveredUnit)}
             </div>
           </div>
         )}
