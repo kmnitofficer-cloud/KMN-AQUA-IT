@@ -134,8 +134,10 @@ export default function InvoicesView() {
                           <Eye size={16} />
                         </button>
                         <a
-                          href={inv.FilePath || `/invoices/${inv.FileName}`}
+                          href={inv.DownloadUrl || inv.FilePath || `/invoices/${inv.FileName}`}
                           download={inv.FileName}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="icon-btn"
                           title="Download PDF"
                         >

@@ -5,6 +5,8 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
   if (!isOpen || !invoice) return null;
 
   const fileUrl = invoice.FilePath || `/invoices/${invoice.FileName}`;
+  const downloadUrl = invoice.DownloadUrl || fileUrl;
+  const driveUrl = invoice.DriveUrl || fileUrl;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -24,21 +26,23 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
           </div>
           <div className="flex items-center gap-2">
             <a
-              href={fileUrl}
+              href={downloadUrl}
               download={invoice.FileName}
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn btn-outline btn-sm"
               title="Download PDF"
             >
               <Download size={14} /> Download PDF
             </a>
             <a
-              href={fileUrl}
+              href={driveUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-outline btn-sm"
-              title="Open in new window"
+              title="Open in Google Drive"
             >
-              <ExternalLink size={14} /> Open
+              <ExternalLink size={14} /> Open in Drive
             </a>
             <button className="icon-btn" onClick={onClose}><X size={18} /></button>
           </div>
