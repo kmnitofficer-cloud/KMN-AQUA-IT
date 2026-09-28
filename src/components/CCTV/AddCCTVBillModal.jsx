@@ -184,7 +184,7 @@ export default function AddCCTVBillModal({ isOpen, onClose, onSaved, defaultOffi
                 className={`office-select-btn ${isSplit ? 'active-split' : ''}`}
                 onClick={() => handleOfficeChange('Split')}
               >
-                <ArrowLeftRight size={18} className="text-cyan" />
+                <ArrowLeftRight size={18} className="text-primary" />
                 <div className="text-left">
                   <div className="font-bold text-xs sm:text-sm">Split (Both)</div>
                   <div className="text-[11px] text-muted">Shared in 1 Bill</div>
@@ -195,9 +195,9 @@ export default function AddCCTVBillModal({ isOpen, onClose, onSaved, defaultOffi
 
           {/* Split Allocation Details Card (Only shown if Split is selected) */}
           {isSplit && (
-            <div className="mb-4 p-3.5 bg-surface-elevated rounded-lg border-2 border-cyan/40">
+            <div className="mb-4 p-3.5 bg-surface-elevated rounded-lg border-2 border-primary/40">
               <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5 text-cyan text-sm font-bold">
+                <div className="flex items-center gap-1.5 text-primary text-sm font-bold">
                   <ArrowLeftRight size={16} />
                   <span>Split Amount Between Chilaw & Palawiya</span>
                 </div>
@@ -210,7 +210,7 @@ export default function AddCCTVBillModal({ isOpen, onClose, onSaved, defaultOffi
                 {/* Chilaw Share */}
                 <div className="p-3 bg-surface rounded-md border border-subtle">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-blue flex items-center gap-1">
+                    <span className="text-xs font-bold text-primary flex items-center gap-1">
                       <Building2 size={13} /> Chilaw Share
                     </span>
                   </div>

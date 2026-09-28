@@ -95,7 +95,7 @@ export default function PrintersView() {
               <div className="printer-card-specs">
                 <div className="printer-spec-row">
                   <span className="text-muted text-xs">IP Address:</span>
-                  <span className="font-mono text-cyan text-xs font-semibold">{p.IPAddress}</span>
+                  <span className="font-mono text-primary text-xs font-semibold">{p.IPAddress}</span>
                 </div>
                 <div className="printer-spec-row">
                   <span className="text-muted text-xs">Location:</span>

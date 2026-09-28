@@ -50,7 +50,7 @@ export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogR
         {/* Metadata Cards */}
         <div className="profile-meta-grid">
           <div className="meta-card">
-            <Wifi size={16} className="text-blue" />
+            <Wifi size={16} className="text-primary" />
             <div>
               <span className="meta-label">Connection</span>
               <span className="meta-val">{printer.ConnectionMethod} ({printer.IPAddress})</span>

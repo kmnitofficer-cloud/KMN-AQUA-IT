@@ -68,12 +68,12 @@ export default function ExpensesView() {
         </div>
         <div className="kpi-card">
           <span className="kpi-title">Toner & Consumables</span>
-          <div className="kpi-value text-cyan">Rs. {summary.consumableExpenses.toLocaleString()}</div>
+          <div className="kpi-value text-primary">Rs. {summary.consumableExpenses.toLocaleString()}</div>
           <span className="text-muted text-xs">Printer cartridges</span>
         </div>
         <div className="kpi-card">
           <span className="kpi-title">Current Year Total</span>
-          <div className="kpi-value text-violet">Rs. {summary.currentYearExpenses.toLocaleString()}</div>
+          <div className="kpi-value text-emerald">Rs. {summary.currentYearExpenses.toLocaleString()}</div>
           <span className="text-muted text-xs">Fiscal period</span>
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function ExpensesView() {
                     <td><strong className="text-primary">{e.Description}</strong></td>
                     <td>
                       <div>
-                        {e.AssetName && <div className="text-xs font-medium text-cyan">{e.AssetName} ({e.AssetVerifiedNo})</div>}
+                        {e.AssetName && <div className="text-xs font-medium text-primary">{e.AssetName} ({e.AssetVerifiedNo})</div>}
                         {e.UserName && e.UserName !== 'General Office' && (
                           <div className="text-xs text-muted">Staff: {e.UserName}</div>
                         )}

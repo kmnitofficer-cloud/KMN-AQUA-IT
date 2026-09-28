@@ -153,7 +153,7 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
           <div className="profile-section mt-6">
             <div className="section-title-bar">
               <div className="flex items-center gap-2">
-                <Laptop size={18} className="text-blue" />
+                <Laptop size={18} className="text-primary" />
                 <h3>Current Active Assets ({currentAssets.length})</h3>
               </div>
               <button 

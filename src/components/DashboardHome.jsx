@@ -537,8 +537,8 @@ export default function DashboardHome({
                   />
                   <defs>
                     <linearGradient id="gaugePurpleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#8b5cf6" />
-                      <stop offset="100%" stopColor="#6d28d9" />
+                      <stop offset="0%" stopColor="#22c55e" />
+                      <stop offset="100%" stopColor="#15803d" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -705,9 +705,9 @@ export default function DashboardHome({
               <svg className="hw-trend-svg" viewBox="0 0 700 190" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="hwBlueAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#0284c7" stopOpacity="0.38" />
-                    <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.12" />
-                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+                    <stop offset="0%" stopColor="#16a34a" stopOpacity="0.38" />
+                    <stop offset="60%" stopColor="#4ade80" stopOpacity="0.12" />
+                    <stop offset="100%" stopColor="#4ade80" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
 
@@ -723,23 +723,23 @@ export default function DashboardHome({
                   fill="url(#hwBlueAreaGradient)"
                 />
 
-                {/* Glowing Blue Stroke Line (Matches user's reference) */}
+                {/* Glowing Green Stroke Line */}
                 <polyline
                   points="35,140 160,75 285,130 410,110 535,45 665,130"
                   fill="none"
-                  stroke="#0284c7"
+                  stroke="#16a34a"
                   strokeWidth="3.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
 
                 {/* Data points */}
-                <circle cx="35" cy="140" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
-                <circle cx="160" cy="75" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
-                <circle cx="285" cy="130" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
-                <circle cx="410" cy="110" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
-                <circle cx="535" cy="45" r="5.5" fill="#0284c7" stroke="#ffffff" strokeWidth="2.5" />
-                <circle cx="665" cy="130" r="4.5" fill="#ffffff" stroke="#0284c7" strokeWidth="2.5" />
+                <circle cx="35" cy="140" r="4.5" fill="#ffffff" stroke="#16a34a" strokeWidth="2.5" />
+                <circle cx="160" cy="75" r="4.5" fill="#ffffff" stroke="#16a34a" strokeWidth="2.5" />
+                <circle cx="285" cy="130" r="4.5" fill="#ffffff" stroke="#16a34a" strokeWidth="2.5" />
+                <circle cx="410" cy="110" r="4.5" fill="#ffffff" stroke="#16a34a" strokeWidth="2.5" />
+                <circle cx="535" cy="45" r="5.5" fill="#16a34a" stroke="#ffffff" strokeWidth="2.5" />
+                <circle cx="665" cy="130" r="4.5" fill="#ffffff" stroke="#16a34a" strokeWidth="2.5" />
               </svg>
 
               {/* Axis markers matching the uploaded screenshot */}

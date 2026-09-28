@@ -107,7 +107,7 @@ export default function PartsView() {
 
       <div className="summary-banner mb-4">
         <div className="flex items-center gap-3">
-          <Cpu size={18} className="text-violet" />
+          <Cpu size={18} className="text-primary" />
           <span>Tracking <strong>{filteredParts.length}</strong> installed hardware component records</span>
         </div>
         <div className="font-semibold text-primary">
@@ -150,7 +150,7 @@ export default function PartsView() {
                         <div>
                           <span className="font-semibold text-primary">{p.Brand} {p.Model}</span>
                           <div className="text-xs text-muted">
-                            Tag: <strong className="text-cyan font-mono">{p.VerifiedNo}</strong> • {p.AssignedUserName}
+                            Tag: <strong className="text-primary font-mono">{p.VerifiedNo}</strong> • {p.AssignedUserName}
                           </div>
                         </div>
                       </td>

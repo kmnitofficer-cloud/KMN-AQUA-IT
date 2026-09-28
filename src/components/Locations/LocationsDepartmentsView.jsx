@@ -44,11 +44,11 @@ export default function LocationsDepartmentsView() {
               <p className="location-desc">{loc.Description}</p>
               <div className="location-stats">
                 <div className="flex items-center gap-1.5">
-                  <Laptop size={14} className="text-cyan" />
+                  <Laptop size={14} className="text-primary" />
                   <span className="text-xs font-semibold">{locAssets.length} Assets</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Users size={14} className="text-blue" />
+                  <Users size={14} className="text-primary" />
                   <span className="text-xs font-semibold">{locUsers.length} Staff Members</span>
                 </div>
               </div>

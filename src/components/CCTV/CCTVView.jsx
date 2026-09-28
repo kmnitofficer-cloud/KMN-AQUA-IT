@@ -91,7 +91,7 @@ export default function CCTVView() {
           <button className="btn btn-outline" onClick={() => handleOpenAddModal('Palawiya')}>
             <Plus size={14} /> Palawiya Bill
           </button>
-          <button className="btn btn-outline text-cyan border-cyan/40 hover:bg-cyan/10" onClick={() => handleOpenAddModal('Split')}>
+          <button className="btn btn-outline text-primary border-primary/40" onClick={() => handleOpenAddModal('Split')}>
             <ArrowLeftRight size={14} /> Split Bill (Both)
           </button>
           <button className="btn btn-primary" onClick={() => handleOpenAddModal(officeFilter !== 'All' ? officeFilter : 'Chilaw')}>
@@ -117,7 +117,7 @@ export default function CCTVView() {
             <span className="kpi-title">Chilaw Office CCTV Total</span>
             <span className="badge badge-primary text-[10px]">Chilaw</span>
           </div>
-          <div className="kpi-value text-blue font-mono">
+          <div className="kpi-value text-primary font-mono">
             Rs. {summary.chilawSpend.toLocaleString()}
           </div>
           <span className="text-muted text-xs">
@@ -128,9 +128,9 @@ export default function CCTVView() {
         <div className="kpi-card">
           <div className="flex items-center justify-between">
             <span className="kpi-title">Palawiya Office CCTV Total</span>
-            <span className="badge badge-purple text-[10px]">Palawiya</span>
+            <span className="badge badge-success text-[10px]">Palawiya</span>
           </div>
-          <div className="kpi-value text-violet font-mono">
+          <div className="kpi-value text-primary font-mono">
             Rs. {summary.palawiyaSpend.toLocaleString()}
           </div>
           <span className="text-muted text-xs">
@@ -164,7 +164,7 @@ export default function CCTVView() {
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className={`p-2 rounded-md ${isChilaw ? 'bg-blue-500/15 text-blue-400' : 'bg-purple-500/15 text-purple-400'}`}>
+                  <div className={`p-2 rounded-md ${isChilaw ? 'bg-primary-soft text-primary' : 'bg-surface-2 text-accent'}`}>
                     <Building2 size={20} />
                   </div>
                   <div>
@@ -187,7 +187,7 @@ export default function CCTVView() {
                 </div>
                 <div>
                   <span className="text-muted block">Surveillance Channels:</span>
-                  <span className="font-semibold text-cyan">{office.ChannelsCount || 0} Channels</span>
+                  <span className="font-semibold text-primary">{office.ChannelsCount || 0} Channels</span>
                 </div>
                 <div>
                   <span className="text-muted block">Storage Unit:</span>
@@ -354,14 +354,14 @@ export default function CCTVView() {
                       <td>
                         {b.Office === 'Split' ? (
                           <div>
-                            <span className="badge badge-outline border-cyan/60 text-cyan flex items-center gap-1 w-fit mb-0.5">
+                            <span className="badge badge-outline border-primary/60 text-primary flex items-center gap-1 w-fit mb-0.5">
                               <ArrowLeftRight size={11} />
                               Split (Both)
                             </span>
                             <span className="text-[10px] text-muted block">Chilaw & Palawiya</span>
                           </div>
                         ) : (
-                          <span className={`badge ${isChilaw ? 'badge-primary' : 'badge-purple'}`}>
+                          <span className={`badge ${isChilaw ? 'badge-primary' : 'badge-success'}`}>
                             <Building2 size={12} className="inline mr-1" />
                             {b.Office} CCTV
                           </span>
@@ -380,7 +380,7 @@ export default function CCTVView() {
                       </td>
 
                       <td>
-                        <span className="badge badge-outline text-xs text-cyan">
+                        <span className="badge badge-outline text-xs text-primary">
                           {b.BillCategory}
                         </span>
                       </td>
@@ -389,12 +389,12 @@ export default function CCTVView() {
                         <div className="text-xs text-primary max-w-xs" title={b.Description}>
                           {officeFilter === 'Chilaw' && b.Office === 'Split' && b.ChilawDescription ? (
                             <div>
-                              <span className="text-cyan font-semibold block text-[10px]">Chilaw Portion:</span>
+                              <span className="text-primary font-semibold block text-[10px]">Chilaw Portion:</span>
                               <span className="truncate block">{b.ChilawDescription}</span>
                             </div>
                           ) : officeFilter === 'Palawiya' && b.Office === 'Split' && b.PalawiyaDescription ? (
                             <div>
-                              <span className="text-violet font-semibold block text-[10px]">Palawiya Portion:</span>
+                              <span className="text-emerald font-semibold block text-[10px]">Palawiya Portion:</span>
                               <span className="truncate block">{b.PalawiyaDescription}</span>
                             </div>
                           ) : (
@@ -427,7 +427,7 @@ export default function CCTVView() {
                             <span className="font-mono font-bold text-emerald text-sm">
                               Rs. {(Number(b.Amount) || 0).toLocaleString()}
                             </span>
-                            <span className="text-[10px] text-cyan block font-mono">
+                            <span className="text-[10px] text-primary block font-mono">
                               CH: {Number(b.ChilawAmount || 0).toLocaleString()} • PAL: {Number(b.PalawiyaAmount || 0).toLocaleString()}
                             </span>
                           </div>

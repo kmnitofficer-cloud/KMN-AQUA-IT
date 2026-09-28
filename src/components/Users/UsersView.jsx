@@ -142,7 +142,7 @@ export default function UsersView({ onSelectAsset }) {
                       </td>
                       <td>
                         <div className="flex items-center gap-1.5">
-                          <Laptop size={14} className="text-cyan" />
+                          <Laptop size={14} className="text-primary" />
                           <span className="font-medium">{currentAssets.length}</span>
                           <span className="text-muted text-xs">({costs.historicalAssetsCount} historical)</span>
                         </div>

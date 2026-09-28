@@ -234,7 +234,7 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
           {/* Active Mode Status Banner */}
           <div className="db-status-box mb-4">
             <div className="flex items-center gap-3">
-              <CheckCircle2 size={24} className={storageSource === 'google_drive' ? 'text-cyan' : 'text-emerald'} />
+              <CheckCircle2 size={24} className="text-emerald" />
               <div>
                 <h4 className="font-semibold flex items-center gap-2">
                   <span>Database Engine Active</span>
@@ -254,7 +254,7 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
                 <Download size={14} /> Export (.xlsx)
               </button>
               {storageSource === 'local_disk' && (
-                <button className="btn btn-outline btn-sm text-cyan hover:bg-cyan/10" onClick={handleReloadFromDisk} disabled={isReloading} title="Force reload from Excel workbook on disk">
+                <button className="btn btn-outline btn-sm text-primary" onClick={handleReloadFromDisk} disabled={isReloading} title="Force reload from Excel workbook on disk">
                   <RefreshCw size={14} className={isReloading ? 'animate-spin' : ''} /> {isReloading ? 'Reloading...' : 'Reload Excel'}
                 </button>
               )}
@@ -338,7 +338,7 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border-subtle">
               <button
                 type="button"
-                className="btn btn-outline btn-sm text-cyan hover:bg-cyan/10"
+                className="btn btn-outline btn-sm text-primary"
                 onClick={handlePullFromDrive}
                 disabled={isSyncingDrive || !driveUrl}
                 title="Pull latest database records from Google Drive"

@@ -211,7 +211,7 @@ export default function AssetsView({ onSelectUser }) {
                           title="Reassign / Handover to User"
                           onClick={() => handleOpenReassign(a.AssetID)}
                         >
-                          <RefreshCw size={16} className="text-cyan" />
+                          <RefreshCw size={16} className="text-primary" />
                         </button>
                         <button
                           className="icon-btn"

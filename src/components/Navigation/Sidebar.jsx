@@ -17,10 +17,21 @@ import {
   X,
   LogOut,
   Shield,
-  User as UserIcon
+  User as UserIcon,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose, currentUser, onLogout }) {
+export default function Sidebar({ 
+  activeTab, 
+  onSelectTab, 
+  isOpen, 
+  onClose, 
+  isCollapsed = false, 
+  onToggleCollapse, 
+  currentUser, 
+  onLogout 
+}) {
   const navSections = [
     {
       title: 'OVERVIEW',
@@ -58,21 +69,67 @@ export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose, curre
     }
   ];
 
+  const isAdmin = (currentUser?.role || 'admin') === 'admin';
+
   return (
     <>
-      {/* Mobile backdrop */}
-      {isOpen && <div className="sidebar-backdrop" onClick={onClose}></div>}
+      {/* Mobile dimmed backdrop */}
+      <div 
+        className={`sidebar-backdrop ${isOpen ? 'active' : ''}`} 
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-      <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="sidebar-mobile-header">
-          <span className="font-semibold text-sm">Navigation Menu</span>
-          <button className="icon-btn" onClick={onClose}><X size={18} /></button>
+      <aside 
+        className={`app-sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}
+        aria-label="Main Navigation"
+      >
+        {/* Sticky Sidebar Header with Logo & Desktop Collapse Toggle */}
+        <div className="sidebar-top-bar">
+          <div className="sidebar-brand-group">
+            <div className="sidebar-logo-icon">
+              <Laptop size={18} className="text-primary-emerald" />
+            </div>
+            {!isCollapsed && (
+              <div className="sidebar-brand-info">
+                <span className="sidebar-brand-title">KMN IT System</span>
+                <span className="sidebar-brand-version">v2.6 Enterprise</span>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop/Tablet Collapse Rail Button */}
+          {onToggleCollapse && (
+            <button
+              type="button"
+              className="sidebar-collapse-toggle desktop-only"
+              onClick={onToggleCollapse}
+              title={isCollapsed ? "Expand Sidebar (260px)" : "Collapse Sidebar (72px)"}
+              aria-label={isCollapsed ? "Expand navigation" : "Collapse navigation"}
+            >
+              {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </button>
+          )}
+
+          {/* Mobile Close Button */}
+          <button 
+            type="button" 
+            className="sidebar-close-btn mobile-only" 
+            onClick={onClose} 
+            title="Close Menu"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
+        {/* Independent Scrollable Navigation Area */}
         <nav className="sidebar-nav">
           {navSections.map(sec => (
             <div key={sec.title} className="sidebar-section">
-              <span className="sidebar-section-title">{sec.title}</span>
+              {!isCollapsed && (
+                <span className="sidebar-section-title">{sec.title}</span>
+              )}
               <div className="sidebar-items">
                 {sec.items.map(item => {
                   const Icon = item.icon;
@@ -80,15 +137,20 @@ export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose, curre
                   return (
                     <button
                       key={item.id}
+                      type="button"
                       className={`sidebar-item ${isActive ? 'active' : ''}`}
                       onClick={() => {
                         onSelectTab(item.id);
                         if (onClose) onClose();
                       }}
+                      title={isCollapsed ? item.label : undefined}
+                      aria-current={isActive ? 'page' : undefined}
                     >
-                      <Icon size={18} className="sidebar-item-icon" />
-                      <span className="sidebar-item-label">{item.label}</span>
-                      {isActive && <div className="sidebar-active-indicator"></div>}
+                      {isActive && <div className="sidebar-active-indicator" />}
+                      <Icon size={19} className="sidebar-item-icon" />
+                      {!isCollapsed && (
+                        <span className="sidebar-item-label">{item.label}</span>
+                      )}
                     </button>
                   );
                 })}
@@ -97,40 +159,47 @@ export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose, curre
           ))}
         </nav>
 
+        {/* Sticky Sidebar Footer */}
         <div className="sidebar-footer">
           {/* Active User Session Card */}
-          <div className="sidebar-user-card">
-            <div className={`sidebar-user-avatar ${(currentUser?.role || 'admin') === 'admin' ? 'admin' : 'user'}`}>
-              {(currentUser?.role || 'admin') === 'admin' ? (
-                <Shield size={14} />
-              ) : (
-                <UserIcon size={14} />
-              )}
+          <div className={`sidebar-user-card ${isCollapsed ? 'compact' : ''}`}>
+            <div 
+              className={`sidebar-user-avatar ${isAdmin ? 'admin' : 'user'}`}
+              title={isCollapsed ? (currentUser?.displayName || (isAdmin ? 'Administrator' : 'Staff')) : undefined}
+            >
+              {isAdmin ? <Shield size={14} /> : <UserIcon size={14} />}
             </div>
-            <div className="sidebar-user-info">
-              <span className="sidebar-user-name">
-                {currentUser?.displayName || ((currentUser?.role || 'admin') === 'admin' ? 'Administrator' : 'Staff User')}
-              </span>
-              <span className="sidebar-user-role">
-                {(currentUser?.role || 'admin') === 'admin' ? 'Admin Profile' : 'User Profile'}
-              </span>
-            </div>
+            {!isCollapsed && (
+              <div className="sidebar-user-info">
+                <span className="sidebar-user-name">
+                  {currentUser?.displayName || (isAdmin ? 'Administrator' : 'Staff User')}
+                </span>
+                <span className="sidebar-user-role">
+                  {isAdmin ? 'Admin Profile' : 'User Profile'}
+                </span>
+              </div>
+            )}
             <button
+              type="button"
               className="sidebar-logout-btn"
               onClick={onLogout}
               title="Lock System & Sign Out"
+              aria-label="Sign Out"
             >
               <LogOut size={15} />
             </button>
           </div>
 
-          <div className="sidebar-db-badge">
-            <div className="flex items-center gap-2">
-              <span className="pulse-dot"></span>
-              <span className="text-xs font-semibold">IT_Asset_Database.xlsx</span>
+          {/* Database Badge */}
+          {!isCollapsed && (
+            <div className="sidebar-db-badge">
+              <div className="flex items-center gap-2">
+                <span className="pulse-dot" />
+                <span className="text-xs font-semibold">IT_Asset_Database.xlsx</span>
+              </div>
+              <span className="text-xs text-muted block mt-0.5">Relational Engine (14 Sheets)</span>
             </div>
-            <span className="text-xs text-muted block mt-0.5">Relational Engine (14 Sheets)</span>
-          </div>
+          )}
         </div>
       </aside>
     </>

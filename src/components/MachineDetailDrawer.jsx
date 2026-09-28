@@ -44,7 +44,7 @@ export default function MachineDetailDrawer({
           <style>
             body { font-family: sans-serif; padding: 20px; text-align: center; }
             .label { border: 2px solid #000; padding: 15px; width: 300px; margin: 0 auto; border-radius: 8px; }
-            .co { font-size: 11px; font-weight: bold; letter-spacing: 1px; color: #2563eb; }
+            .co { font-size: 11px; font-weight: bold; letter-spacing: 1px; color: #16A34A; }
             .tag { font-size: 20px; font-family: monospace; font-weight: bold; margin: 8px 0; }
             .name { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
             .user { font-size: 11px; color: #555; }

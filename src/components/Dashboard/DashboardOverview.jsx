@@ -16,7 +16,8 @@ import {
   FileText,
   HelpCircle,
   FileSpreadsheet,
-  Receipt
+  Receipt,
+  Wind
 } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
@@ -24,6 +25,7 @@ import { repairService } from '../../services/repairService';
 import { expenseService } from '../../services/expenseService';
 import { printerService } from '../../services/printerService';
 import { invoiceService } from '../../services/invoiceService';
+import { acService } from '../../services/acService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
@@ -190,69 +192,112 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
         </div>
       </div>
 
-      {/* KPI Stat Cards Grid */}
+      {/* KPI Stat Cards Grid (Desktop 4 cols, Tablet 2 cols, Mobile 1 col) */}
       <div className="stats-kpi-grid">
-        {/* Total Users */}
-        <div className="kpi-card" onClick={() => onNavigate('users')}>
+        {/* 1. Total Users */}
+        <div className="kpi-card" onClick={() => onNavigate('users')} role="button" tabIndex={0}>
           <div className="kpi-header">
             <span className="kpi-title">Staff & Users</span>
-            <div className="kpi-icon-badge text-blue"><Users size={20} /></div>
+            <div className="kpi-icon-badge"><Users size={20} /></div>
           </div>
           <div className="kpi-value">{totalUsers}</div>
           <div className="kpi-subtext">
             <span className="badge badge-success">{activeUsers} Active</span>
-            <span className="badge badge-neutral">{inactiveUsers} Inactive / Vacant</span>
+            <span className="badge badge-neutral">{inactiveUsers} Inactive</span>
           </div>
         </div>
 
-        {/* Total Assets */}
-        <div className="kpi-card" onClick={() => onNavigate('assets')}>
+        {/* 2. Total Assets */}
+        <div className="kpi-card" onClick={() => onNavigate('assets')} role="button" tabIndex={0}>
           <div className="kpi-header">
             <span className="kpi-title">Physical Assets</span>
-            <div className="kpi-icon-badge text-emerald"><Laptop size={20} /></div>
+            <div className="kpi-icon-badge"><Laptop size={20} /></div>
           </div>
           <div className="kpi-value">{totalAssets}</div>
           <div className="kpi-subtext">
-            <span className="text-emerald">{assignedAssets} Assigned</span> • 
-            <span className="text-amber"> {unassignedAssets} Available</span> • 
-            <span className="text-rose"> {underRepairAssets} In Repair</span>
+            <span className="badge badge-success">{assignedAssets} Assigned</span>
+            <span className="badge badge-neutral">{unassignedAssets} Available</span>
           </div>
         </div>
 
-        {/* Total Repairs & Maintenance */}
-        <div className="kpi-card" onClick={() => onNavigate('repairs')}>
+        {/* 3. Printers Fleet */}
+        <div className="kpi-card" onClick={() => onNavigate('printers')} role="button" tabIndex={0}>
+          <div className="kpi-header">
+            <span className="kpi-title">Printers & Toners</span>
+            <div className="kpi-icon-badge"><Printer size={20} /></div>
+          </div>
+          <div className="kpi-value">{printers.length}</div>
+          <div className="kpi-subtext">
+            <span className="badge badge-success">{printers.filter(p => !p.Status.includes('Error')).length} Online</span>
+            <span className="badge badge-neutral">{printersCount} Fleet</span>
+          </div>
+        </div>
+
+        {/* 4. Total Repairs & Maintenance */}
+        <div className="kpi-card" onClick={() => onNavigate('repairs')} role="button" tabIndex={0}>
           <div className="kpi-header">
             <span className="kpi-title">Service & Repairs</span>
-            <div className="kpi-icon-badge text-amber"><Wrench size={20} /></div>
+            <div className="kpi-icon-badge"><Wrench size={20} /></div>
           </div>
           <div className="kpi-value">{repairs.length}</div>
           <div className="kpi-subtext">
-            <span>Total Logged: <strong>Rs. {financialSummary.repairExpenses.toLocaleString()}</strong></span>
+            <span className="badge badge-neutral">Rs. {financialSummary.repairExpenses.toLocaleString()}</span>
+            <span className="badge badge-warning">{underRepairAssets} In Repair</span>
           </div>
         </div>
 
-        {/* Total Recorded Expenses */}
-        <div className="kpi-card" onClick={() => onNavigate('expenses')}>
+        {/* 5. Total Recorded Expenses */}
+        <div className="kpi-card" onClick={() => onNavigate('expenses')} role="button" tabIndex={0}>
           <div className="kpi-header">
             <span className="kpi-title">Total Office Expenses</span>
-            <div className="kpi-icon-badge text-violet"><DollarSign size={20} /></div>
+            <div className="kpi-icon-badge"><DollarSign size={20} /></div>
           </div>
           <div className="kpi-value">Rs. {financialSummary.totalExpenses.toLocaleString()}</div>
           <div className="kpi-subtext">
-            <span>Repairs: Rs. {financialSummary.repairExpenses.toLocaleString()} • Toners: Rs. {financialSummary.consumableExpenses.toLocaleString()}</span>
+            <span className="badge badge-neutral">Repairs & Consumables</span>
           </div>
         </div>
 
-        {/* Verified Bills & Invoices */}
-        <div className="kpi-card" onClick={() => onNavigate('invoices')}>
+        {/* 6. Verified Bills & Invoices */}
+        <div className="kpi-card" onClick={() => onNavigate('invoices')} role="button" tabIndex={0}>
           <div className="kpi-header">
             <span className="kpi-title">Verified Bills & Invoices</span>
-            <div className="kpi-icon-badge text-emerald"><Receipt size={20} /></div>
+            <div className="kpi-icon-badge"><Receipt size={20} /></div>
           </div>
           <div className="kpi-value">Rs. {reconciliation.totalInvoiced.toLocaleString()}</div>
           <div className="kpi-subtext">
             <span className="badge badge-success">✓ {reconciliation.invoicesCount} Official Bills</span>
             <span className="badge badge-neutral font-mono">{reconciliation.isBalanced ? '100% Balanced' : 'Mismatch'}</span>
+          </div>
+        </div>
+
+        {/* 7. Hardware Part Warranties */}
+        <div className="kpi-card" onClick={() => onNavigate('parts')} role="button" tabIndex={0}>
+          <div className="kpi-header">
+            <span className="kpi-title">Component Warranties</span>
+            <div className="kpi-icon-badge"><ShieldCheck size={20} /></div>
+          </div>
+          <div className="kpi-value">{warrantySummary.activeCount}</div>
+          <div className="kpi-subtext">
+            <span className="badge badge-success">Active Cover</span>
+            {warrantySummary.expiringSoonCount > 0 ? (
+              <span className="badge badge-warning">⚠️ {warrantySummary.expiringSoonCount} Expiring</span>
+            ) : (
+              <span className="badge badge-neutral">0 Expiring</span>
+            )}
+          </div>
+        </div>
+
+        {/* 8. HVAC & Facilities */}
+        <div className="kpi-card" onClick={() => onNavigate('ac')} role="button" tabIndex={0}>
+          <div className="kpi-header">
+            <span className="kpi-title">HVAC & Floor Plan</span>
+            <div className="kpi-icon-badge"><Wind size={20} /></div>
+          </div>
+          <div className="kpi-value">{acService.getACUnits().length}</div>
+          <div className="kpi-subtext">
+            <span className="badge badge-success">Interactive Blueprint</span>
+            <span className="badge badge-neutral">Chilaw Office</span>
           </div>
         </div>
       </div>
@@ -261,7 +306,7 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
       <div className="section-panel mt-6">
         <div className="section-panel-header">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded bg-blue/15 text-primary border border-primary/30">
+            <div className="reconciliation-header-icon">
               <Receipt size={20} />
             </div>
             <div>
@@ -271,7 +316,7 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {reconciliation.isBalanced ? (
               <span className="badge badge-success font-semibold flex items-center gap-1">
                 <CheckCircle2 size={13} /> 100% Balanced & Reconciled (Rs. 0 Discrepancy)
@@ -288,48 +333,33 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
         </div>
 
         {/* 3 Metrics comparison cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-          <div style={{
-            background: 'var(--bg-surface-elevated, rgba(255,255,255,0.03))',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            borderRadius: '8px',
-            padding: '1rem'
-          }}>
-            <div className="text-xs text-muted uppercase font-semibold">Total Invoiced Bills (Vault)</div>
-            <div className="text-2xl font-bold text-emerald mt-1 font-mono">
+        <div className="reconciliation-cards-grid">
+          <div className="reconciliation-metric-card">
+            <div className="reconciliation-card-title">Total Invoiced Bills (Vault)</div>
+            <div className="reconciliation-card-value text-emerald">
               Rs. {reconciliation.totalInvoiced.toLocaleString()}
             </div>
-            <div className="text-xs text-muted mt-1">
+            <div className="reconciliation-card-sub">
               {reconciliation.invoicesCount} Official vendor receipts & bills securely stored
             </div>
           </div>
 
-          <div style={{
-            background: 'var(--bg-surface-elevated, rgba(255,255,255,0.03))',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            borderRadius: '8px',
-            padding: '1rem'
-          }}>
-            <div className="text-xs text-muted uppercase font-semibold">Total Office Expenses (Ledger)</div>
-            <div className="text-2xl font-bold text-violet mt-1 font-mono">
+          <div className="reconciliation-metric-card">
+            <div className="reconciliation-card-title">Total Office Expenses (Ledger)</div>
+            <div className="reconciliation-card-value text-emerald">
               Rs. {reconciliation.totalExpenses.toLocaleString()}
             </div>
-            <div className="text-xs text-muted mt-1">
+            <div className="reconciliation-card-sub">
               Repairs: Rs. {financialSummary.repairExpenses.toLocaleString()} • Toners: Rs. {financialSummary.consumableExpenses.toLocaleString()} • Upgrades: Rs. {hardwareUpgradeExpenses.toLocaleString()}
             </div>
           </div>
 
-          <div style={{
-            background: 'var(--bg-surface-elevated, rgba(255,255,255,0.03))',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            borderRadius: '8px',
-            padding: '1rem'
-          }}>
-            <div className="text-xs text-muted uppercase font-semibold">Reconciliation Audit</div>
-            <div className="text-2xl font-bold text-emerald mt-1 font-mono flex items-center gap-1.5">
+          <div className="reconciliation-metric-card">
+            <div className="reconciliation-card-title">Reconciliation Audit</div>
+            <div className="reconciliation-card-value text-emerald flex items-center gap-1.5">
               <CheckCircle2 size={22} className="text-emerald" /> 100% Balanced
             </div>
-            <div className="text-xs text-muted mt-1">
+            <div className="reconciliation-card-sub">
               Zero budget discrepancy • Every bill is matched to physical hardware & expense records
             </div>
           </div>
@@ -343,28 +373,20 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
               View All Bills in Vault ({allInvoices.length}) →
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem' }}>
+          <div className="vault-bills-strip-grid">
             {allInvoices.map(inv => (
               <div 
                 key={inv.InvoiceID}
                 onClick={() => handleOpenInvoice(inv.InvoiceID)}
-                style={{
-                  background: 'var(--bg-surface, #1e293b)',
-                  border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-                  borderRadius: '6px',
-                  padding: '0.65rem 0.75rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.25rem'
-                }}
-                className="hover-highlight"
+                className="vault-bill-chip hover-highlight"
+                role="button"
+                tabIndex={0}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-semibold text-primary">{inv.InvoiceNumber}</span>
                   <span className="text-xs text-muted">{formatDisplayDate(inv.InvoiceDate)}</span>
                 </div>
-                <div className="text-xs text-white font-medium truncate" title={inv.Supplier}>
+                <div className="text-xs text-primary-heading font-medium truncate" title={inv.Supplier}>
                   {inv.Supplier}
                 </div>
                 <div className="flex items-center justify-between mt-1 text-xs">

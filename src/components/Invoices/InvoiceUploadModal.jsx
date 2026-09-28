@@ -208,7 +208,7 @@ export default function InvoiceUploadModal({ isOpen, onClose, onSaved }) {
                 type="checkbox"
                 checked={createExpense}
                 onChange={e => setCreateExpense(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: 'var(--brand-primary, #3b82f6)' }}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--primary, #16A34A)' }}
               />
               <span className="text-primary">✓ Auto-Record Matching Office Expense</span>
             </label>

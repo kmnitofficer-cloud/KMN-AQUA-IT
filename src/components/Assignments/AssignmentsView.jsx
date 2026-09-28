@@ -158,7 +158,7 @@ export default function AssignmentsView() {
                       {asgn.AssignmentStatus === 'Current' && (
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            className="btn btn-outline btn-xs flex items-center gap-1 text-cyan hover:bg-cyan/10"
+                            className="btn btn-outline btn-xs flex items-center gap-1 text-primary"
                             onClick={() => handleOpenReturn(asgn.AssetID)}
                             title="Return device to storage & make available for new staff"
                           >

@@ -186,7 +186,7 @@ export default function ACView() {
               <span className="kpi-title">Total AC Units</span>
               <span className="badge badge-primary font-mono">{summary.totalUnits} Total</span>
             </div>
-            <div className="kpi-value text-cyan font-mono">{summary.totalUnits} Units</div>
+            <div className="kpi-value text-primary font-mono">{summary.totalUnits} Units</div>
             <div className="kpi-subtext" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.75rem' }}>
               <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>{summary.activeUnits} Active</span>
               <span>•</span>
@@ -229,12 +229,12 @@ export default function ACView() {
             <span className="kpi-subtext">Capacitors, motors & emergency fixes</span>
           </div>
 
-          <div className="kpi-card" style={{ borderLeft: '3px solid var(--accent-cyan)' }}>
+          <div className="kpi-card" style={{ borderLeft: '3px solid var(--primary)' }}>
             <div className="kpi-header">
               <span className="kpi-title">Grand Total Invested</span>
-              <Sparkles size={16} style={{ color: 'var(--accent-cyan)' }} />
+              <Sparkles size={16} style={{ color: 'var(--primary)' }} />
             </div>
-            <div className="kpi-value font-mono" style={{ color: 'var(--accent-cyan)' }}>
+            <div className="kpi-value font-mono" style={{ color: 'var(--primary)' }}>
               Rs. {Number(summary.grandTotalExpense || 0).toLocaleString()}
             </div>
             <span className="kpi-subtext">Hardware assets + Lifetime upkeep</span>
@@ -648,7 +648,7 @@ export default function ACView() {
                             <span>👤 {srv.Technician}</span>
                           </div>
                           {srv.GasRefillPSI && (
-                            <div style={{ color: 'var(--accent-cyan)', fontSize: '0.7rem' }}>
+                            <div style={{ color: 'var(--primary)', fontSize: '0.7rem' }}>
                               Pressure: {srv.GasRefillPSI}
                             </div>
                           )}
@@ -754,8 +754,8 @@ export default function ACView() {
                           style={{
                             padding: '0.85rem',
                             borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--accent-violet-bg)',
-                            border: '1px solid rgba(139, 92, 246, 0.25)',
+                            backgroundColor: 'var(--primary-soft)',
+                            border: '1px solid var(--border-strong)',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: '0.45rem',
@@ -763,10 +763,10 @@ export default function ACView() {
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 700, color: 'var(--accent-violet)' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
                               Previous: {repLog.OldUnitBrand} {repLog.OldUnitModel}
                             </span>
-                            <span className="badge badge-purple font-mono" style={{ fontSize: '0.65rem' }}>
+                            <span className="badge badge-primary font-mono" style={{ fontSize: '0.65rem' }}>
                               Removed {repLog.RemovalDate}
                             </span>
                           </div>
@@ -927,7 +927,7 @@ export default function ACView() {
                             setIsServiceModalOpen(true);
                           }}
                           className="btn btn-outline"
-                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-cyan)' }}
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
                           title="Log Service"
                         >
                           <Wrench size={13} />
@@ -949,7 +949,7 @@ export default function ACView() {
                             setIsReplaceModalOpen(true);
                           }}
                           className="btn btn-outline"
-                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-violet)' }}
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
                           title="Replace Unit"
                         >
                           <RefreshCw size={13} />

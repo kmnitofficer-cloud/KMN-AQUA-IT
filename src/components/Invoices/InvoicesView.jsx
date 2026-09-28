@@ -118,7 +118,7 @@ export default function InvoicesView() {
                     <td>
                       <div>
                         {inv.AssetName && inv.AssetName !== 'General / None' && (
-                          <div className="text-xs font-semibold text-cyan">{inv.AssetName}</div>
+                          <div className="text-xs font-semibold text-primary">{inv.AssetName}</div>
                         )}
                         {inv.UserName && inv.UserName !== 'General Office' && (
                           <div className="text-xs text-muted">Staff: {inv.UserName}</div>

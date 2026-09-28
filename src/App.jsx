@@ -33,9 +33,14 @@ import { authService } from './services/authService';
 
 const STORAGE_THEME = 'kmn_theme';
 const STORAGE_ROLE = 'kmn_user_role';
+const STORAGE_SIDEBAR_COLLAPSED = 'kmn_sidebar_collapsed';
 
 export default function App() {
-  const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_THEME) || 'dark');
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_THEME);
+    if (saved) return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
   const [role, setRole] = useState(() => {
     const user = authService.getCurrentUser();
@@ -48,6 +53,11 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDbHubOpen, setIsDbHubOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_SIDEBAR_COLLAPSED);
+    if (saved !== null) return saved === 'true';
+    return typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1024;
+  });
 
   // Direct entity inspect modals (from search / dashboard)
   const [viewingAssetId, setViewingAssetId] = useState(null);
@@ -103,16 +113,34 @@ export default function App() {
     localStorage.setItem(STORAGE_ROLE, role);
   }, [role]);
 
-  // 5. Global hotkey for Search (Ctrl+K or Cmd+K)
+  // 5. Global hotkeys for Search (Ctrl+K or Cmd+K) and Escape
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsSearchOpen(true);
+      } else if (e.key === 'Escape') {
+        setIsMobileSidebarOpen(false);
+        setIsSearchOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // 6. Responsive listener for sidebar tablet default
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsMobileSidebarOpen(false);
+      } else if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+        if (localStorage.getItem(STORAGE_SIDEBAR_COLLAPSED) === null) {
+          setIsSidebarCollapsed(true);
+        }
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const toggleTheme = () => {
@@ -121,6 +149,14 @@ export default function App() {
 
   const toggleRole = () => {
     setRole(prev => (prev === 'admin' ? 'viewer' : 'admin'));
+  };
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem(STORAGE_SIDEBAR_COLLAPSED, String(next));
+      return next;
+    });
   };
 
   const handleLogout = () => {
@@ -167,7 +203,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-container" data-theme={theme}>
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-is-collapsed' : ''}`} data-theme={theme}>
       {/* Top Navigation */}
       <Navbar
         theme={theme}
@@ -189,6 +225,8 @@ export default function App() {
           onSelectTab={setActiveTab}
           isOpen={isMobileSidebarOpen}
           onClose={() => setIsMobileSidebarOpen(false)}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapse}
           currentUser={currentUser}
           onLogout={handleLogout}
         />

@@ -23,19 +23,19 @@ export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete })
         {/* Header */}
         <div className="form-modal-header border-b border-subtle pb-3">
           <div className="flex items-center gap-2">
-            <div className={`p-2 rounded-lg ${isSplit ? 'bg-cyan-900/30 text-cyan-400' : bill.Office === 'Palawiya' ? 'bg-violet-900/30 text-violet-400' : 'bg-blue-900/30 text-blue-400'}`}>
+            <div className="p-2 rounded-lg bg-primary-soft text-primary">
               {isSplit ? <ArrowLeftRight size={20} /> : <Building2 size={20} />}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold font-mono">{bill.BillNumber}</h2>
                 {isSplit ? (
-                  <span className="badge badge-outline border-cyan/60 text-cyan flex items-center gap-1">
+                  <span className="badge badge-outline text-primary flex items-center gap-1">
                     <ArrowLeftRight size={11} />
                     Split (Both Offices)
                   </span>
                 ) : (
-                  <span className={`badge ${bill.Office === 'Palawiya' ? 'badge-purple' : 'badge-primary'}`}>
+                  <span className="badge badge-primary">
                     {bill.Office} CCTV
                   </span>
                 )}
@@ -76,14 +76,14 @@ export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete })
 
           {/* Split Office Allocation Details */}
           {isSplit && (
-            <div className="p-3.5 bg-surface-elevated rounded-lg border-2 border-cyan/40">
-              <div className="flex items-center gap-1.5 text-cyan text-xs font-bold uppercase tracking-wider mb-2.5">
+            <div className="p-3.5 bg-surface-elevated rounded-lg border-2 border-primary/40">
+              <div className="flex items-center gap-1.5 text-primary text-xs font-bold uppercase tracking-wider mb-2.5">
                 <ArrowLeftRight size={14} /> Multi-Office Split Breakdown
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 bg-surface rounded border border-subtle">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-blue flex items-center gap-1">
+                    <span className="text-xs font-bold text-primary flex items-center gap-1">
                       <Building2 size={13} /> Chilaw Office Share
                     </span>
                     <span className="font-mono font-bold text-emerald text-sm">
@@ -97,7 +97,7 @@ export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete })
 
                 <div className="p-3 bg-surface rounded border border-subtle">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-violet flex items-center gap-1">
+                    <span className="text-xs font-bold text-primary flex items-center gap-1">
                       <Building2 size={13} /> Palawiya Office Share
                     </span>
                     <span className="font-mono font-bold text-emerald text-sm">
@@ -124,7 +124,7 @@ export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete })
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="p-3 bg-surface rounded-lg border border-subtle">
               <span className="text-xs text-muted block mb-1">Surveillance Category</span>
-              <span className="font-semibold text-cyan">{bill.BillCategory || 'General / Other'}</span>
+              <span className="font-semibold text-primary">{bill.BillCategory || 'General / Other'}</span>
             </div>
             <div className="p-3 bg-surface rounded-lg border border-subtle">
               <span className="text-xs text-muted block mb-1">Assigned Location</span>
