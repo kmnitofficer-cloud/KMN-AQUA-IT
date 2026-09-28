@@ -1,0 +1,87 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (if package.json exists)
+        if: ${{ hashFiles('package.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || '' }}
+
+      - name: Install Dependencies (if package.json exists)
+        if: ${{ hashFiles('package.json') != '' }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build Assets (if package.json exists)
+        if: ${{ hashFiles('package.json') != '' }}
+        run: npm run build --if-present
+
+      - name: Determine Deployment Directory
+        id: pages-target
+        run: |
+          if [ -d "dist" ]; then
+            echo "Deploying from dist/ directory..."
+            echo "target_path=dist" >> $GITHUB_OUTPUT
+          elif [ -d "build" ]; then
+            echo "Deploying from build/ directory..."
+            echo "target_path=build" >> $GITHUB_OUTPUT
+          else
+            echo "Deploying from repository root..."
+            echo "target_path=." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ensure .nojekyll exists
+        run: |
+          TARGET="${{ steps.pages-target.outputs.target_path }}"
+          if [ ! -f "$TARGET/.nojekyll" ]; then
+            touch "$TARGET/.nojekyll"
+          fi
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.pages-target.outputs.target_path }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Deployment Preview Summary
+        run: |
+          echo "### 🚀 GitHub Pages Preview Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Preview URL:** [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment automatically triggered by push to \`main\` (${{ github.sha }})." >> $GITHUB_STEP_SUMMARY
