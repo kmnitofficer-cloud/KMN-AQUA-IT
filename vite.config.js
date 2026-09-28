@@ -4,6 +4,7 @@ import { excelDatabasePlugin } from './server/excelDatabasePlugin.js'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './',
   server: {
     watch: {
       ignored: [

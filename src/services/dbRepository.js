@@ -1,5 +1,6 @@
 import { relationalDatabaseSeed } from '../data/relationalDatabaseSeed';
 import { parseExcelDate } from '../utils/dateUtils';
+import { googleDriveService } from './googleDriveService';
 import * as XLSX from 'xlsx';
 
 const STORAGE_KEY = 'kmn_relational_excel_db';
@@ -32,6 +33,8 @@ class DBRepository {
     this.isServerConnected = false;
     this.isSaving = false;
     this.lastSaved = null;
+    this.storageSource = 'local_cache'; // 'google_drive' | 'local_disk' | 'local_cache'
+    this.spreadsheetName = '';
   }
 
   subscribe(callback) {
@@ -55,7 +58,33 @@ class DBRepository {
   }
 
   async init() {
-    // 1. Attempt to fetch from local Vite API server (Excel file directly on disk)
+    // 1. Attempt to fetch from Google Drive (Google Apps Script Web App) if configured
+    if (googleDriveService.isConfigured()) {
+      try {
+        console.log('[dbRepository] Fetching database from Google Drive...');
+        const driveRes = await googleDriveService.fetchDatabase();
+        if (driveRes && driveRes.success && driveRes.data) {
+          // Check if Google Sheet contains tables
+          const hasData = Object.values(driveRes.data).some(arr => Array.isArray(arr) && arr.length > 0);
+          if (hasData) {
+            this.database = this.validateAndNormalize(driveRes.data);
+            this.isServerConnected = true;
+            this.storageSource = 'google_drive';
+            this.spreadsheetName = driveRes.spreadsheetName || 'Google Drive Spreadsheet';
+            this.saveToLocalCache();
+            this.notify();
+            console.log('[dbRepository] Successfully loaded from Google Drive!', this.spreadsheetName);
+            return this.database;
+          } else {
+            console.log('[dbRepository] Google Sheet is connected but empty. Will seed from local seed on first save.');
+          }
+        }
+      } catch (err) {
+        console.warn('[dbRepository] Could not fetch from Google Drive, trying local server:', err.message);
+      }
+    }
+
+    // 2. Attempt to fetch from local Vite API server (Excel file directly on disk)
     try {
       const res = await fetch('/api/database');
       if (res.ok) {
@@ -63,6 +92,7 @@ class DBRepository {
         if (json.success && json.data) {
           this.database = this.validateAndNormalize(json.data);
           this.isServerConnected = true;
+          this.storageSource = 'local_disk';
           this.saveToLocalCache();
           this.notify();
 
@@ -81,11 +111,12 @@ class DBRepository {
       console.warn('Backend Excel API not reachable, falling back to local cache/seed:', err.message);
     }
 
-    // 2. Fallback to localStorage cache
+    // 3. Fallback to localStorage cache
     try {
       const cached = localStorage.getItem(STORAGE_KEY);
       if (cached) {
         this.database = this.validateAndNormalize(JSON.parse(cached));
+        this.storageSource = 'local_cache';
         this.notify();
         return this.database;
       }
@@ -93,8 +124,9 @@ class DBRepository {
       console.error('Failed to read local cache:', e);
     }
 
-    // 3. Fallback to seeded relational database
+    // 4. Fallback to seeded relational database
     this.database = this.validateAndNormalize(relationalDatabaseSeed);
+    this.storageSource = 'local_cache';
     this.saveToLocalCache();
     this.notify();
     return this.database;
@@ -323,25 +355,77 @@ class DBRepository {
     this.pendingSave = false;
 
     try {
-      const res = await fetch('/api/database/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ database: this.database })
-      });
+      if (googleDriveService.isConfigured()) {
+        const res = await googleDriveService.saveDatabase(this.database);
+        if (res && res.success) {
+          this.isServerConnected = true;
+          this.storageSource = 'google_drive';
+          this.lastSaved = new Date().toISOString();
+        }
+      } else {
+        const res = await fetch('/api/database/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ database: this.database })
+        });
 
-      if (res.ok) {
-        this.isServerConnected = true;
-        this.lastSaved = new Date().toISOString();
+        if (res.ok) {
+          this.isServerConnected = true;
+          this.storageSource = 'local_disk';
+          this.lastSaved = new Date().toISOString();
+        }
       }
     } catch (err) {
-      console.warn('Could not auto-sync to Excel on disk:', err.message);
+      console.warn('Could not auto-sync to database:', err.message);
     } finally {
       this.isSaving = false;
       if (this.pendingSave) {
         this.pendingSave = false;
-        setTimeout(() => this.persistToExcel(), 50);
+        setTimeout(() => this.persistToExcel(), 100);
       }
     }
+  }
+
+  /**
+   * Force refresh data directly from Google Drive
+   */
+  async refreshFromGoogleDrive() {
+    if (!googleDriveService.isConfigured()) {
+      throw new Error('Google Apps Script URL is not configured.');
+    }
+    const res = await googleDriveService.fetchDatabase();
+    if (res && res.data) {
+      this.database = this.validateAndNormalize(res.data);
+      this.isServerConnected = true;
+      this.storageSource = 'google_drive';
+      this.spreadsheetName = res.spreadsheetName || 'Google Drive Spreadsheet';
+      this.saveToLocalCache();
+      this.notify();
+      return this.database;
+    }
+    throw new Error('No data received from Google Drive.');
+  }
+
+  /**
+   * Push all current data (or seed) directly to Google Drive spreadsheet
+   */
+  async pushToGoogleDrive() {
+    if (!googleDriveService.isConfigured()) {
+      throw new Error('Google Apps Script URL is not configured.');
+    }
+    const currentData = this.getDB();
+    const res = await googleDriveService.saveDatabase(currentData);
+    if (res && res.success) {
+      this.isServerConnected = true;
+      this.storageSource = 'google_drive';
+      this.lastSaved = new Date().toISOString();
+      return res;
+    }
+    throw new Error(res?.error || 'Failed to save to Google Drive.');
+  }
+
+  getStorageSource() {
+    return this.storageSource;
   }
 
   exportToExcelFile(customDb = null, filename = 'IT_Asset_Relational_Database.xlsx') {

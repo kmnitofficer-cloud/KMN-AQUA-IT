@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, Moon, Sun, Database, Shield, Menu, Laptop } from 'lucide-react';
+import { Search, Moon, Sun, Database, Shield, Menu, Laptop, Cloud } from 'lucide-react';
+import { dbRepository } from '../../services/dbRepository';
 
 export default function Navbar({
   theme,
@@ -10,6 +11,10 @@ export default function Navbar({
   onOpenDatabaseHub,
   onToggleMobileMenu
 }) {
+  const storageSource = dbRepository.getStorageSource();
+  const isGoogleDrive = storageSource === 'google_drive';
+  const isLocalDisk = storageSource === 'local_disk';
+
   return (
     <header className="app-navbar">
       <div className="navbar-left">
@@ -37,10 +42,23 @@ export default function Navbar({
 
       <div className="navbar-right">
         {/* Database Hub Status Pill */}
-        <button className="db-status-pill" onClick={onOpenDatabaseHub} title="View Excel Relational Database Status">
+        <button 
+          className="db-status-pill" 
+          onClick={onOpenDatabaseHub} 
+          title={isGoogleDrive ? "Connected to Google Drive Cloud Database" : "View Relational Database Status"}
+        >
           <span className="status-dot-pulse"></span>
-          <Database size={14} className="text-emerald" />
-          <span className="text-xs font-semibold">Excel DB Active</span>
+          {isGoogleDrive ? (
+            <>
+              <Cloud size={14} className="text-cyan" />
+              <span className="text-xs font-semibold">Google Drive Active</span>
+            </>
+          ) : (
+            <>
+              <Database size={14} className={isLocalDisk ? "text-emerald" : "text-amber"} />
+              <span className="text-xs font-semibold">{isLocalDisk ? "Excel DB Active" : "Local Mode"}</span>
+            </>
+          )}
         </button>
 
         {/* Role Toggle */}

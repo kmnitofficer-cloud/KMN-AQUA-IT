@@ -1,4 +1,5 @@
 import { dbRepository } from './dbRepository';
+import { googleDriveService } from './googleDriveService';
 
 export const invoiceService = {
   getInvoices() {
@@ -91,19 +92,36 @@ export const invoiceService = {
       Description: metadata.Description || `Uploaded Invoice: ${file.name}`
     };
 
-    // Try posting to backend server if available
-    try {
-      await fetch('/api/invoices/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: safeName,
-          base64Data: base64,
-          invoiceData: newInvoice
-        })
-      });
-    } catch (err) {
-      console.warn('Backend upload failed, persisting in DB repository:', err);
+    // If Google Drive is configured, upload directly to Google Drive
+    if (googleDriveService.isConfigured()) {
+      try {
+        const driveRes = await googleDriveService.uploadInvoice(file, {
+          ...newInvoice,
+          createMatchingExpense: false // already handled above locally
+        });
+        if (driveRes && driveRes.fileUrl) {
+          newInvoice.FilePath = driveRes.fileUrl; // Preview iframe URL
+          newInvoice.DriveUrl = driveRes.driveUrl;
+          newInvoice.DownloadUrl = driveRes.downloadUrl;
+        }
+      } catch (err) {
+        console.warn('Google Drive invoice upload failed, falling back to local:', err);
+      }
+    } else {
+      // Try posting to local backend server if available
+      try {
+        await fetch('/api/invoices/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: safeName,
+            base64Data: base64,
+            invoiceData: newInvoice
+          })
+        });
+      } catch (err) {
+        console.warn('Backend upload failed, persisting in DB repository:', err);
+      }
     }
 
     await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
