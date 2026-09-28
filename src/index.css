@@ -18,6 +18,10 @@
   --text: #0F2A1C;
   --text-muted: #5B7A69;
 
+  /* Sidebar Dedicated Green Theme */
+  --sidebar-bg: #ECF7F0;
+  --sidebar-border: #D6EBDD;
+
   /* Backward Compatibility Aliases */
   --bg-main: var(--bg);
   --bg-surface: var(--surface);
@@ -87,6 +91,10 @@
   --accent: #10B981;
   --text: #E6F5EC;
   --text-muted: #8FB09E;
+
+  /* Sidebar Dedicated Green Theme */
+  --sidebar-bg: #0C1F16;
+  --sidebar-border: #1F3A2B;
 
   /* Backward Compatibility Aliases */
   --bg-main: var(--bg);
@@ -1219,22 +1227,7 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Left Sidebar */
-.app-sidebar {
-  width: 260px;
-  min-width: 260px;
-  background-color: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem 1.25rem;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 50;
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.02);
-  transition: all 0.25s ease;
-}
+/* Left Sidebar - Controlled via App.css */
 
 .sidebar-brand {
   display: flex;
@@ -3034,28 +3027,7 @@ body {
     animation: fadeIn 0.2s ease;
   }
 
-  .app-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 280px;
-    max-width: 85vw;
-    height: 100vh;
-    height: 100dvh;
-    background: var(--bg-surface);
-    border-right: 1px solid var(--border-strong);
-    z-index: 999;
-    transform: translateX(-100%);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: none;
-    overflow-y: auto;
-  }
-
-  .app-sidebar.mobile-open {
-    transform: translateX(0);
-    box-shadow: 14px 0 40px rgba(0, 0, 0, 0.45);
-  }
+  /* Sidebar responsive drawer handled in App.css */
 
   .main-wrapper {
     width: 100%;

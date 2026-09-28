@@ -87,7 +87,13 @@ export default function Sidebar({
         {/* Sticky Sidebar Header with Logo & Desktop Collapse Toggle */}
         <div className="sidebar-top-bar">
           <div className="sidebar-brand-group">
-            <div className="sidebar-logo-icon">
+            <div 
+              className="sidebar-logo-icon"
+              onClick={isCollapsed && onToggleCollapse ? onToggleCollapse : undefined}
+              role={isCollapsed ? "button" : undefined}
+              title={isCollapsed ? "Click to expand sidebar" : undefined}
+              style={{ cursor: isCollapsed ? 'pointer' : 'default' }}
+            >
               <Laptop size={18} className="text-primary-emerald" />
             </div>
             {!isCollapsed && (

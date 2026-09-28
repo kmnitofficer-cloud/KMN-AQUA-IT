@@ -212,7 +212,13 @@ export default function App() {
         onToggleRole={toggleRole}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenDatabaseHub={() => setIsDbHubOpen(true)}
-        onToggleMobileMenu={() => setIsMobileSidebarOpen(prev => !prev)}
+        onToggleMobileMenu={() => {
+          if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setIsMobileSidebarOpen(prev => !prev);
+          } else {
+            toggleSidebarCollapse();
+          }
+        }}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
