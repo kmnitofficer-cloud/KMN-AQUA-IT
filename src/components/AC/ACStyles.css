@@ -299,3 +299,79 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================
+   PRINT BLUEPRINT MAP ONLY (@media print)
+   ========================================================== */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm;
+  }
+
+  /* Reset all background and text for clean ink-saving printing */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide entire application navigation & chrome */
+  .app-navbar,
+  .app-sidebar,
+  .navbar-brand,
+  .mobile-menu-btn,
+  .view-header,
+  .filter-bar,
+  .ac-inspector-card,
+  .ac-kpi-grid,
+  .table-card,
+  .modal-backdrop,
+  .db-status-pill,
+  .role-toggle-btn,
+  .theme-toggle-btn,
+  .komvent-blueprint-header button,
+  .ac-main-grid > div:first-child {
+    display: none !important;
+  }
+
+  /* Expand blueprint card to 100% full printable area */
+  .app-container,
+  .app-main-layout,
+  .app-content-area,
+  .view-container,
+  .ac-main-grid,
+  .ac-main-grid > div:last-child,
+  .komvent-blueprint-card {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .komvent-blueprint-canvas {
+    background: #ffffff !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .komvent-blueprint-canvas svg {
+    max-height: 520px !important;
+    width: 100% !important;
+  }
+
+  .komvent-blueprint-canvas svg text {
+    fill: #0f172a !important;
+  }
+
+  .komvent-blueprint-canvas svg rect[fill="url(#komventCadGrid)"] {
+    fill: #ffffff !important;
+  }
+}
+

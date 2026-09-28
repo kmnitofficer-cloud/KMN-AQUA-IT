@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Maximize2
+  Maximize2,
+  Printer,
+  ChevronDown,
+  Layers
 } from 'lucide-react';
+import { printBlueprintMap } from '../../utils/printBlueprint';
 import './ACStyles.css';
 
 function ACFloorPlan({
@@ -16,11 +20,48 @@ function ACFloorPlan({
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hoveredUnit, setHoveredUnit] = useState(null);
+  const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const svgRef = useRef(null);
+  const printMenuRef = useRef(null);
 
   const isGroundFloor = !floor || floor.includes('Ground') || floor.includes('GF');
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (printMenuRef.current && !printMenuRef.current.contains(e.target)) {
+        setPrintMenuOpen(false);
+      }
+    };
+    if (printMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [printMenuOpen]);
+
   const handleZoom = delta => {
     setZoomLevel(prev => Math.min(Math.max(0.7, prev + delta), 1.8));
+  };
+
+  const handlePrintFullMap = (hidePins = false) => {
+    setPrintMenuOpen(false);
+    printBlueprintMap({
+      floorTitle: isGroundFloor ? 'Ground Floor' : '1st Floor (Level 1)',
+      svgElement: svgRef.current,
+      units,
+      mode: 'full-map',
+      hideACPins: hidePins
+    });
+  };
+
+  const handlePrintWithDetails = () => {
+    setPrintMenuOpen(false);
+    printBlueprintMap({
+      floorTitle: isGroundFloor ? 'Ground Floor' : '1st Floor (Level 1)',
+      svgElement: svgRef.current,
+      units,
+      mode: 'detailed',
+      hideACPins: false
+    });
   };
 
   const resetZoom = () => setZoomLevel(1);
@@ -160,8 +201,152 @@ function ACFloorPlan({
           </div>
         </div>
 
-        {/* Zoom controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        {/* Print & Zoom controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          {/* Split Print Button with Full Map (Only Map) as Primary */}
+          <div ref={printMenuRef} style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <button
+                onClick={() => handlePrintFullMap(false)}
+                className="btn btn-outline"
+                style={{
+                  padding: '0.32rem 0.65rem',
+                  fontSize: '0.75rem',
+                  height: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  borderColor: 'var(--brand-primary, #00A3FF)',
+                  color: 'var(--brand-primary, #00A3FF)',
+                  fontWeight: 700,
+                  borderTopRightRadius: 0,
+                  borderBottomRightRadius: 0,
+                  borderRight: 'none'
+                }}
+                title={`Print Full ${isGroundFloor ? 'Ground Floor' : '1st Floor'} Map (A4 Full Page, Only Map)`}
+              >
+                <Printer size={14} />
+                <span>Print Full Map</span>
+              </button>
+              <button
+                onClick={() => setPrintMenuOpen(!printMenuOpen)}
+                className="btn btn-outline"
+                style={{
+                  padding: '0.32rem 0.4rem',
+                  fontSize: '0.75rem',
+                  height: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderColor: 'var(--brand-primary, #00A3FF)',
+                  color: 'var(--brand-primary, #00A3FF)',
+                  borderTopLeftRadius: 0,
+                  borderBottomLeftRadius: 0
+                }}
+                title="Print Options"
+              >
+                <ChevronDown size={13} />
+              </button>
+            </div>
+
+            {printMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 4,
+                  background: 'var(--bg-surface-elevated, #0F172A)',
+                  border: '1px solid var(--border-subtle, #334155)',
+                  borderRadius: 8,
+                  padding: '4px',
+                  zIndex: 50,
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                  minWidth: 230
+                }}
+              >
+                <button
+                  onClick={() => handlePrintFullMap(false)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '7px 10px',
+                    fontSize: '0.75rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-primary, #fff)',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0, 163, 255, 0.15)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Printer size={14} className="text-cyan" />
+                  <div>
+                    <div style={{ fontWeight: 700 }}>A4 Full Map (Only Map)</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>100% full A4 sheet, no AC tables</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handlePrintFullMap(true)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '7px 10px',
+                    fontSize: '0.75rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-primary, #fff)',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0, 163, 255, 0.15)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Maximize2 size={14} className="text-emerald" />
+                  <div>
+                    <div style={{ fontWeight: 700 }}>Clean Architectural Map</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Pure floor layout without AC pins</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handlePrintWithDetails}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '7px 10px',
+                    fontSize: '0.75rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-primary, #fff)',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    borderTop: '1px solid var(--border-subtle, #334155)',
+                    marginTop: 2
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0, 163, 255, 0.15)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Layers size={14} className="text-amber" />
+                  <div>
+                    <div style={{ fontWeight: 700 }}>Map + AC Unit Details</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Includes unit specifications table</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => handleZoom(0.15)}
             className="btn btn-outline"
@@ -205,6 +390,7 @@ function ACFloorPlan({
           }}
         >
           <svg
+            ref={svgRef}
             viewBox={isGroundFloor ? '0 0 960 970' : '0 0 960 620'}
             style={{ width: '100%', height: '100%', maxHeight: isGroundFloor ? '630px' : '580px' }}
             preserveAspectRatio="xMidYMid meet"

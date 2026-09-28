@@ -17,8 +17,10 @@ import {
   Info,
   CheckCircle2,
   Trash2,
-  Edit2
+  Edit2,
+  Printer
 } from 'lucide-react';
+import { printBlueprintMap } from '../../utils/printBlueprint';
 import { acService, AC_FLOORS, AC_STATUSES } from '../../services/acService';
 import { dbRepository } from '../../services/dbRepository';
 import ACFloorPlan from './ACFloorPlan';
@@ -276,8 +278,8 @@ export default function ACView() {
           })}
         </div>
 
-        {/* Status Filter Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {/* Status Filter Tabs & Print Blueprint Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div className="filter-tabs">
             {['All', 'Active', 'Needs Service', 'Under Repair'].map(st => (
               <button
@@ -289,6 +291,73 @@ export default function ACView() {
                 {st}
               </button>
             ))}
+          </div>
+
+          {/* Quick Print Map Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <button
+              onClick={() => {
+                if (selectedFloor !== 'Ground Floor') {
+                  setSelectedFloor('Ground Floor');
+                }
+                setTimeout(() => {
+                  const svg = document.querySelector('.komvent-blueprint-canvas svg');
+                  printBlueprintMap({
+                    floorTitle: 'Ground Floor',
+                    svgElement: svg,
+                    units,
+                    mode: 'full-map'
+                  });
+                }, 80);
+              }}
+              className="btn btn-outline"
+              style={{
+                fontSize: '0.75rem',
+                padding: '0.32rem 0.65rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                borderColor: 'var(--brand-primary, #00A3FF)',
+                color: 'var(--brand-primary, #00A3FF)',
+                fontWeight: 600
+              }}
+              title="Print Ground Floor Blueprint Map (A4 Full Page, Only Map)"
+            >
+              <Printer size={13} />
+              <span>Print GF Map (A4)</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (selectedFloor !== 'First Floor') {
+                  setSelectedFloor('First Floor');
+                }
+                setTimeout(() => {
+                  const svg = document.querySelector('.komvent-blueprint-canvas svg');
+                  printBlueprintMap({
+                    floorTitle: '1st Floor (Level 1)',
+                    svgElement: svg,
+                    units,
+                    mode: 'full-map'
+                  });
+                }, 80);
+              }}
+              className="btn btn-outline"
+              style={{
+                fontSize: '0.75rem',
+                padding: '0.32rem 0.65rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                borderColor: 'var(--brand-primary, #00A3FF)',
+                color: 'var(--brand-primary, #00A3FF)',
+                fontWeight: 600
+              }}
+              title="Print 1st Floor Blueprint Map (A4 Full Page, Only Map)"
+            >
+              <Printer size={13} />
+              <span>Print 1F Map (A4)</span>
+            </button>
           </div>
         </div>
       </div>
