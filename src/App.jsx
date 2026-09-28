@@ -24,17 +24,23 @@ import DatabaseSyncModal from './components/Database/DatabaseSyncModal';
 import AssetProfileModal from './components/Assets/AssetProfileModal';
 import UserProfileModal from './components/Users/UserProfileModal';
 import PrinterProfileModal from './components/Printers/PrinterProfileModal';
+import LoginView from './components/Auth/LoginView';
 
 import { Cloud } from 'lucide-react';
 import { dbRepository } from './services/dbRepository';
 import { googleDriveService } from './services/googleDriveService';
+import { authService } from './services/authService';
 
 const STORAGE_THEME = 'kmn_theme';
 const STORAGE_ROLE = 'kmn_user_role';
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_THEME) || 'dark');
-  const [role, setRole] = useState(() => localStorage.getItem(STORAGE_ROLE) || 'admin');
+  const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
+  const [role, setRole] = useState(() => {
+    const user = authService.getCurrentUser();
+    return user ? user.role : (localStorage.getItem(STORAGE_ROLE) || 'admin');
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dbVersion, setDbVersion] = useState(0);
 
@@ -53,10 +59,27 @@ export default function App() {
   const [viewingPrinterId, setViewingPrinterId] = useState(null);
   const [isPrinterProfileOpen, setIsPrinterProfileOpen] = useState(false);
 
-  const [isConnectingDrive, setIsConnectingDrive] = useState(() => googleDriveService.isConfigured());
+  const [isConnectingDrive, setIsConnectingDrive] = useState(false);
 
-  // 1. Initialize relational database repository and subscribe to updates
+  // 1. Listen to Authentication State changes
   useEffect(() => {
+    const unsubscribeAuth = authService.subscribe((user) => {
+      setCurrentUser(user);
+      if (user) {
+        setRole(user.role);
+      }
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  // 2. Initialize relational database repository only when authenticated
+  useEffect(() => {
+    if (!currentUser) return;
+
+    if (googleDriveService.isConfigured()) {
+      setIsConnectingDrive(true);
+    }
+
     dbRepository.init().finally(() => {
       setIsConnectingDrive(false);
       setDbVersion(v => v + 1);
@@ -67,20 +90,20 @@ export default function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
-  // 2. Set theme data attribute on body
+  // 3. Set theme data attribute on body
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(STORAGE_THEME, theme);
   }, [theme]);
 
-  // 3. Set role
+  // 4. Set role in storage and sync
   useEffect(() => {
     localStorage.setItem(STORAGE_ROLE, role);
   }, [role]);
 
-  // 4. Global hotkey for Search (Ctrl+K or Cmd+K)
+  // 5. Global hotkey for Search (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -98,6 +121,11 @@ export default function App() {
 
   const toggleRole = () => {
     setRole(prev => (prev === 'admin' ? 'viewer' : 'admin'));
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setCurrentUser(null);
   };
 
   // Entity selection handler from Global Search
@@ -122,6 +150,22 @@ export default function App() {
     }
   };
 
+  // =========================================================================
+  // SECURITY GATE: Render ONLY Login Screen until valid credentials entered
+  // =========================================================================
+  if (!currentUser) {
+    return (
+      <LoginView
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          setRole(user.role);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app-container" data-theme={theme}>
       {/* Top Navigation */}
@@ -133,6 +177,8 @@ export default function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenDatabaseHub={() => setIsDbHubOpen(true)}
         onToggleMobileMenu={() => setIsMobileSidebarOpen(prev => !prev)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Workspace Layout */}
@@ -143,6 +189,8 @@ export default function App() {
           onSelectTab={setActiveTab}
           isOpen={isMobileSidebarOpen}
           onClose={() => setIsMobileSidebarOpen(false)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         {/* Content View Area */}

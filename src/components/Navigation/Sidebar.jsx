@@ -14,10 +14,13 @@ import {
   Database,
   Cctv,
   Wind,
-  X
+  X,
+  LogOut,
+  Shield,
+  User as UserIcon
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
+export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose, currentUser, onLogout }) {
   const navSections = [
     {
       title: 'OVERVIEW',
@@ -95,6 +98,32 @@ export default function Sidebar({ activeTab, onSelectTab, isOpen, onClose }) {
         </nav>
 
         <div className="sidebar-footer">
+          {/* Active User Session Card */}
+          <div className="sidebar-user-card">
+            <div className={`sidebar-user-avatar ${(currentUser?.role || 'admin') === 'admin' ? 'admin' : 'user'}`}>
+              {(currentUser?.role || 'admin') === 'admin' ? (
+                <Shield size={14} />
+              ) : (
+                <UserIcon size={14} />
+              )}
+            </div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">
+                {currentUser?.displayName || ((currentUser?.role || 'admin') === 'admin' ? 'Administrator' : 'Staff User')}
+              </span>
+              <span className="sidebar-user-role">
+                {(currentUser?.role || 'admin') === 'admin' ? 'Admin Profile' : 'User Profile'}
+              </span>
+            </div>
+            <button
+              className="sidebar-logout-btn"
+              onClick={onLogout}
+              title="Lock System & Sign Out"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
+
           <div className="sidebar-db-badge">
             <div className="flex items-center gap-2">
               <span className="pulse-dot"></span>

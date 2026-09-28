@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Moon, Sun, Database, Shield, Menu, Laptop, Cloud } from 'lucide-react';
+import { Search, Moon, Sun, Database, Shield, Menu, Laptop, Cloud, LogOut, User as UserIcon } from 'lucide-react';
 import { dbRepository } from '../../services/dbRepository';
 
 export default function Navbar({
@@ -9,11 +9,14 @@ export default function Navbar({
   onToggleRole,
   onOpenSearch,
   onOpenDatabaseHub,
-  onToggleMobileMenu
+  onToggleMobileMenu,
+  currentUser,
+  onLogout
 }) {
   const storageSource = dbRepository.getStorageSource();
   const isGoogleDrive = storageSource === 'google_drive';
   const isLocalDisk = storageSource === 'local_disk';
+  const isAdmin = (currentUser?.role || role) === 'admin';
 
   return (
     <header className="app-navbar">
@@ -61,15 +64,31 @@ export default function Navbar({
           )}
         </button>
 
-        {/* Role Toggle */}
-        <button
-          className="role-toggle-btn"
-          onClick={onToggleRole}
-          title={`Switch Role (Current: ${role.toUpperCase()})`}
+        {/* User Profile Chip */}
+        <div 
+          className={`navbar-user-chip ${isAdmin ? 'chip-admin' : 'chip-user'}`}
+          title={`Signed in as ${currentUser?.displayName || (isAdmin ? 'Administrator' : 'Staff User')} (${isAdmin ? 'Admin Profile' : 'User Profile'})`}
         >
-          <Shield size={14} className={role === 'admin' ? 'text-cyan' : 'text-muted'} />
-          <span className="text-xs capitalize font-medium">{role} Mode</span>
-        </button>
+          <div className="user-chip-avatar">
+            {isAdmin ? <Shield size={12} /> : <UserIcon size={12} />}
+          </div>
+          <div className="user-chip-info">
+            <span className="user-chip-name">{currentUser?.displayName || (isAdmin ? 'Administrator' : 'Staff User')}</span>
+            <span className="user-chip-role">{isAdmin ? 'Admin' : 'Viewer'}</span>
+          </div>
+        </div>
+
+        {/* Role Preview Switcher (Available to Admin) */}
+        {isAdmin && (
+          <button
+            className="role-toggle-btn"
+            onClick={onToggleRole}
+            title={`Switch Role View (Current: ${role.toUpperCase()})`}
+          >
+            <Shield size={14} className={role === 'admin' ? 'text-cyan' : 'text-muted'} />
+            <span className="text-xs capitalize font-medium">{role} Mode</span>
+          </button>
+        )}
 
         {/* Theme Toggle */}
         <button
@@ -78,6 +97,15 @@ export default function Navbar({
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
         >
           {theme === 'dark' ? <Sun size={18} className="text-amber" /> : <Moon size={18} />}
+        </button>
+
+        {/* Logout / Lock Button */}
+        <button
+          className="icon-btn logout-header-btn"
+          onClick={onLogout}
+          title="Sign Out & Lock System"
+        >
+          <LogOut size={17} />
         </button>
       </div>
     </header>
