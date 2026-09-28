@@ -356,12 +356,25 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
 
           <div className="reconciliation-metric-card">
             <div className="reconciliation-card-title">Reconciliation Audit</div>
-            <div className="reconciliation-card-value text-emerald flex items-center gap-1.5">
-              <CheckCircle2 size={22} className="text-emerald" /> 100% Balanced
-            </div>
-            <div className="reconciliation-card-sub">
-              Zero budget discrepancy • Every bill is matched to physical hardware & expense records
-            </div>
+            {reconciliation.isBalanced ? (
+              <>
+                <div className="reconciliation-card-value text-emerald flex items-center gap-1.5">
+                  <CheckCircle2 size={22} className="text-emerald" /> 100% Balanced
+                </div>
+                <div className="reconciliation-card-sub">
+                  Zero budget discrepancy • Every bill is matched to physical hardware & expense records
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="reconciliation-card-value text-amber flex items-center gap-1.5">
+                  <AlertTriangle size={22} className="text-amber" /> Rs. {Math.abs(reconciliation.discrepancy).toLocaleString()} Mismatch
+                </div>
+                <div className="reconciliation-card-sub text-amber">
+                  Discrepancy detected • Vault bills (Rs. {reconciliation.totalInvoiced.toLocaleString()}) vs Ledger (Rs. {reconciliation.totalExpenses.toLocaleString()})
+                </div>
+              </>
+            )}
           </div>
         </div>
 
