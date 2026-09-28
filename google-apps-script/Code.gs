@@ -27,7 +27,9 @@
  * ============================================================================
  */
 
-// Name of the folder where invoice & bill PDFs will be stored in Google Drive
+// Dedicated Google Drive Invoices Folder ID configured by user
+const INVOICES_FOLDER_ID = "1vgrHwewH0tTGwG0NMLzHRQioazXiAamD";
+// Fallback folder name if ID is not available
 const INVOICES_FOLDER_NAME = "IT_System_Invoices";
 
 // All relational table names supported by the IT System
@@ -68,6 +70,19 @@ function doGet(e) {
         message: "Google Apps Script IT Database API is active!",
         spreadsheetName: ss.getName(),
         spreadsheetUrl: ss.getUrl(),
+        invoicesFolderId: INVOICES_FOLDER_ID,
+        invoicesFolderUrl: "https://drive.google.com/drive/folders/" + INVOICES_FOLDER_ID,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (action === "getFolderInfo") {
+      const folder = getOrCreateInvoicesFolder((e && e.parameter && e.parameter.folderId) || null);
+      return jsonResponse({
+        success: true,
+        folderId: folder.getId(),
+        folderName: folder.getName(),
+        folderUrl: folder.getUrl(),
         timestamp: new Date().toISOString()
       });
     }
@@ -174,8 +189,8 @@ function doPost(e) {
       const decodedBytes = Utilities.base64Decode(cleanBase64);
       const blob = Utilities.newBlob(decodedBytes, "application/pdf", filename);
 
-      // Locate or create the target invoices folder in Google Drive
-      const folder = getOrCreateInvoicesFolder();
+      // Locate the target invoices folder in Google Drive (prioritizing user's folder ID)
+      const folder = getOrCreateInvoicesFolder(payload.folderId);
       const file = folder.createFile(blob);
 
       // Make file viewable with link
@@ -216,8 +231,25 @@ function doPost(e) {
         Description: invoiceData.Description || ("Uploaded Invoice: " + filename)
       };
 
-      // Add to Invoices sheet
-      const updatedInvoices = [newInvoice].concat(currentInvoices);
+      // Add or update in Invoices sheet (avoid duplicates)
+      let foundIndex = -1;
+      for (let i = 0; i < currentInvoices.length; i++) {
+        if (
+          (invoiceId && currentInvoices[i].InvoiceID === invoiceId) ||
+          (filename && currentInvoices[i].FileName === filename)
+        ) {
+          foundIndex = i;
+          break;
+        }
+      }
+
+      let updatedInvoices;
+      if (foundIndex >= 0) {
+        currentInvoices[foundIndex] = Object.assign({}, currentInvoices[foundIndex], newInvoice);
+        updatedInvoices = currentInvoices;
+      } else {
+        updatedInvoices = [newInvoice].concat(currentInvoices);
+      }
       writeSheetData(ss, "Invoices", updatedInvoices);
 
       // If requested, also record in Expenses sheet
@@ -253,6 +285,79 @@ function doPost(e) {
         driveUrl: driveUrl,
         downloadUrl: downloadUrl,
         invoice: newInvoice
+      });
+    }
+
+    // 5. Sync all files inside Google Drive Invoices Folder into Invoices sheet
+    if (action === "syncFolderFiles") {
+      const folder = getOrCreateInvoicesFolder(payload.folderId);
+      const files = folder.getFiles();
+      const synced = [];
+      const invoiceSheet = getOrCreateSheet(ss, "Invoices");
+      const currentInvoices = readSheetData(invoiceSheet);
+      let updatedCount = 0;
+
+      while (files.hasNext()) {
+        const file = files.next();
+        try {
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch (e) {}
+
+        const fId = file.getId();
+        const fName = file.getName();
+        const previewUrl = "https://drive.google.com/file/d/" + fId + "/preview";
+        const driveUrl = file.getUrl();
+        const downloadUrl = "https://drive.google.com/uc?export=download&id=" + fId;
+        const sizeKb = Math.round(file.getSize() / 1024) + " KB";
+
+        synced.push({ id: fId, name: fName, previewUrl: previewUrl, driveUrl: driveUrl });
+
+        let matched = false;
+        for (let i = 0; i < currentInvoices.length; i++) {
+          if (currentInvoices[i].FileName === fName || (currentInvoices[i].FilePath && currentInvoices[i].FilePath.includes(fName))) {
+            currentInvoices[i].FilePath = previewUrl;
+            currentInvoices[i].DriveUrl = driveUrl;
+            currentInvoices[i].DownloadUrl = downloadUrl;
+            currentInvoices[i].DriveFileID = fId;
+            currentInvoices[i].FileSize = sizeKb;
+            matched = true;
+            updatedCount++;
+            break;
+          }
+        }
+
+        if (!matched) {
+          currentInvoices.push({
+            InvoiceID: "INV-" + String(currentInvoices.length + 1).padStart(4, "0"),
+            InvoiceNumber: fName.replace(/\.pdf$/i, ""),
+            InvoiceDate: Utilities.formatDate(file.getDateCreated(), Session.getScriptTimeZone() || "GMT", "yyyy-MM-dd"),
+            Supplier: "Verified Vendor",
+            Amount: 0,
+            AssetID: "",
+            UserID: "",
+            PrinterAssetID: "",
+            ExpenseID: "",
+            FileName: fName,
+            FilePath: previewUrl,
+            DriveUrl: driveUrl,
+            DownloadUrl: downloadUrl,
+            DriveFileID: fId,
+            FileSize: sizeKb,
+            UploadDate: Utilities.formatDate(file.getDateCreated(), Session.getScriptTimeZone() || "GMT", "yyyy-MM-dd"),
+            Description: "Google Drive Invoices Vault: " + fName
+          });
+          updatedCount++;
+        }
+      }
+
+      writeSheetData(ss, "Invoices", currentInvoices);
+
+      return jsonResponse({
+        success: true,
+        message: "Successfully synchronized " + synced.length + " files from Google Drive Invoices Folder! (" + updatedCount + " records linked)",
+        folderId: folder.getId(),
+        folderName: folder.getName(),
+        syncedFiles: synced
       });
     }
 
@@ -364,7 +469,16 @@ function getOrCreateSheet(ss, sheetName) {
 /**
  * Helper to locate or create the Invoices folder in Google Drive
  */
-function getOrCreateInvoicesFolder() {
+function getOrCreateInvoicesFolder(customFolderId) {
+  const targetId = customFolderId || INVOICES_FOLDER_ID;
+  if (targetId) {
+    try {
+      const folder = DriveApp.getFolderById(targetId);
+      if (folder) return folder;
+    } catch (e) {
+      console.warn("Could not access folder by ID " + targetId + ": " + e);
+    }
+  }
   const folders = DriveApp.getFoldersByName(INVOICES_FOLDER_NAME);
   if (folders.hasNext()) {
     return folders.next();

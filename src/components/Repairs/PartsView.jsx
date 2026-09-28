@@ -25,22 +25,9 @@ export default function PartsView() {
 
   const handleOpenInvoice = (invoiceId) => {
     if (!invoiceId) return;
-    const allInvoices = invoiceService.getInvoices();
-    const inv = allInvoices.find(i => i.InvoiceID === invoiceId || i.InvoiceNumber === invoiceId);
+    const inv = invoiceService.getInvoiceById(invoiceId);
     if (inv) {
       setSelectedInvoice(inv);
-      setIsInvoiceModalOpen(true);
-    } else {
-      setSelectedInvoice({
-        InvoiceID: invoiceId,
-        InvoiceNumber: invoiceId,
-        Supplier: 'KMN IT Solution',
-        Amount: 0,
-        InvoiceDate: '2026-09-05',
-        FileName: '05.09.2026..pdf',
-        FilePath: '/invoices/05.09.2026..pdf',
-        Description: `Invoice ${invoiceId}`
-      });
       setIsInvoiceModalOpen(true);
     }
   };

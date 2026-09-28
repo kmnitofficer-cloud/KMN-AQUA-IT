@@ -18,23 +18,11 @@ export default function ExpensesView() {
 
   const handleOpenInvoice = (invRef) => {
     if (!invRef) return;
-    const allInvoices = invoiceService.getInvoices();
-    const inv = allInvoices.find(i => i.InvoiceID === invRef || i.InvoiceNumber === invRef);
+    const inv = invoiceService.getInvoiceById(invRef);
     if (inv) {
       setSelectedInvoice(inv);
-    } else {
-      setSelectedInvoice({
-        InvoiceID: invRef,
-        InvoiceNumber: invRef,
-        Supplier: 'Vendor',
-        Amount: 0,
-        InvoiceDate: '2026-09-01',
-        FileName: `${invRef}.pdf`,
-        FilePath: `/invoices/${invRef}.pdf`,
-        Description: `Invoice Reference ${invRef}`
-      });
+      setIsInvoiceModalOpen(true);
     }
-    setIsInvoiceModalOpen(true);
   };
 
   const filteredExpenses = expenses.filter(e => {

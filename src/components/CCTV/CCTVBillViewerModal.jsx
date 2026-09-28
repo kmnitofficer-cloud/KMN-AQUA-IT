@@ -161,25 +161,21 @@ export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete })
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {bill.FilePath && (
-                    <a
-                      href={bill.FilePath}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-outline btn-sm"
-                    >
-                      <ExternalLink size={14} /> Open
-                    </a>
-                  )}
-                  {bill.FilePath && (
-                    <a
-                      href={bill.FilePath}
-                      download={bill.FileName}
-                      className="btn btn-primary btn-sm"
-                    >
-                      <Download size={14} /> Download
-                    </a>
-                  )}
+                  <a
+                    href={bill.DriveUrl || (bill.FileName ? `${(import.meta.env.BASE_URL || './').replace(/\/?$/, '/')}invoices/${bill.FileName}` : bill.FilePath)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline btn-sm"
+                  >
+                    <ExternalLink size={14} /> Open
+                  </a>
+                  <a
+                    href={bill.DownloadUrl || (bill.FileName ? `${(import.meta.env.BASE_URL || './').replace(/\/?$/, '/')}invoices/${bill.FileName}` : bill.FilePath)}
+                    download={bill.FileName}
+                    className="btn btn-primary btn-sm"
+                  >
+                    <Download size={14} /> Download
+                  </a>
                 </div>
               </div>
             ) : (

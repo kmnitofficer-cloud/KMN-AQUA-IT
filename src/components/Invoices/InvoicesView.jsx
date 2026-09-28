@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, Upload, Search, Download, Eye, ExternalLink } from 'lucide-react';
+import { FileText, Upload, Search, Download, Eye, ExternalLink, FolderOpen } from 'lucide-react';
 import { invoiceService } from '../../services/invoiceService';
 import { formatDisplayDate } from '../../utils/dateUtils';
+import { DRIVE_CONFIG } from '../../config/driveConfig';
 import InvoiceViewerModal from './InvoiceViewerModal';
 import InvoiceUploadModal from './InvoiceUploadModal';
 
@@ -43,6 +44,15 @@ export default function InvoicesView() {
           </p>
         </div>
         <div className="view-header-actions">
+          <a
+            href={DRIVE_CONFIG.INVOICES_FOLDER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline"
+            title="Open Google Drive Invoices Folder"
+          >
+            <FolderOpen size={16} /> Open Drive Folder
+          </a>
           <button className="btn btn-primary" onClick={() => setIsUploadOpen(true)}>
             <Upload size={16} /> Upload PDF Bill / Invoice
           </button>
@@ -133,8 +143,19 @@ export default function InvoicesView() {
                         >
                           <Eye size={16} />
                         </button>
+                        {inv.DriveUrl && (
+                          <a
+                            href={inv.DriveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="icon-btn"
+                            title="Open in Google Drive"
+                          >
+                            <ExternalLink size={16} />
+                          </a>
+                        )}
                         <a
-                          href={inv.DownloadUrl || inv.FilePath || `/invoices/${inv.FileName}`}
+                          href={inv.DownloadUrl || inv.FilePath || DRIVE_CONFIG.INVOICES_FOLDER_URL}
                           download={inv.FileName}
                           target="_blank"
                           rel="noopener noreferrer"

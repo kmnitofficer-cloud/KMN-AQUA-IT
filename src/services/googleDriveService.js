@@ -185,7 +185,8 @@ export const googleDriveService = {
       action: 'uploadInvoice',
       filename: safeName,
       base64Data,
-      invoiceData
+      invoiceData,
+      folderId: DRIVE_CONFIG.INVOICES_FOLDER_ID
     };
 
     const res = await fetch(url, {
@@ -204,6 +205,39 @@ export const googleDriveService = {
     const json = await res.json();
     if (!json.success) {
       throw new Error(json.error || 'Failed to upload invoice to Google Drive.');
+    }
+
+    return json;
+  },
+
+  /**
+   * Synchronizes all PDF invoices in Google Drive folder with the Invoices sheet
+   */
+  async syncInvoicesFolder() {
+    const url = this.getScriptUrl();
+    if (!url) throw new Error('Google Apps Script URL is not configured.');
+
+    const payload = {
+      action: 'syncFolderFiles',
+      folderId: DRIVE_CONFIG.INVOICES_FOLDER_ID
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to sync invoices folder: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    if (!json.success) {
+      throw new Error(json.error || 'Failed to sync invoices folder.');
     }
 
     return json;
