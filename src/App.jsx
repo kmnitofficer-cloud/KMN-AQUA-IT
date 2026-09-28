@@ -25,7 +25,9 @@ import AssetProfileModal from './components/Assets/AssetProfileModal';
 import UserProfileModal from './components/Users/UserProfileModal';
 import PrinterProfileModal from './components/Printers/PrinterProfileModal';
 
+import { Cloud } from 'lucide-react';
 import { dbRepository } from './services/dbRepository';
+import { googleDriveService } from './services/googleDriveService';
 
 const STORAGE_THEME = 'kmn_theme';
 const STORAGE_ROLE = 'kmn_user_role';
@@ -51,9 +53,12 @@ export default function App() {
   const [viewingPrinterId, setViewingPrinterId] = useState(null);
   const [isPrinterProfileOpen, setIsPrinterProfileOpen] = useState(false);
 
+  const [isConnectingDrive, setIsConnectingDrive] = useState(() => googleDriveService.isConfigured());
+
   // 1. Initialize relational database repository and subscribe to updates
   useEffect(() => {
-    dbRepository.init().then(() => {
+    dbRepository.init().finally(() => {
+      setIsConnectingDrive(false);
       setDbVersion(v => v + 1);
     });
 
@@ -251,6 +256,22 @@ export default function App() {
         isOpen={isPrinterProfileOpen}
         onClose={() => setIsPrinterProfileOpen(false)}
       />
+
+      {/* Direct Google Drive Connecting Splash Screen */}
+      {isConnectingDrive && (
+        <div className="db-connecting-overlay">
+          <div className="db-connecting-card">
+            <div className="db-connecting-icon-pulse">
+              <Cloud size={36} className="text-cyan animate-pulse" />
+            </div>
+            <h3>Connecting to Google Drive...</h3>
+            <p>Loading live assets, repairs, users, and relational tables directly from Google Spreadsheet</p>
+            <div className="db-connecting-bar">
+              <div className="db-connecting-progress"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

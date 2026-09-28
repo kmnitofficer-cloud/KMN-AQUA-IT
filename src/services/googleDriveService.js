@@ -6,6 +6,8 @@
  * Google Drive and Google Sheets via the Google Apps Script Web App API.
  */
 
+import { DRIVE_CONFIG } from '../config/driveConfig';
+
 const STORAGE_KEY_URL = 'kmn_google_script_url';
 
 export const googleDriveService = {
@@ -15,7 +17,10 @@ export const googleDriveService = {
   getScriptUrl() {
     const stored = localStorage.getItem(STORAGE_KEY_URL);
     if (stored && stored.trim()) return stored.trim();
-    return import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || '';
+    if (import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL && import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL.trim()) {
+      return import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL.trim();
+    }
+    return (DRIVE_CONFIG.DEFAULT_SCRIPT_URL || '').trim();
   },
 
   /**

@@ -34,16 +34,24 @@ This guide walks you through setting up **GitHub Pages** to host your IT System 
 
 ---
 
-## Part 2: Connect the Web App to Google Drive
+## Part 2: Connect the Web App Directly to Google Drive
 
-1. Open your IT System application (either locally or on your deployed GitHub Pages site).
-2. Click the green/blue **Excel DB Active** pill in the top right of the navigation bar to open the **Relational Database & Cloud Sync Hub**.
-3. Look for the **Google Drive Cloud Database** card.
-4. Paste your **Web app URL** into the input field.
-5. Click **Save** and then click **Test Connection**. You should see:
-   > *Connected successfully! Spreadsheet: "IT_Asset_Database"*
-6. Click **Push Current Data to Google Drive**.
-   - This seeds all your 19 relational tables (assets, users, printers, repairs, AC units, etc.) directly into tabs in your Google Sheet!
+You can connect directly to Google Drive in any of these ways:
+
+### Option A: Set in `.env` (Best for Permanent / Team-wide Direct Connection)
+1. Open [.env](file:///g:/AnjeloPrograms/ITSystem/.env) in the root directory.
+2. Set your Web App URL:
+   ```env
+   VITE_GOOGLE_APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycb.../exec
+   ```
+3. Whenever the system loads, it will connect directly to Google Drive on startup!
+
+### Option B: Configure via the App UI
+1. Open your IT System application.
+2. Click the **Database Status** pill in the top right navbar to open the **Relational Database & Cloud Sync Hub**.
+3. In the **Google Drive Cloud Database** section, paste your **Web app URL**.
+4. Click **Test Connection** (or **Save**). The system will immediately activate Google Drive as your primary live database!
+5. If your Google Sheet is newly created, click **Push Current Data to Google Drive** to seed all 19 relational tables.
 
 ---
 

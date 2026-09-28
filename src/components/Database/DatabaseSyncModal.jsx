@@ -44,9 +44,28 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const handleSaveDriveUrl = () => {
+  const handleSaveDriveUrl = async () => {
+    if (!driveUrl || !driveUrl.trim()) {
+      setDriveStatus({ success: false, message: 'Please enter your Google Apps Script Web App URL first.' });
+      return;
+    }
     googleDriveService.setScriptUrl(driveUrl);
-    setDriveStatus({ success: true, message: 'Google Apps Script URL saved locally!' });
+    setIsSyncingDrive(true);
+    setDriveStatus({ success: true, message: 'Connecting directly to Google Drive...' });
+    try {
+      await dbRepository.refreshFromGoogleDrive();
+      setDriveStatus({
+        success: true,
+        message: 'Google Apps Script URL saved & connected directly to Google Drive!'
+      });
+    } catch (err) {
+      setDriveStatus({
+        success: true,
+        message: 'URL saved! (Ready to sync: ' + err.message + ')'
+      });
+    } finally {
+      setIsSyncingDrive(false);
+    }
   };
 
   const handleTestDrive = async () => {
@@ -60,10 +79,19 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
       googleDriveService.setScriptUrl(driveUrl);
       const res = await googleDriveService.testConnection(driveUrl);
       if (res.success) {
-        setDriveStatus({
-          success: true,
-          message: `Connected successfully! Spreadsheet: "${res.spreadsheetName || 'Active'}"`
-        });
+        // Direct connect: immediately activate Google Drive and refresh live data into app
+        try {
+          await dbRepository.refreshFromGoogleDrive();
+          setDriveStatus({
+            success: true,
+            message: `Connected directly to Google Drive! Live database loaded from: "${res.spreadsheetName || 'Active'}"`
+          });
+        } catch (syncErr) {
+          setDriveStatus({
+            success: true,
+            message: `Connected successfully to "${res.spreadsheetName || 'Active'}"! Tip: Click "Push Current Data" below to seed empty tables.`
+          });
+        }
       } else {
         setDriveStatus({
           success: false,

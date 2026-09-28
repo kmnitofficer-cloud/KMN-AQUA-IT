@@ -58,13 +58,12 @@ class DBRepository {
   }
 
   async init() {
-    // 1. Attempt to fetch from Google Drive (Google Apps Script Web App) if configured
+    // 1. Direct connection to Google Drive (Cloud Database) if configured
     if (googleDriveService.isConfigured()) {
       try {
-        console.log('[dbRepository] Fetching database from Google Drive...');
+        console.log('[dbRepository] Connecting directly to Google Drive Cloud Database...');
         const driveRes = await googleDriveService.fetchDatabase();
         if (driveRes && driveRes.success && driveRes.data) {
-          // Check if Google Sheet contains tables
           const hasData = Object.values(driveRes.data).some(arr => Array.isArray(arr) && arr.length > 0);
           if (hasData) {
             this.database = this.validateAndNormalize(driveRes.data);
@@ -73,18 +72,47 @@ class DBRepository {
             this.spreadsheetName = driveRes.spreadsheetName || 'Google Drive Spreadsheet';
             this.saveToLocalCache();
             this.notify();
-            console.log('[dbRepository] Successfully loaded from Google Drive!', this.spreadsheetName);
+            console.log('[dbRepository] Successfully connected to Google Drive directly!', this.spreadsheetName);
             return this.database;
           } else {
-            console.log('[dbRepository] Google Sheet is connected but empty. Will seed from local seed on first save.');
+            console.log('[dbRepository] Google Sheet is connected but empty. Auto-seeding initial database to Google Drive...');
+            this.database = this.validateAndNormalize(relationalDatabaseSeed);
+            this.isServerConnected = true;
+            this.storageSource = 'google_drive';
+            this.spreadsheetName = driveRes.spreadsheetName || 'Google Drive Spreadsheet';
+            this.saveToLocalCache();
+            // Automatically push seed database to Google Drive so all 19 sheets get created
+            googleDriveService.saveDatabase(this.database).catch(e => console.warn('Could not auto-seed Google Drive:', e));
+            this.notify();
+            return this.database;
           }
         }
       } catch (err) {
-        console.warn('[dbRepository] Could not fetch from Google Drive, trying local server:', err.message);
+        console.warn('[dbRepository] Could not fetch directly from Google Drive:', err.message);
+        // If Google Drive is configured, stay in Google Drive mode using local cache as offline fallback
+        const cached = localStorage.getItem(STORAGE_KEY);
+        if (cached) {
+          try {
+            this.database = this.validateAndNormalize(JSON.parse(cached));
+            this.storageSource = 'google_drive';
+            this.isServerConnected = false;
+            this.notify();
+            return this.database;
+          } catch (e) {
+            console.error('Failed to parse cached database:', e);
+          }
+        }
       }
+
+      // If Google Drive failed and no local cache exists, initialize relational seed under google_drive mode
+      this.database = this.validateAndNormalize(relationalDatabaseSeed);
+      this.storageSource = 'google_drive';
+      this.saveToLocalCache();
+      this.notify();
+      return this.database;
     }
 
-    // 2. Attempt to fetch from local Vite API server (Excel file directly on disk)
+    // 2. Only attempt to fetch from local Vite API server (Excel file directly on disk) if Google Drive is NOT configured
     try {
       const res = await fetch('/api/database');
       if (res.ok) {
@@ -395,6 +423,12 @@ class DBRepository {
     }
     const res = await googleDriveService.fetchDatabase();
     if (res && res.data) {
+      const hasData = Object.values(res.data).some(arr => Array.isArray(arr) && arr.length > 0);
+      if (!hasData) {
+        console.log('[dbRepository] Google Sheet is empty, auto-pushing initial database to Google Drive...');
+        await this.pushToGoogleDrive();
+        return this.database;
+      }
       this.database = this.validateAndNormalize(res.data);
       this.isServerConnected = true;
       this.storageSource = 'google_drive';
