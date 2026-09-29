@@ -5,6 +5,7 @@ import {
   Laptop, 
   RefreshCw, 
   Printer, 
+  Armchair,
   Wrench, 
   Cpu, 
   DollarSign, 
@@ -42,6 +43,7 @@ export default function Sidebar({
     {
       title: 'ASSETS & USERS',
       items: [
+        { id: 'fixed-assets', label: 'Fixed Assets & Map', icon: Armchair },
         { id: 'users', label: 'Staff & Users', icon: Users },
         { id: 'assets', label: 'Hardware Assets', icon: Laptop },
         { id: 'assignments', label: 'Assignments & Custody', icon: RefreshCw },
