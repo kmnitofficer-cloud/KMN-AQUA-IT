@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Save } from 'lucide-react';
 import { userService } from '../../services/userService';
 
-export default function UserFormModal({ isOpen, onClose, user = null, onSaved }) {
+export default function UserFormModal({ isOpen, onClose, user = null, onSaved, defaultLocationId = 'LOC-0001' }) {
   const [formData, setFormData] = useState({
     Name: '',
     EmployeeID: '',
@@ -10,7 +10,7 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved })
     JobTitle: '',
     Phone: '',
     Email: '',
-    OfficeLocationID: 'LOC-0001',
+    OfficeLocationID: defaultLocationId || 'LOC-0001',
     Status: 'Active',
     JoinDate: new Date().toISOString().split('T')[0],
     Notes: ''
@@ -39,13 +39,13 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved })
         JobTitle: '',
         Phone: '',
         Email: '',
-        OfficeLocationID: 'LOC-0001',
+        OfficeLocationID: defaultLocationId || 'LOC-0001',
         Status: 'Active',
         JoinDate: new Date().toISOString().split('T')[0],
         Notes: ''
       });
     }
-  }, [user, isOpen]);
+  }, [user, isOpen, defaultLocationId]);
 
   if (!isOpen) return null;
 

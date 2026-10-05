@@ -4,7 +4,7 @@ import { dbRepository } from '../../services/dbRepository';
 import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
 
-export default function LocationsDepartmentsView() {
+export default function LocationsDepartmentsView({ selectedLocation = 'All' }) {
   const locations = dbRepository.getTable('Locations');
   const departments = dbRepository.getTable('Departments');
   const allAssets = assetService.getAssets('All');
@@ -29,15 +29,36 @@ export default function LocationsDepartmentsView() {
         {locations.map(loc => {
           const locAssets = allAssets.filter(a => a.CurrentLocationID === loc.LocationID);
           const locUsers = allUsers.filter(u => u.OfficeLocationID === loc.LocationID);
+          const isSelected = 
+            (selectedLocation === 'Palawiya' && loc.LocationID === 'LOC-0002') ||
+            (selectedLocation === 'Chilaw' && loc.LocationID === 'LOC-0001');
 
           return (
-            <div key={loc.LocationID} className="location-card">
+            <div 
+              key={loc.LocationID} 
+              className="location-card"
+              style={isSelected ? {
+                borderColor: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981',
+                boxShadow: `0 0 0 2px ${selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+              } : undefined}
+            >
               <div className="location-card-header">
-                <div className="location-icon">
+                <div 
+                  className="location-icon"
+                  style={isSelected ? {
+                    color: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981',
+                    background: selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(16, 185, 129, 0.15)'
+                  } : undefined}
+                >
                   <MapPin size={20} />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-base">{loc.OfficeName}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-base">{loc.OfficeName}</h4>
+                    {isSelected && (
+                      <span className="badge badge-primary text-[10px]">Active Filter</span>
+                    )}
+                  </div>
                   <span className="text-xs text-muted font-mono">{loc.LocationID} • {loc.Building} ({loc.Floor})</span>
                 </div>
               </div>

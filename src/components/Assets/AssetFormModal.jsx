@@ -3,7 +3,7 @@ import { X, Save, Laptop } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
 
-export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved }) {
+export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved, defaultLocationId = 'LOC-0001' }) {
   const users = userService.getUsers('Active');
 
   const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved 
     WarrantyEnd: '',
     Status: 'Available',
     CurrentUserID: '',
-    CurrentLocationID: 'LOC-0001',
+    CurrentLocationID: defaultLocationId || 'LOC-0001',
     Notes: ''
   });
 
@@ -56,11 +56,11 @@ export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved 
         WarrantyEnd: '',
         Status: 'Available',
         CurrentUserID: '',
-        CurrentLocationID: 'LOC-0001',
+        CurrentLocationID: defaultLocationId || 'LOC-0001',
         Notes: ''
       });
     }
-  }, [asset, isOpen]);
+  }, [asset, isOpen, defaultLocationId]);
 
   if (!isOpen) return null;
 
@@ -218,9 +218,12 @@ export default function AssetFormModal({ isOpen, onClose, asset = null, onSaved 
                 value={formData.CurrentUserID}
                 onChange={e => {
                   const val = e.target.value;
+                  const selectedUser = users.find(u => u.UserID === val);
+                  const autoLoc = selectedUser?.OfficeLocationID || formData.CurrentLocationID;
                   setFormData({
                     ...formData,
                     CurrentUserID: val,
+                    CurrentLocationID: autoLoc,
                     Status: val === 'SHARED_NETWORK' ? 'Shared / Networked' : (val ? 'Assigned' : 'Available')
                   });
                 }}

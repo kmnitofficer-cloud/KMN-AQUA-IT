@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Users, UserPlus, Search, Shield, Laptop, Eye, Power } from 'lucide-react';
 import { userService } from '../../services/userService';
+import { locationService } from '../../services/locationService';
 import UserProfileModal from './UserProfileModal';
 import UserFormModal from './UserFormModal';
 
-export default function UsersView({ onSelectAsset }) {
+export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -12,9 +13,10 @@ export default function UsersView({ onSelectAsset }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  const users = userService.getUsers(filter);
+  const allUsers = userService.getUsers(filter);
+  const locationUsers = allUsers.filter(u => locationService.matchesUser(u, selectedLocation));
 
-  const filteredUsers = users.filter(u => {
+  const filteredUsers = locationUsers.filter(u => {
     const q = search.toLowerCase();
     return (
       (u.Name && u.Name.toLowerCase().includes(q)) ||
@@ -54,6 +56,35 @@ export default function UsersView({ onSelectAsset }) {
         </div>
       </div>
 
+      {/* Location Filter Indicator Banner */}
+      {selectedLocation !== 'All' && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.6rem 1rem',
+          marginBottom: '1rem',
+          borderRadius: 'var(--radius-md)',
+          background: selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+          border: `1px solid ${selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981'
+            }} />
+            <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+              Active Facility Filter: <strong style={{ color: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981' }}>{selectedLocation === 'Palawiya' ? 'Palawiya Office (Branch)' : 'Chilaw Office (Headquarters)'}</strong>
+            </span>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {locationUsers.length} staff member{locationUsers.length === 1 ? '' : 's'} assigned to this location
+          </span>
+        </div>
+      )}
+
       {/* Filter Tabs & Search Bar */}
       <div className="filter-bar">
         <div className="filter-tabs">
@@ -61,19 +92,19 @@ export default function UsersView({ onSelectAsset }) {
             className={`filter-tab ${filter === 'All' ? 'active' : ''}`}
             onClick={() => setFilter('All')}
           >
-            All Users ({userService.getUsers('All').length})
+            All Users ({userService.getUsers('All').filter(u => locationService.matchesUser(u, selectedLocation)).length})
           </button>
           <button
             className={`filter-tab ${filter === 'Active' ? 'active' : ''}`}
             onClick={() => setFilter('Active')}
           >
-            Active ({userService.getUsers('Active').length})
+            Active ({userService.getUsers('Active').filter(u => locationService.matchesUser(u, selectedLocation)).length})
           </button>
           <button
             className={`filter-tab ${filter === 'Inactive' ? 'active' : ''}`}
             onClick={() => setFilter('Inactive')}
           >
-            Inactive ({userService.getUsers('Inactive').length})
+            Inactive ({userService.getUsers('Inactive').filter(u => locationService.matchesUser(u, selectedLocation)).length})
           </button>
         </div>
 
@@ -109,7 +140,11 @@ export default function UsersView({ onSelectAsset }) {
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="text-center py-8 text-muted">
-                    No matching employees or users found.
+                    {selectedLocation === 'Palawiya'
+                      ? 'No staff members currently registered for Palawiya Branch. Click "+ Add Employee" above to register Palawiya staff.'
+                      : selectedLocation === 'Chilaw'
+                      ? 'No staff members found in Chilaw Office.'
+                      : 'No matching employees or users found.'}
                   </td>
                 </tr>
               ) : (
@@ -195,6 +230,7 @@ export default function UsersView({ onSelectAsset }) {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         user={editingUser}
+        defaultLocationId={locationService.getDefaultLocationId(selectedLocation)}
       />
     </div>
   );

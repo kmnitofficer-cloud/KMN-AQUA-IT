@@ -19,22 +19,29 @@ import { formatDisplayDate } from '../../utils/dateUtils';
 import AddCCTVBillModal from './AddCCTVBillModal';
 import CCTVBillViewerModal from './CCTVBillViewerModal';
 
-export default function CCTVView() {
-  const [officeFilter, setOfficeFilter] = useState('All'); // 'All' | 'Chilaw' | 'Palawiya'
+export default function CCTVView({ selectedLocation = 'All' }) {
+  const [officeFilter, setOfficeFilter] = useState(() => selectedLocation); // 'All' | 'Chilaw' | 'Palawiya'
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [search, setSearch] = useState('');
   
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [targetModalOffice, setTargetModalOffice] = useState('Chilaw');
+  const [targetModalOffice, setTargetModalOffice] = useState(() => selectedLocation !== 'All' ? selectedLocation : 'Chilaw');
   const [selectedBill, setSelectedBill] = useState(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+  useEffect(() => {
+    setOfficeFilter(selectedLocation);
+    if (selectedLocation !== 'All') {
+      setTargetModalOffice(selectedLocation);
+    }
+  }, [selectedLocation]);
 
   const bills = cctvService.getCCTVBills(officeFilter, categoryFilter);
   const summary = cctvService.getCCTVSummary();
   const offices = cctvService.getOffices();
 
-  const handleOpenAddModal = (office = 'Chilaw') => {
+  const handleOpenAddModal = (office = selectedLocation !== 'All' ? selectedLocation : 'Chilaw') => {
     setTargetModalOffice(office);
     setIsAddModalOpen(true);
   };

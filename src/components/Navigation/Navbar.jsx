@@ -2,6 +2,8 @@ import React from 'react';
 import { Search, Moon, Sun, Database, Shield, Menu, Laptop, Cloud, LogOut, User as UserIcon } from 'lucide-react';
 import { dbRepository } from '../../services/dbRepository';
 
+import LocationSelector from './LocationSelector';
+
 export default function Navbar({
   theme,
   onToggleTheme,
@@ -11,7 +13,9 @@ export default function Navbar({
   onOpenDatabaseHub,
   onToggleMobileMenu,
   currentUser,
-  onLogout
+  onLogout,
+  selectedLocation = 'All',
+  onSelectLocation
 }) {
   const storageSource = dbRepository.getStorageSource();
   const isGoogleDrive = storageSource === 'google_drive';
@@ -41,6 +45,12 @@ export default function Navbar({
       </div>
 
       <div className="navbar-center">
+        {/* Facility / Location Filter in Header Bar */}
+        <LocationSelector 
+          selectedLocation={selectedLocation} 
+          onSelectLocation={onSelectLocation} 
+        />
+
         <button 
           type="button"
           className="navbar-search-trigger" 

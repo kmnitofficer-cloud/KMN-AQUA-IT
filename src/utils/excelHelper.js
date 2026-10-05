@@ -4,16 +4,23 @@ import * as XLSX from 'xlsx';
  * Export machine records to an Excel (.xlsx) file
  */
 export function exportMachinesToExcel(machines, filename = 'Machines_Inventory.xlsx') {
-  const exportData = machines.map((m, idx) => ({
-    'No': idx + 1,
-    'Verified No': m.verified_no || 'N/A',
-    'Item Name': m.item_name || '',
-    'Category': m.category || 'Other',
-    'Office / Branch': m.office || 'Chilaw Office',
-    'Assigned To': m.assigned_to || 'Unassigned',
-    'Status': m.status || 'Working',
-    'Remarks / Specs': m.remarks || '',
-  }));
+  const exportData = machines.map((m, idx) => {
+    const locId = m.CurrentLocationID || '';
+    const locName = m.LocationName || m.office || '';
+    const isPalawiya = locId === 'LOC-0002' || locName.toLowerCase().includes('palawi') || locName.toLowerCase().includes('palavi');
+    const officeName = isPalawiya ? 'Palawiya Office' : (m.office || m.LocationName || 'Chilaw Office');
+
+    return {
+      'No': idx + 1,
+      'Verified No': m.verified_no || m.VerifiedNo || 'N/A',
+      'Item Name': m.item_name || `${m.Brand || ''} ${m.Model || ''}`.trim() || '',
+      'Category': m.category || m.AssetType || 'Other',
+      'Office / Branch': officeName,
+      'Assigned To': m.assigned_to || m.AssignedUserName || 'Unassigned',
+      'Status': m.status || m.Status || 'Working',
+      'Remarks / Specs': m.remarks || m.Specifications || m.Notes || '',
+    };
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
 
@@ -23,7 +30,7 @@ export function exportMachinesToExcel(machines, filename = 'Machines_Inventory.x
     { wch: 18 }, // Verified No
     { wch: 32 }, // Item Name
     { wch: 18 }, // Category
-    { wch: 18 }, // Office
+    { wch: 20 }, // Office
     { wch: 20 }, // Assigned To
     { wch: 14 }, // Status
     { wch: 45 }, // Remarks
@@ -38,16 +45,23 @@ export function exportMachinesToExcel(machines, filename = 'Machines_Inventory.x
  * Export complete workbook with both Machines and Service Details sheets
  */
 export function exportFullWorkbook(machines, services, filename = 'KMN_IT_Asset_Master.xlsx') {
-  const machinesData = machines.map((m, idx) => ({
-    'No': idx + 1,
-    'Verified No': m.verified_no || 'N/A',
-    'Item Name': m.item_name || '',
-    'Category': m.category || 'Other',
-    'Office': m.office || 'Chilaw Office',
-    'Assigned User': m.assigned_to || 'Unassigned',
-    'Status': m.status || 'Working',
-    'Remarks / Specifications': m.remarks || '',
-  }));
+  const machinesData = machines.map((m, idx) => {
+    const locId = m.CurrentLocationID || '';
+    const locName = m.LocationName || m.office || '';
+    const isPalawiya = locId === 'LOC-0002' || locName.toLowerCase().includes('palawi') || locName.toLowerCase().includes('palavi');
+    const officeName = isPalawiya ? 'Palawiya Office' : (m.office || m.LocationName || 'Chilaw Office');
+
+    return {
+      'No': idx + 1,
+      'Verified No': m.verified_no || m.VerifiedNo || 'N/A',
+      'Item Name': m.item_name || `${m.Brand || ''} ${m.Model || ''}`.trim() || '',
+      'Category': m.category || m.AssetType || 'Other',
+      'Office': officeName,
+      'Assigned User': m.assigned_to || m.AssignedUserName || 'Unassigned',
+      'Status': m.status || m.Status || 'Working',
+      'Remarks / Specifications': m.remarks || m.Specifications || m.Notes || '',
+    };
+  });
 
   const servicesData = services.map((s, idx) => ({
     'No': idx + 1,

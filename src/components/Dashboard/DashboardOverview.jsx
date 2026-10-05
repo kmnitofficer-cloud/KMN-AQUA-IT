@@ -26,14 +26,19 @@ import { expenseService } from '../../services/expenseService';
 import { printerService } from '../../services/printerService';
 import { invoiceService } from '../../services/invoiceService';
 import { acService } from '../../services/acService';
+import { locationService } from '../../services/locationService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
-export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
-  const users = userService.getUsers('All');
-  const assets = assetService.getAssets('All');
+export default function DashboardOverview({ onNavigate, onOpenPrinter, selectedLocation = 'All' }) {
+  const allUsers = userService.getUsers('All');
+  const users = allUsers.filter(u => locationService.matchesUser(u, selectedLocation));
+
+  const allAssets = assetService.getAssets('All');
+  const assets = allAssets.filter(a => locationService.matchesAsset(a, selectedLocation));
+
   const repairs = repairService.getRepairs();
-  const printers = printerService.getPrinters();
+  const printers = printerService.getPrinters().filter(p => locationService.matchesAsset(p, selectedLocation));
   const financialSummary = expenseService.getFinancialSummary();
   const warrantySummary = useMemo(() => repairService.getWarrantySummary(), []);
   const reconciliation = useMemo(() => invoiceService.getReconciliationSummary(), []);
@@ -191,6 +196,41 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter }) {
           </button>
         </div>
       </div>
+
+      {/* Location Filter Indicator Banner */}
+      {selectedLocation !== 'All' && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.75rem 1.25rem',
+          marginBottom: '1.25rem',
+          borderRadius: 'var(--radius-lg)',
+          background: selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+          border: `1px solid ${selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <span style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              backgroundColor: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981',
+              boxShadow: `0 0 8px ${selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981'}`
+            }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+              Viewing Operational Metrics for: <strong style={{ color: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981' }}>{selectedLocation === 'Palawiya' ? 'Palawiya Branch Office' : 'Chilaw Office (Headquarters)'}</strong> ({users.length} staff, {assets.length} machines)
+            </span>
+          </div>
+          <button 
+            type="button" 
+            className="btn btn-sm btn-outline"
+            onClick={() => locationService.setSelectedLocation('All')}
+            style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
+          >
+            Show All Facilities
+          </button>
+        </div>
+      )}
 
       {/* KPI Stat Cards Grid (Desktop 4 cols, Tablet 2 cols, Mobile 1 col) */}
       <div className="stats-kpi-grid">

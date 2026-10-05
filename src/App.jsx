@@ -30,6 +30,7 @@ import { Cloud } from 'lucide-react';
 import { dbRepository } from './services/dbRepository';
 import { googleDriveService } from './services/googleDriveService';
 import { authService } from './services/authService';
+import { locationService } from './services/locationService';
 
 const STORAGE_THEME = 'kmn_theme';
 const STORAGE_ROLE = 'kmn_user_role';
@@ -47,6 +48,7 @@ export default function App() {
     return user ? user.role : (localStorage.getItem(STORAGE_ROLE) || 'admin');
   });
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedLocation, setSelectedLocation] = useState(() => locationService.getSelectedLocation());
   const [dbVersion, setDbVersion] = useState(0);
 
   // Global Navigation & Modal states
@@ -80,6 +82,14 @@ export default function App() {
       }
     });
     return () => unsubscribeAuth();
+  }, []);
+
+  // Listen to active Facility Location changes
+  useEffect(() => {
+    const unsubLocation = locationService.subscribe((loc) => {
+      setSelectedLocation(loc);
+    });
+    return () => unsubLocation();
   }, []);
 
   // 2. Initialize relational database repository only when authenticated
@@ -221,6 +231,8 @@ export default function App() {
         }}
         currentUser={currentUser}
         onLogout={handleLogout}
+        selectedLocation={selectedLocation}
+        onSelectLocation={setSelectedLocation}
       />
 
       {/* Main Workspace Layout */}
@@ -243,27 +255,34 @@ export default function App() {
             <DashboardOverview
               onNavigate={setActiveTab}
               onOpenPrinter={(id) => { setViewingPrinterId(id); setIsPrinterProfileOpen(true); }}
+              selectedLocation={selectedLocation}
             />
           )}
 
           {activeTab === 'users' && (
             <UsersView
               onSelectAsset={(id) => { setViewingAssetId(id); setIsAssetProfileOpen(true); }}
+              selectedLocation={selectedLocation}
             />
           )}
 
           {activeTab === 'assets' && (
             <AssetsView
               onSelectUser={(id) => { setViewingUserId(id); setIsUserProfileOpen(true); }}
+              selectedLocation={selectedLocation}
             />
           )}
 
           {activeTab === 'assignments' && (
-            <AssignmentsView />
+            <AssignmentsView
+              selectedLocation={selectedLocation}
+            />
           )}
 
           {activeTab === 'printers' && (
-            <PrintersView />
+            <PrintersView
+              selectedLocation={selectedLocation}
+            />
           )}
 
           {activeTab === 'repairs' && (
@@ -281,7 +300,9 @@ export default function App() {
           )}
 
           {activeTab === 'cctv' && (
-            <CCTVView />
+            <CCTVView
+              selectedLocation={selectedLocation}
+            />
           )}
 
           {activeTab === 'expenses' && (
@@ -297,7 +318,9 @@ export default function App() {
           )}
 
           {activeTab === 'locations' && (
-            <LocationsDepartmentsView />
+            <LocationsDepartmentsView
+              selectedLocation={selectedLocation}
+            />
           )}
 
           {activeTab === 'database' && (

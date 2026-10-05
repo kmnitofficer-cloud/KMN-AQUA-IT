@@ -13,12 +13,13 @@ import {
   Archive
 } from 'lucide-react';
 import { assetService } from '../../services/assetService';
+import { locationService } from '../../services/locationService';
 import AssetProfileModal from './AssetProfileModal';
 import AssetFormModal from './AssetFormModal';
 import ReassignModal from '../Assignments/ReassignModal';
 import RepairModal from '../Repairs/RepairModal';
 
-export default function AssetsView({ onSelectUser }) {
+export default function AssetsView({ onSelectUser, selectedLocation = 'All' }) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState(null);
@@ -33,9 +34,10 @@ export default function AssetsView({ onSelectUser }) {
   const [isRepairOpen, setIsRepairOpen] = useState(false);
   const [repairAssetId, setRepairAssetId] = useState(null);
 
-  const assets = assetService.getAssets(filter);
+  const allAssets = assetService.getAssets(filter);
+  const locationAssets = allAssets.filter(a => locationService.matchesAsset(a, selectedLocation));
 
-  const filteredAssets = assets.filter(a => {
+  const filteredAssets = locationAssets.filter(a => {
     const q = search.toLowerCase();
     return (
       (a.Model && a.Model.toLowerCase().includes(q)) ||
@@ -79,20 +81,49 @@ export default function AssetsView({ onSelectUser }) {
         </div>
       </div>
 
+      {/* Location Filter Indicator Banner */}
+      {selectedLocation !== 'All' && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.6rem 1rem',
+          marginBottom: '1rem',
+          borderRadius: 'var(--radius-md)',
+          background: selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+          border: `1px solid ${selectedLocation === 'Palawiya' ? 'rgba(6, 182, 212, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981'
+            }} />
+            <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+              Active Facility Filter: <strong style={{ color: selectedLocation === 'Palawiya' ? '#06B6D4' : '#10B981' }}>{selectedLocation === 'Palawiya' ? 'Palawiya Office (Branch)' : 'Chilaw Office (Headquarters)'}</strong>
+            </span>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {locationAssets.length} machine{locationAssets.length === 1 ? '' : 's'} assigned to this location
+          </span>
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div className="filter-bar">
         <div className="filter-tabs-scrollable">
           {[
-            { id: 'All', label: 'All Assets', count: assetService.getAssets('All').length },
-            { id: 'Computers', label: 'Computers & AIO', count: assetService.getAssets('Computers').length },
-            { id: 'Laptops', label: 'Laptops', count: assetService.getAssets('Laptops').length },
-            { id: 'Monitors', label: 'Monitors', count: assetService.getAssets('Monitors').length },
-            { id: 'Printers', label: 'Printers', count: assetService.getAssets('Printers').length },
-            { id: 'Shared', label: '🌐 Shared / Network', count: assetService.getAssets('Shared').length },
-            { id: 'Accessories', label: 'Accessories', count: assetService.getAssets('Accessories').length },
-            { id: 'Unassigned', label: 'Unassigned (Storage)', count: assetService.getAssets('Unassigned').length },
-            { id: 'Warnings', label: '⚠️ Daily Warnings', count: assetService.getAssets('Warnings').length },
-            { id: 'Under Repair', label: 'Under Repair', count: assetService.getAssets('Under Repair').length },
+            { id: 'All', label: 'All Assets', count: assetService.getAssets('All').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Computers', label: 'Computers & AIO', count: assetService.getAssets('Computers').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Laptops', label: 'Laptops', count: assetService.getAssets('Laptops').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Monitors', label: 'Monitors', count: assetService.getAssets('Monitors').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Printers', label: 'Printers', count: assetService.getAssets('Printers').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Shared', label: '🌐 Shared / Network', count: assetService.getAssets('Shared').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Accessories', label: 'Accessories', count: assetService.getAssets('Accessories').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Unassigned', label: 'Unassigned (Storage)', count: assetService.getAssets('Unassigned').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Warnings', label: '⚠️ Daily Warnings', count: assetService.getAssets('Warnings').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
+            { id: 'Under Repair', label: 'Under Repair', count: assetService.getAssets('Under Repair').filter(a => locationService.matchesAsset(a, selectedLocation)).length },
           ].map(tab => (
             <button
               key={tab.id}
@@ -136,7 +167,11 @@ export default function AssetsView({ onSelectUser }) {
               {filteredAssets.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="text-center py-8 text-muted">
-                    No hardware assets found matching this criteria.
+                    {selectedLocation === 'Palawiya'
+                      ? 'No hardware assets currently registered for Palawiya Branch. Click "+ Register New Asset" above to add equipment for Palawiya.'
+                      : selectedLocation === 'Chilaw'
+                      ? 'No hardware assets found in Chilaw Office.'
+                      : 'No hardware assets found matching this criteria.'}
                   </td>
                 </tr>
               ) : (
@@ -250,6 +285,7 @@ export default function AssetsView({ onSelectUser }) {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         asset={editingAsset}
+        defaultLocationId={locationService.getDefaultLocationId(selectedLocation)}
       />
 
       {/* Reassign Modal */}

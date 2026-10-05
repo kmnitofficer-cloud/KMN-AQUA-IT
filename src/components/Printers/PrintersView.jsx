@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { Printer, Plus, Search, Eye, Wifi, AlertTriangle, CheckCircle2, DollarSign } from 'lucide-react';
 import { printerService } from '../../services/printerService';
+import { locationService } from '../../services/locationService';
 import PrinterProfileModal from './PrinterProfileModal';
 import TonerModal from './TonerModal';
 
-export default function PrintersView() {
+export default function PrintersView({ selectedLocation = 'All' }) {
   const [search, setSearch] = useState('');
   const [selectedPrinterId, setSelectedPrinterId] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isTonerModalOpen, setIsTonerModalOpen] = useState(false);
   const [tonerPrinterAssetId, setTonerPrinterAssetId] = useState(null);
 
-  const printers = printerService.getPrinters();
+  const allPrinters = printerService.getPrinters();
+  const locationPrinters = allPrinters.filter(p => locationService.matchesAsset(p, selectedLocation));
 
-  const filteredPrinters = printers.filter(p => {
+  const filteredPrinters = locationPrinters.filter(p => {
     const q = search.toLowerCase();
     return (
       (p.PrinterName && p.PrinterName.toLowerCase().includes(q)) ||

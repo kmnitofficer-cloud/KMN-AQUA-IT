@@ -4,7 +4,7 @@ import { assignmentService } from '../../services/assignmentService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 import ReassignModal from './ReassignModal';
 
-export default function AssignmentsView() {
+export default function AssignmentsView({ selectedLocation = 'All' }) {
   const [filter, setFilter] = useState('All'); // 'All', 'Current', 'Returned'
   const [search, setSearch] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState(null);
@@ -14,6 +14,14 @@ export default function AssignmentsView() {
   const assignments = assignmentService.getAssignments();
 
   const filteredAssignments = assignments.filter(asgn => {
+    if (selectedLocation === 'Palawiya') {
+      const isPal = asgn.LocationID === 'LOC-0002' || (asgn.LocationName && asgn.LocationName.toLowerCase().includes('palawi'));
+      if (!isPal) return false;
+    } else if (selectedLocation === 'Chilaw') {
+      const isPal = asgn.LocationID === 'LOC-0002' || (asgn.LocationName && asgn.LocationName.toLowerCase().includes('palawi'));
+      if (isPal) return false;
+    }
+
     if (filter === 'Current' && asgn.AssignmentStatus !== 'Current') return false;
     if (filter === 'Returned' && asgn.AssignmentStatus !== 'Returned') return false;
 
