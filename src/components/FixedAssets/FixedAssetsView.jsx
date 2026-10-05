@@ -185,6 +185,14 @@ export default function FixedAssetsView() {
     }
   };
 
+  const handleUpdateCustodian = (assetId, newCustodian) => {
+    const updated = fixedAssetService.updateAsset(assetId, { user: newCustodian });
+    if (updated) {
+      setSelectedAsset(updated);
+      setAssets(fixedAssetService.getAssets());
+    }
+  };
+
   // Quick category counts
   const chairsCount = useMemo(() => assets.filter(a => a.isChair).length, [assets]);
   const tablesCount = useMemo(() => assets.filter(a => a.keyword === 'Table & Desk').length, [assets]);
@@ -614,6 +622,7 @@ export default function FixedAssetsView() {
               onPositionChange={handlePositionChange}
               onSavePositions={handleSavePositions}
               onCancelPositions={handleCancelPositions}
+              onUpdateCustodian={handleUpdateCustodian}
             />
           )}
         </div>
@@ -629,6 +638,7 @@ export default function FixedAssetsView() {
             activeFilter={activeCategoryFilter}
             onOpenTransferModal={handleOpenTransfer}
             onOpenEditModal={handleOpenEdit}
+            onUpdateCustodian={handleUpdateCustodian}
             isEditMode={isEditMode}
             pendingPositions={pendingPositions}
           />

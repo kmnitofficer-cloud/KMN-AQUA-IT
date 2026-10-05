@@ -19,8 +19,10 @@ import {
   Building,
   Info,
   Move,
-  RotateCw
+  RotateCw,
+  FileSpreadsheet
 } from 'lucide-react';
+import { EXCEL_STAFF_CUSTODIANS } from '../../services/fixedAssetService';
 import './FixedAssetsStyles.css';
 
 export default function AssetInspectorDrawer({
@@ -32,6 +34,7 @@ export default function AssetInspectorDrawer({
   activeFilter = 'All',
   onOpenTransferModal = () => {},
   onOpenEditModal = () => {},
+  onUpdateCustodian = () => {},
   isEditMode = false,
   pendingPositions = {}
 }) {
@@ -147,6 +150,62 @@ export default function AssetInspectorDrawer({
             </div>
           )}
 
+          {/* Excel Register Verification Status Banner */}
+          <div className={`fa-excel-status-banner ${selectedAsset.inExcelRegister === false ? 'not-in-excel' : ''}`}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <FileSpreadsheet size={17} style={{ color: selectedAsset.inExcelRegister === false ? '#F59E0B' : '#10B981' }} />
+                <span style={{ fontWeight: 800, fontSize: '0.84rem', color: selectedAsset.inExcelRegister === false ? '#F59E0B' : '#10B981' }}>
+                  {selectedAsset.inExcelRegister === false ? '⚠️ Not in Excel Register (Manual System Entry)' : '📗 In Chilaw FA Register 2026 .xlsx'}
+                </span>
+              </div>
+              <span
+                className="badge"
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  background: selectedAsset.inExcelRegister === false ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                  color: selectedAsset.inExcelRegister === false ? '#F59E0B' : '#10B981'
+                }}
+              >
+                {selectedAsset.inExcelRegister === false ? 'Unverified' : 'Verified in Register'}
+              </span>
+            </div>
+
+            <div style={{ background: 'rgba(0, 0, 0, 0.25)', borderRadius: 6, padding: '0.55rem 0.75rem', fontSize: '0.72rem', display: 'flex', flexDirection: 'column', gap: '0.28rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Excel File Source:</span>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Chilaw FA Register 2026 .xlsx</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Worksheet:</span>
+                <span style={{ fontWeight: 700, color: 'var(--brand-primary, #00A3FF)' }}>Orginal • Furniture & Fittings</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Asset Register ID:</span>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedAsset.id}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Registered Location:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedAsset.locationName}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Registered Custodian:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedAsset.user || 'Facility / Common'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Purchase Date in Excel:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedAsset.dateOfPurchase || 'Before 2016'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Excel Book Value / Amount:</span>
+                <span style={{ fontWeight: 700, color: '#10B981' }}>
+                  {selectedAsset.amount && selectedAsset.amount !== '-' ? `LKR ${Number(selectedAsset.amount).toLocaleString()}` : 'Not Specified'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Current Custody & Location Card */}
           <div
             style={{
@@ -188,22 +247,85 @@ export default function AssetInspectorDrawer({
                 <span>Transfer</span>
               </button>
             </div>
+
+            {/* 1-Click Quick Custodian / Person Assignment */}
+            <div style={{ marginTop: '0.65rem', borderTop: '1px solid rgba(148, 163, 184, 0.12)', paddingTop: '0.55rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--brand-primary, #00A3FF)' }}>
+                  👤 Quick Assign Excel Person / Custodian:
+                </span>
+              </div>
+              <select
+                value={selectedAsset.user || ''}
+                onChange={(e) => onUpdateCustodian && onUpdateCustodian(selectedAsset.id, e.target.value)}
+                className="input select"
+                style={{ width: '100%', height: '32px', fontSize: '0.76rem', borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface)' }}
+              >
+                <option value="">-- Choose Person from Chilaw Register --</option>
+                {EXCEL_STAFF_CUSTODIANS.map(person => (
+                  <option key={person} value={person}>{person}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* Audit Verification History Timeline */}
+          {/* 5-Cycle Physical Audit Verification Grid from Excel */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <ShieldCheck size={16} className="text-emerald" />
                 <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                  Audit & Verification History
+                  Excel Audit Verifications (5 Cycles)
                 </span>
               </div>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                {selectedAsset.auditTimeline?.length || 0} Cycles Logged
+              <span style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: 700 }}>
+                {selectedAsset.auditTimeline?.length || 5} Cycles Logged
               </span>
             </div>
 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.75rem' }}>
+              <div className="fa-audit-cycle-card" style={{ borderLeft: '3px solid #10B981' }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#10B981', fontSize: '0.72rem' }}>2026/08 Physical Audit</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>🏷️ {selectedAsset.verified2026 || selectedAsset.tagNumber}</div>
+                </div>
+                <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Verified Usable</span>
+              </div>
+
+              <div className="fa-audit-cycle-card" style={{ borderLeft: '3px solid #00A3FF' }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#00A3FF', fontSize: '0.72rem' }}>2025/09 Physical Audit</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>🏷️ {selectedAsset.verified2025 || selectedAsset.verified2026 || selectedAsset.tagNumber}</div>
+                </div>
+                <span className="badge" style={{ fontSize: '0.65rem', background: 'rgba(0,163,255,0.15)', color: '#00A3FF' }}>Verified</span>
+              </div>
+
+              <div className="fa-audit-cycle-card" style={{ borderLeft: '3px solid #8B5CF6' }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#A78BFA', fontSize: '0.72rem' }}>2024/04 Physical Audit</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>🏷️ {selectedAsset.verified2024 || selectedAsset.tagNumber}</div>
+                </div>
+                <span className="badge" style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.15)', color: '#A78BFA' }}>Verified</span>
+              </div>
+
+              <div className="fa-audit-cycle-card" style={{ borderLeft: '3px solid #F59E0B' }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#F59E0B', fontSize: '0.72rem' }}>2023/04 Physical Audit</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>🏷️ {selectedAsset.verified2023 || 'Recorded in Category Sheet'}</div>
+                </div>
+                <span className="badge" style={{ fontSize: '0.65rem', background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>Audited</span>
+              </div>
+
+              <div className="fa-audit-cycle-card" style={{ borderLeft: '3px solid #64748B' }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#94A3B8', fontSize: '0.72rem' }}>2022/06 Baseline Registration</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>🏷️ {selectedAsset.verified2022 || 'Baseline Asset Tag'}</div>
+                </div>
+                <span className="badge badge-outline" style={{ fontSize: '0.65rem' }}>Baseline</span>
+              </div>
+            </div>
+
+            {/* Audit Verification History Timeline Node Flow */}
             <div className="fa-timeline">
               {selectedAsset.auditTimeline && selectedAsset.auditTimeline.length > 0 ? (
                 selectedAsset.auditTimeline.map((item, idx) => (

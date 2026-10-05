@@ -10,19 +10,26 @@ export default defineConfig(({ mode }) => {
   const salt = 'KMN_AQUA_SECURE_AUTH_2026';
   const computeHash = (val) => crypto.createHash('sha256').update(String(val || '').trim() + salt).digest('hex');
 
+  const stripParens = (str) => String(str || '').trim().replace(/^\((.*)\)$/, '$1').trim();
+
   const adminUser = (env.VITE_ADMIN_USERNAME || 'admin').trim();
-  const adminPass = (env.VITE_ADMIN_PASSWORD || 'admin123').trim();
+  const rawAdminPass = (env.VITE_ADMIN_PASSWORD || 'admin123').trim();
+  const cleanAdminPass = stripParens(rawAdminPass);
+
   const userUser = (env.VITE_USER_USERNAME || 'user').trim();
-  const userPass = (env.VITE_USER_PASSWORD || 'user123').trim();
+  const rawUserPass = (env.VITE_USER_PASSWORD || 'user123').trim();
+  const cleanUserPass = stripParens(rawUserPass);
 
   return {
     base: './',
     define: {
       __AUTH_CONFIG__: JSON.stringify({
         adminUser: adminUser,
-        adminHash: computeHash(adminPass),
+        adminHash: computeHash(cleanAdminPass),
+        adminAltHash: computeHash(rawAdminPass),
         userUser: userUser,
-        userHash: computeHash(userPass),
+        userHash: computeHash(cleanUserPass),
+        userAltHash: computeHash(rawUserPass),
         salt: salt
       })
     },

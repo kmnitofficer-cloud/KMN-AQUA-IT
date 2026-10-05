@@ -1,7 +1,34 @@
 import initialData from '../data/chilawFixedAssetsData.json';
 
-const STORAGE_KEY = 'kmn_chilaw_fixed_assets_v3';
-const STORAGE_ZONES_KEY = 'kmn_chilaw_fa_zones_v3';
+const STORAGE_KEY = 'kmn_chilaw_fixed_assets_v6';
+const STORAGE_ZONES_KEY = 'kmn_chilaw_fa_zones_v6';
+
+export const EXCEL_STAFF_CUSTODIANS = [
+  'Mrs. Ishara',
+  'Mrs. Deepika',
+  'Mr. Indika',
+  'Mr. Lahiru',
+  'Mr. Chaminda',
+  'Ms Dilushi',
+  'Ms. Narmada',
+  'Ms. Mishel',
+  'Ms. Sachini',
+  'Ms. Heshani',
+  'Ms.Hiruni',
+  'Ms. Mahima',
+  'Ms. Lakshani',
+  'Ms. Chalani',
+  'Mr. Anjitha',
+  'Mr. Tharindu',
+  'Mr. Kalpana',
+  'Mr. Rashane',
+  'Mr. Wasantha',
+  'MD (Boss)',
+  'HRO (HR Officer)',
+  'Reception / Guest',
+  '6 Black Chairs (Lobby)',
+  'Common / Facility'
+];
 
 class FixedAssetService {
   constructor() {
@@ -9,6 +36,10 @@ class FixedAssetService {
     this.assets = [];
     this.zones = initialData.zones || {};
     this.init();
+  }
+
+  getCompanyCustodians() {
+    return EXCEL_STAFF_CUSTODIANS;
   }
 
   init() {

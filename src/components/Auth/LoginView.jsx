@@ -17,22 +17,24 @@ import {
 import { authService } from '../../services/authService';
 
 export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
-  const [username, setUsername] = useState('');
+  const currentConfig = authService.getConfig();
+  const [activeProfileTab, setActiveProfileTab] = useState('admin'); // 'admin' | 'user'
+  const [username, setUsername] = useState(currentConfig?.adminUser || 'kmnaquaitadmin');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeProfileTab, setActiveProfileTab] = useState('admin'); // 'admin' | 'user'
 
   const handleProfileSelect = (profileType) => {
     setActiveProfileTab(profileType);
     setError('');
+    const config = authService.getConfig();
     if (profileType === 'admin') {
-      setUsername('admin');
+      setUsername(config?.adminUser || 'kmnaquaitadmin');
       setPassword('');
     } else {
-      setUsername('user');
+      setUsername(config?.userUser || 'user');
       setPassword('');
     }
   };
@@ -124,14 +126,24 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
         {/* Profile Description Pill */}
         <div className="login-profile-hint">
           {activeProfileTab === 'admin' ? (
-            <div className="flex items-center gap-2 text-xs text-cyan-300">
-              <CheckCircle2 size={13} />
-              <span>Full administrator access: Assets, AC Blueprints, DB Sync, Bills</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div className="flex items-center gap-2 text-xs text-cyan-300">
+                <CheckCircle2 size={13} />
+                <span>Full administrator access: Assets, Floor Plans, Cloud DB Sync</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94A3B8)', paddingLeft: '1.25rem' }}>
+                ID: <strong style={{ color: '#38BDF8' }}>{currentConfig?.adminUser || 'kmnaquaitadmin'}</strong> &bull; Password: <strong style={{ color: '#38BDF8', fontFamily: 'monospace' }}>(adminaqua30@IT)</strong>
+              </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-indigo-300">
-              <CheckCircle2 size={13} />
-              <span>Read-only staff access: View hardware, AC Floor Map, view documents</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <div className="flex items-center gap-2 text-xs text-indigo-300">
+                <CheckCircle2 size={13} />
+                <span>Read-only staff access: View assets, blueprints, inspection</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94A3B8)', paddingLeft: '1.25rem' }}>
+                ID: <strong style={{ color: '#818CF8' }}>{currentConfig?.userUser || 'user'}</strong> &bull; Password: <strong style={{ color: '#818CF8', fontFamily: 'monospace' }}>(useraqua30@IT)</strong>
+              </div>
             </div>
           )}
         </div>
@@ -153,7 +165,7 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
               <input
                 type="text"
                 className="login-input"
-                placeholder={activeProfileTab === 'admin' ? 'admin' : 'user'}
+                placeholder={activeProfileTab === 'admin' ? (currentConfig?.adminUser || 'kmnaquaitadmin') : (currentConfig?.userUser || 'user')}
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 autoFocus
@@ -169,7 +181,7 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
               <input
                 type={showPassword ? 'text' : 'password'}
                 className="login-input"
-                placeholder="Enter password..."
+                placeholder={activeProfileTab === 'admin' ? '(adminaqua30@IT)' : '(useraqua30@IT)'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required

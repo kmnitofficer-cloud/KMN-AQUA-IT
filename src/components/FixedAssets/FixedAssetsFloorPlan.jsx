@@ -18,9 +18,12 @@ import {
   Move,
   Save,
   X,
-  Compass
+  Compass,
+  FileSpreadsheet,
+  User
 } from 'lucide-react';
 import { printFixedAssetsBlueprint } from '../../utils/printFixedAssetsBlueprint';
+import { EXCEL_STAFF_CUSTODIANS } from '../../services/fixedAssetService';
 import './FixedAssetsStyles.css';
 
 export default function FixedAssetsFloorPlan({
@@ -36,21 +39,27 @@ export default function FixedAssetsFloorPlan({
   pendingPositions = {},
   onPositionChange = () => {},
   onSavePositions = () => {},
-  onCancelPositions = () => {}
+  onCancelPositions = () => {},
+  onUpdateCustodian = () => {}
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
   const [hoveredAsset, setHoveredAsset] = useState(null);
   const [hoveredZone, setHoveredZone] = useState(null);
   const [isolateFilter, setIsolateFilter] = useState(false); // If true, completely hides non-matching furniture
   const [themeMode, setThemeMode] = useState('light'); // 'light' (Architectural CAD Paper like user image) | 'dark' (Night CAD Blueprint)
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const [showStaffNames, setShowStaffNames] = useState(true); // Toggle staff name tags on blueprint
 
-  // Dragging state
+  // Dragging state for item editing
   const [isDragging, setIsDragging] = useState(false);
   const [dragAssetId, setDragAssetId] = useState(null);
 
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
   const printMenuRef = useRef(null);
+  const panStartRef = useRef({ mouseX: 0, mouseY: 0, panX: 0, panY: 0, moved: false });
 
   const isGroundFloor = !floor || floor.includes('Ground') || floor.includes('GF');
 
@@ -66,11 +75,132 @@ export default function FixedAssetsFloorPlan({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [printMenuOpen]);
 
-  const handleZoom = delta => {
-    setZoomLevel(prev => Math.min(Math.max(0.6, prev + delta), 2.2));
+  // Google Maps Style Mouse Wheel Zoom centered on cursor
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - rect.width / 2;
+      const mouseY = e.clientY - rect.top - rect.height / 2;
+
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+
+      setZoomLevel((prevZoom) => {
+        const nextZoom = Math.min(Math.max(0.5, Number((prevZoom * zoomFactor).toFixed(2))), 3.5);
+        if (nextZoom === prevZoom) return prevZoom;
+
+        setPan((prevPan) => {
+          const scaleRatio = nextZoom / prevZoom;
+          return {
+            x: Math.round(mouseX - (mouseX - prevPan.x) * scaleRatio),
+            y: Math.round(mouseY - (mouseY - prevPan.y) * scaleRatio)
+          };
+        });
+
+        return nextZoom;
+      });
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Global mouseup to prevent sticky drag/pan when releasing outside the element
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsPanning(false);
+      setIsDragging(false);
+      setDragAssetId(null);
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
+
+  const handleZoom = (delta) => {
+    setZoomLevel(prev => {
+      const nextZoom = Math.min(Math.max(0.5, Number((prev + delta).toFixed(2))), 3.5);
+      if (nextZoom === 1 && prev !== 1) {
+        setPan({ x: 0, y: 0 });
+      }
+      return nextZoom;
+    });
   };
 
-  const resetZoom = () => setZoomLevel(1);
+  const resetZoom = () => {
+    setZoomLevel(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  useEffect(() => {
+    resetZoom();
+  }, [floor]);
+
+  // Room Quick-Jump Definitions
+  const groundFloorZones = [
+    { id: 'all', label: 'All Floor', icon: '🏢', cx: 480, cy: 485, zoom: 1 },
+    { id: 'main_office', label: 'Main Office', icon: '💻', cx: 310, cy: 260, zoom: 1.6 },
+    { id: 'reception', label: 'Reception', icon: '🤝', cx: 615, cy: 420, zoom: 1.7 },
+    { id: 'md_office', label: "MD's Suite", icon: '👔', cx: 330, cy: 630, zoom: 1.8 },
+    { id: 'recovery_office', label: 'Recovery Team', icon: '📋', cx: 330, cy: 740, zoom: 1.8 },
+    { id: 'stores', label: 'Stores', icon: '📦', cx: 830, cy: 510, zoom: 1.8 },
+    { id: 'ground_dining', label: 'Kitchen & Dining', icon: '🍽️', cx: 270, cy: 115, zoom: 1.9 },
+    { id: 'fish_tank', label: 'Fish Tank', icon: '🐠', cx: 395, cy: 540, zoom: 1.9 },
+    { id: 'stationary_room', label: 'Records', icon: '📁', cx: 330, cy: 875, zoom: 1.9 }
+  ];
+
+  const firstFloorZones = [
+    { id: 'all', label: 'All Floor', icon: '🏢', cx: 480, cy: 310, zoom: 1 },
+    { id: 'auditorium', label: 'Main Auditorium (92)', icon: '🎭', cx: 300, cy: 470, zoom: 1.5 },
+    { id: 'chilaw_lab', label: 'Chilaw Lab Annex', icon: '🧪', cx: 325, cy: 160, zoom: 1.7 },
+    { id: 'conference_room', label: 'Main Conference', icon: '💼', cx: 730, cy: 210, zoom: 1.7 },
+    { id: 'rest_room', label: 'Discussion Room', icon: '☕', cx: 730, cy: 110, zoom: 1.8 },
+    { id: 'first_dining', label: 'Lunch Room', icon: '🍽️', cx: 730, cy: 315, zoom: 1.8 },
+    { id: 'nadun_office', label: "Mr. Nadun's Office", icon: '👔', cx: 770, cy: 410, zoom: 1.8 }
+  ];
+
+  const jumpToZone = (zoneItem) => {
+    if (zoneItem.id === 'all' || (selectedZone === zoneItem.id && zoomLevel > 1)) {
+      resetZoom();
+      onSelectZone(null);
+      return;
+    }
+
+    const container = containerRef.current;
+    const viewBoxW = 960;
+    const viewBoxH = isGroundFloor ? 970 : 620;
+    const centerX = viewBoxW / 2;
+    const centerY = viewBoxH / 2;
+
+    let scaleRatio = 0.65;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0) {
+        scaleRatio = (rect.width * 0.92) / viewBoxW;
+      }
+    }
+
+    const targetPanX = Math.round((centerX - zoneItem.cx) * scaleRatio * zoneItem.zoom);
+    const targetPanY = Math.round((centerY - zoneItem.cy) * scaleRatio * zoneItem.zoom);
+
+    setZoomLevel(zoneItem.zoom);
+    setPan({ x: targetPanX, y: targetPanY });
+    onSelectZone(zoneItem.id);
+  };
+
+  const handleZoneClick = (zoneId) => {
+    if (panStartRef.current?.moved) return;
+    const target = (isGroundFloor ? groundFloorZones : firstFloorZones).find(z => z.id === zoneId);
+    if (target) {
+      jumpToZone(target);
+    } else {
+      onSelectZone(selectedZone === zoneId ? null : zoneId);
+    }
+  };
 
   // SVG coordinate transformation
   const getSVGCoordinates = (event) => {
@@ -146,40 +276,114 @@ export default function FixedAssetsFloorPlan({
     };
   };
 
-  // Dragging handlers
+  // Panning & Dragging handlers
   const handleItemMouseDown = (e, asset) => {
-    if (!isEditMode) return;
-    e.stopPropagation();
-    e.preventDefault();
-    setIsDragging(true);
-    setDragAssetId(asset.id);
-    onSelectAsset(asset);
-  };
+    panStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+      moved: false
+    };
 
-  const handleSvgMouseMove = (e) => {
-    if (!isEditMode || !isDragging || !dragAssetId) return;
-    const coords = getSVGCoordinates(e);
-    if (coords) {
-      const currentAsset = assets.find(a => a.id === dragAssetId);
-      const rot = pendingPositions[dragAssetId]?.rotation ?? currentAsset?.rotation ?? 0;
-      onPositionChange(dragAssetId, coords.x, coords.y, rot);
+    if (isEditMode) {
+      e.stopPropagation();
+      setIsDragging(true);
+      setDragAssetId(asset.id);
+      onSelectAsset(asset);
     }
   };
 
-  const handleSvgMouseUp = () => {
+  const handleAssetClick = (e, asset) => {
+    e.stopPropagation();
+    const dx = e.clientX - (panStartRef.current?.mouseX || e.clientX);
+    const dy = e.clientY - (panStartRef.current?.mouseY || e.clientY);
+    if (Math.hypot(dx, dy) > 8) return;
+    onSelectAsset(asset);
+  };
+
+  const handleCanvasMouseDown = (e) => {
+    if (e.button !== 0 && e.button !== 1) return;
+    if (isEditMode && e.target.closest('.fa-interactive-asset')) return;
+
+    setIsPanning(true);
+    panStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+      moved: false
+    };
+  };
+
+  const handleContainerMouseMove = (e) => {
+    // 1. Repositioning asset in Edit Mode
+    if (isEditMode && isDragging && dragAssetId) {
+      const coords = getSVGCoordinates(e);
+      if (coords) {
+        const currentAsset = assets.find(a => a.id === dragAssetId);
+        const rot = pendingPositions[dragAssetId]?.rotation ?? currentAsset?.rotation ?? 0;
+        onPositionChange(dragAssetId, coords.x, coords.y, rot);
+      }
+      return;
+    }
+
+    // 2. Panning map canvas Google Maps style
+    if (isPanning) {
+      const dx = e.clientX - panStartRef.current.mouseX;
+      const dy = e.clientY - panStartRef.current.mouseY;
+      if (Math.hypot(dx, dy) > 8) {
+        panStartRef.current.moved = true;
+      }
+      setPan({
+        x: Math.round(panStartRef.current.panX + dx),
+        y: Math.round(panStartRef.current.panY + dy)
+      });
+    }
+  };
+
+  const handleContainerMouseUp = (e) => {
     if (isDragging) {
       setIsDragging(false);
       setDragAssetId(null);
     }
+
+    if (isPanning) {
+      setIsPanning(false);
+      // If user clicked without dragging
+      if (!panStartRef.current.moved) {
+        if (isEditMode && selectedAsset && !e.target.closest('.fa-interactive-asset')) {
+          const coords = getSVGCoordinates(e);
+          if (coords) {
+            const currentRot = pendingPositions[selectedAsset.id]?.rotation ?? selectedAsset.rotation ?? 0;
+            onPositionChange(selectedAsset.id, coords.x, coords.y, currentRot);
+          }
+        }
+      }
+    }
   };
 
-  const handleCanvasClick = (e) => {
-    if (isEditMode && selectedAsset) {
-      const coords = getSVGCoordinates(e);
-      if (coords) {
-        const currentRot = pendingPositions[selectedAsset.id]?.rotation ?? selectedAsset.rotation ?? 0;
-        onPositionChange(selectedAsset.id, coords.x, coords.y, currentRot);
-      }
+  const handleCanvasDoubleClick = (e) => {
+    if (isEditMode) return;
+    if (zoomLevel >= 1.8) {
+      resetZoom();
+    } else {
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - rect.width / 2;
+      const mouseY = e.clientY - rect.top - rect.height / 2;
+      setZoomLevel((prev) => {
+        const nextZoom = Math.min(prev * 1.5, 3.0);
+        setPan((prevPan) => {
+          const scaleRatio = nextZoom / prev;
+          return {
+            x: Math.round(mouseX - (mouseX - prevPan.x) * scaleRatio),
+            y: Math.round(mouseY - (mouseY - prevPan.y) * scaleRatio)
+          };
+        });
+        return nextZoom;
+      });
     }
   };
 
@@ -204,6 +408,35 @@ export default function FixedAssetsFloorPlan({
 
   const pendingCount = Object.keys(pendingPositions).length;
 
+  // Short name cleaner for CAD blueprint badges
+  const getShortName = (name) => {
+    if (!name) return '';
+    if (name.includes('Boss') || name === 'MD') return 'Boss';
+    if (name.includes('HRO') || name.includes('Recovery')) return 'HRO';
+    if (name.includes('Ishara')) return 'Ishara';
+    if (name.includes('Deepika')) return 'Deepika';
+    if (name.includes('Lahiru')) return 'Lahiru';
+    if (name.includes('Chaminda')) return 'Chaminda';
+    if (name.includes('Indika')) return 'Indika';
+    if (name.includes('Dilushi')) return 'Dilushi';
+    if (name.includes('Narmada')) return 'Narmada';
+    if (name.includes('Anjitha')) return 'Anjitha';
+    if (name.includes('Mishel')) return 'Reception';
+    if (name.includes('Guest')) return 'Guest';
+    if (name.includes('Black Chairs')) return '6 Black';
+    if (name.includes('Sachini')) return 'Sachini';
+    if (name.includes('Hiruni')) return 'Hiruni';
+    if (name.includes('Mahima')) return 'Mahima';
+    if (name.includes('Lakshani')) return 'Lakshani';
+    if (name.includes('Chalani')) return 'Chalani';
+    if (name.includes('Heshani')) return 'Heshani';
+    if (name.includes('Kalpana')) return 'Kalpana';
+    if (name.includes('Tharindu')) return 'Tharindu';
+    if (name.includes('Wasantha')) return 'Stores';
+    if (name.includes('Dining')) return 'Dining';
+    return name.replace(/^(Mr\.|Mrs\.|Ms\.)\s*/i, '').slice(0, 10);
+  };
+
   // Render architectural chair symbol matching CAD drawing
   const renderArchitecturalChair = (asset) => {
     const isSelected = selectedAsset && selectedAsset.id === asset.id;
@@ -218,9 +451,28 @@ export default function FixedAssetsFloorPlan({
     const { physX, physY, rotation } = getAssetCurrentPosition(asset);
     const furnitureType = asset.furnitureType || 'chair_office';
 
-    // Chair styling
-    let stroke = isSelected ? '#00A3FF' : highlighted ? (isLight ? '#0284C7' : '#38BDF8') : (isLight ? '#94A3B8' : '#475569');
-    let fill = isSelected ? 'rgba(0, 163, 255, 0.3)' : highlighted ? (isLight ? '#E0F2FE' : 'rgba(56, 189, 248, 0.25)') : (isLight ? '#FFFFFF' : '#1E293B');
+    const isOfficeBlackChair = furnitureType === 'chair_office' || furnitureType === 'chair_executive';
+    const isVisitorChair = furnitureType === 'chair_visitor' || furnitureType === 'chair_dining';
+
+    // Chair styling matching user's pencil drawing & legend:
+    // ■ ▲ black chir: Solid dark fill with directional pointer
+    // ▯ normal chire: Clean rounded rectangle outline
+    let stroke = isSelected
+      ? '#00A3FF'
+      : highlighted
+        ? (isOfficeBlackChair ? (isLight ? '#0F172A' : '#38BDF8') : (isLight ? '#0284C7' : '#38BDF8'))
+        : (isLight ? '#94A3B8' : '#475569');
+
+    let fill = isSelected
+      ? 'rgba(0, 163, 255, 0.35)'
+      : highlighted
+        ? (isOfficeBlackChair
+            ? (isLight ? '#1E293B' : '#0F172A')
+            : (isLight ? '#FFFFFF' : '#1E293B'))
+        : (isOfficeBlackChair
+            ? (isLight ? '#475569' : '#1E293B')
+            : (isLight ? '#F1F5F9' : '#0F172A'));
+
     let strokeW = isSelected ? 2.2 : highlighted ? 1.5 : 1;
 
     if (asset.condition === 'Damaged') {
@@ -236,17 +488,18 @@ export default function FixedAssetsFloorPlan({
     return (
       <g
         key={asset.id}
+        className="fa-interactive-asset"
         transform={`translate(${physX}, ${physY}) rotate(${rotation})`}
         style={{ cursor: isEditMode ? 'grab' : 'pointer', transition: isDragging && dragAssetId === asset.id ? 'none' : 'all 0.15s ease' }}
         opacity={faded ? 0.15 : 1}
         onMouseDown={(e) => handleItemMouseDown(e, asset)}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelectAsset(asset);
-        }}
+        onClick={(e) => handleAssetClick(e, asset)}
         onMouseEnter={() => setHoveredAsset(asset)}
         onMouseLeave={() => setHoveredAsset(null)}
       >
+        {/* Generous invisible hit target circle so clicking is effortless */}
+        <circle cx={0} cy={0} r={16} fill="transparent" style={{ pointerEvents: 'all' }} />
+
         {/* Selected target ring / crosshair */}
         {isSelected && (
           <g>
@@ -268,7 +521,7 @@ export default function FixedAssetsFloorPlan({
           <circle cx={0} cy={0} r={14} fill="none" stroke="#00A3FF" strokeWidth={1.5} strokeDasharray="2 2" />
         )}
 
-        {/* Architectural Chair CAD Graphics */}
+        {/* Architectural Chair CAD Graphics matching hand-drawn legend */}
         {furnitureType === 'chair_auditorium' ? (
           <g>
             <rect x={-7} y={-6} width={14} height={12} rx={2} fill={fill} stroke={stroke} strokeWidth={strokeW} />
@@ -277,27 +530,66 @@ export default function FixedAssetsFloorPlan({
           </g>
         ) : furnitureType === 'chair_executive' ? (
           <g>
-            <rect x={-11} y={-5} width={3} height={10} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW} />
-            <rect x={8} y={-5} width={3} height={10} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW} />
+            {/* Boss Executive Chair with Direction Indicator */}
+            <rect x={-11} y={-5} width={3} height={11} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW} />
+            <rect x={8} y={-5} width={3} height={11} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW} />
             <rect x={-8} y={-7} width={16} height={14} rx={3} fill={fill} stroke={stroke} strokeWidth={strokeW} />
-            <path d="M -9 6 C -9 11, 9 11, 9 6" fill={fill} stroke={stroke} strokeWidth={strokeW * 1.5} />
+            <polygon points="-4,-8 0,-12 4,-8" fill={isSelected ? '#00A3FF' : (isLight ? '#0F172A' : '#38BDF8')} />
+            <path d="M -9 7 C -9 12, 9 12, 9 7" fill={fill} stroke={stroke} strokeWidth={strokeW * 1.5} />
           </g>
         ) : furnitureType === 'chair_stool' ? (
           <g>
             <circle cx={0} cy={0} r={6} fill={fill} stroke={stroke} strokeWidth={strokeW} />
             <circle cx={0} cy={0} r={2} fill={stroke} />
           </g>
+        ) : isVisitorChair ? (
+          <g>
+            {/* ▯ Normal / Visitor Chair matching legend */}
+            <rect x={-6} y={-7} width={12} height={14} rx={2.5} fill={fill} stroke={stroke} strokeWidth={strokeW * 1.2} />
+            <line x1={-5} y1={-1} x2={5} y2={-1} stroke={stroke} strokeWidth={0.8} opacity={0.5} />
+            <path d="M -5 5 Q 0 7 5 5" fill="none" stroke={stroke} strokeWidth={strokeW} strokeLinecap="round" />
+          </g>
         ) : (
           <g>
-            <rect x={-9} y={-4} width={2} height={8} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW * 0.9} />
-            <rect x={7} y={-4} width={2} height={8} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW * 0.9} />
-            <rect x={-7} y={-6} width={14} height={11} rx={2.5} fill={fill} stroke={stroke} strokeWidth={strokeW} />
+            {/* ■ ▲ Black Office Chair with directional marker matching user drawing & legend */}
+            <rect x={-9} y={-4} width={2.2} height={8} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW * 0.8} />
+            <rect x={6.8} y={-4} width={2.2} height={8} rx={1} fill={fill} stroke={stroke} strokeWidth={strokeW * 0.8} />
+            <rect x={-7} y={-6} width={14} height={11} rx={2} fill={fill} stroke={stroke} strokeWidth={strokeW} />
+            <polygon points="-3,-7 0,-11 3,-7" fill={isSelected ? '#00A3FF' : (isLight ? '#0F172A' : '#38BDF8')} />
             <path d="M -7 5 Q 0 8 7 5" fill="none" stroke={stroke} strokeWidth={strokeW * 1.4} strokeLinecap="round" />
           </g>
         )}
 
         {highlighted && activeFilter === 'Chair' && (
           <circle cx={0} cy={-10} r={2} fill="#00A3FF" />
+        )}
+
+        {/* Assigned Staff Person Name Tag */}
+        {showStaffNames && asset.user && !asset.user.includes('Common') && !asset.user.startsWith('Verified') && !asset.user.startsWith('Area') && (
+          <g transform={`rotate(${-rotation})`}>
+            <rect
+              x={-24}
+              y={12}
+              width={48}
+              height={10}
+              rx={2.5}
+              fill={isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)'}
+              stroke={isSelected ? '#00A3FF' : isLight ? '#CBD5E1' : '#334155'}
+              strokeWidth={0.8}
+            />
+            <text
+              x={0}
+              y={19.5}
+              fill={isSelected ? '#00A3FF' : isLight ? '#0369A1' : '#38BDF8'}
+              fontSize={6.2}
+              fontWeight={800}
+              textAnchor="middle"
+              letterSpacing={0.2}
+              style={{ pointerEvents: 'none' }}
+            >
+              {getShortName(asset.user)}
+            </text>
+          </g>
         )}
       </g>
     );
@@ -326,17 +618,18 @@ export default function FixedAssetsFloorPlan({
     return (
       <g
         key={asset.id}
+        className="fa-interactive-asset"
         transform={`translate(${physX}, ${physY}) rotate(${rotation})`}
         style={{ cursor: isEditMode ? 'grab' : 'pointer', transition: isDragging && dragAssetId === asset.id ? 'none' : 'all 0.15s ease' }}
         opacity={faded ? 0.25 : 1}
         onMouseDown={(e) => handleItemMouseDown(e, asset)}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelectAsset(asset);
-        }}
+        onClick={(e) => handleAssetClick(e, asset)}
         onMouseEnter={() => setHoveredAsset(asset)}
         onMouseLeave={() => setHoveredAsset(null)}
       >
+        {/* Generous invisible hit target so clicking table is effortless */}
+        <rect x={-width / 2 - 5} y={-height / 2 - 5} width={width + 10} height={height + 10} fill="transparent" style={{ pointerEvents: 'all' }} />
+
         {furnitureType === 'table_coffee' ? (
           <rect x={-width / 2} y={-height / 2} width={width} height={height} rx={height / 2} fill={fill} stroke={stroke} strokeWidth={strokeW} />
         ) : furnitureType === 'table_executive' ? (
@@ -348,6 +641,34 @@ export default function FixedAssetsFloorPlan({
           <rect x={-width / 2} y={-height / 2} width={width} height={height} rx={2} fill={fill} stroke={stroke} strokeWidth={strokeW} />
         )}
         <line x1={-width / 2 + 3} y1={0} x2={width / 2 - 3} y2={0} stroke={stroke} strokeWidth={0.8} strokeDasharray="3 2" opacity={0.5} />
+
+        {/* Assigned Staff Person Name Tag on Table */}
+        {showStaffNames && asset.user && !asset.user.includes('Common') && !asset.user.startsWith('Verified') && !asset.user.startsWith('Area') && (
+          <g transform={`rotate(${-rotation})`}>
+            <rect
+              x={-24}
+              y={height / 2 + 3}
+              width={48}
+              height={10}
+              rx={2.5}
+              fill={isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)'}
+              stroke={isSelected ? '#00A3FF' : isLight ? '#CBD5E1' : '#334155'}
+              strokeWidth={0.8}
+            />
+            <text
+              x={0}
+              y={height / 2 + 10.5}
+              fill={isSelected ? '#00A3FF' : isLight ? '#0369A1' : '#38BDF8'}
+              fontSize={6.2}
+              fontWeight={800}
+              textAnchor="middle"
+              letterSpacing={0.2}
+              style={{ pointerEvents: 'none' }}
+            >
+              {getShortName(asset.user)}
+            </text>
+          </g>
+        )}
       </g>
     );
   };
@@ -370,17 +691,16 @@ export default function FixedAssetsFloorPlan({
     return (
       <g
         key={asset.id}
+        className="fa-interactive-asset"
         transform={`translate(${physX}, ${physY}) rotate(${rotation})`}
         opacity={faded ? 0.2 : 1}
         style={{ cursor: isEditMode ? 'grab' : 'pointer' }}
         onMouseDown={(e) => handleItemMouseDown(e, asset)}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelectAsset(asset);
-        }}
+        onClick={(e) => handleAssetClick(e, asset)}
         onMouseEnter={() => setHoveredAsset(asset)}
         onMouseLeave={() => setHoveredAsset(null)}
       >
+        <circle cx={0} cy={0} r={14} fill="transparent" style={{ pointerEvents: 'all' }} />
         <rect x={-8} y={-2} width={16} height={3} rx={1} fill={fill} stroke={stroke} strokeWidth={0.8} />
         <line x1={0} y1={-2} x2={0} y2={2} stroke={stroke} strokeWidth={1.2} />
         <line x1={-3} y1={2} x2={3} y2={2} stroke={stroke} strokeWidth={1} />
@@ -467,9 +787,14 @@ export default function FixedAssetsFloorPlan({
                   ✏️ EDIT PLACEMENT MODE ACTIVE
                 </span>
               ) : (
-                <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>
-                  {floorAssets.filter(isAssetHighlighted).length} {activeFilter === 'Chair' ? 'Chairs' : activeFilter === 'All' ? 'Items' : activeFilter} Visible
-                </span>
+                <>
+                  <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>
+                    {floorAssets.filter(isAssetHighlighted).length} {activeFilter === 'Chair' ? 'Chairs' : activeFilter === 'All' ? 'Furniture Units' : activeFilter} Visible
+                  </span>
+                  <span className="badge" style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                    Phase 1: Seating & Desks Only
+                  </span>
+                </>
               )}
             </div>
             <div style={{ fontSize: '0.72rem', color: textMuted, fontWeight: 600 }}>
@@ -525,6 +850,17 @@ export default function FixedAssetsFloorPlan({
           >
             {isLight ? <Moon size={13} /> : <Sun size={13} />}
             <span>{isLight ? 'Dark CAD' : 'White CAD'}</span>
+          </button>
+
+          {/* Staff Names Toggle */}
+          <button
+            onClick={() => setShowStaffNames(prev => !prev)}
+            className={`btn ${showStaffNames ? 'btn-primary' : 'btn-outline'}`}
+            style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem', height: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            title="Toggle Staff / Custodian Name Badges on Map"
+          >
+            <User size={13} />
+            <span>{showStaffNames ? 'Names: ON' : 'Names: OFF'}</span>
           </button>
 
           {/* Print Menu Dropdown */}
@@ -671,31 +1007,76 @@ export default function FixedAssetsFloorPlan({
             )}
           </div>
 
-          {/* Zoom controls */}
-          <button
-            onClick={() => handleZoom(0.15)}
-            className="btn btn-outline"
-            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
-            title="Zoom In"
-          >
-            <ZoomIn size={14} />
-          </button>
-          <button
-            onClick={() => handleZoom(-0.15)}
-            className="btn btn-outline"
-            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
-            title="Zoom Out"
-          >
-            <ZoomOut size={14} />
-          </button>
-          <button
-            onClick={resetZoom}
-            className="btn btn-outline"
-            style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
-            title="Reset Zoom"
-          >
-            <RotateCcw size={14} />
-          </button>
+          {/* Zoom controls with percentage indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <button
+              onClick={() => handleZoom(0.15)}
+              className="btn btn-outline"
+              style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
+              title="Zoom In (+)"
+            >
+              <ZoomIn size={14} />
+            </button>
+            <span
+              onClick={resetZoom}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#38BDF8',
+                padding: '0.2rem 0.45rem',
+                borderRadius: 4,
+                cursor: 'pointer',
+                background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
+                minWidth: '42px',
+                textAlign: 'center'
+              }}
+              title="Click to Reset View"
+            >
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button
+              onClick={() => handleZoom(-0.15)}
+              className="btn btn-outline"
+              style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
+              title="Zoom Out (-)"
+            >
+              <ZoomOut size={14} />
+            </button>
+            <button
+              onClick={resetZoom}
+              className="btn btn-outline"
+              style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', height: 'auto' }}
+              title="Reset View (Fit Full Floor)"
+            >
+              <RotateCcw size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Room Navigator Bar */}
+      <div className="fa-room-jump-bar">
+        <span className="fa-jump-bar-label">
+          <Compass size={13} style={{ color: '#00A3FF' }} />
+          <span>Jump to:</span>
+        </span>
+        <div className="fa-jump-chips-container">
+          {(isGroundFloor ? groundFloorZones : firstFloorZones).map(z => {
+            const isCurrentZone = (z.id === 'all' && !selectedZone) || selectedZone === z.id;
+            const count = z.id === 'all' ? floorAssets.length : (zoneAssetCounts[z.id] || 0);
+            return (
+              <button
+                key={z.id}
+                className={`fa-room-jump-chip ${isCurrentZone ? 'active' : ''}`}
+                onClick={() => jumpToZone(z)}
+                title={`Focus & Zoom onto ${z.label}`}
+              >
+                <span>{z.icon}</span>
+                <span>{z.label}</span>
+                <span className="fa-jump-chip-count">{count}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -766,18 +1147,23 @@ export default function FixedAssetsFloorPlan({
         </div>
       )}
 
-      {/* Blueprint Canvas */}
+      {/* Blueprint Canvas with Google Maps Style Pan & Zoom */}
       <div
-        className="fa-blueprint-canvas"
+        ref={containerRef}
+        className={`fa-blueprint-canvas ${isPanning ? 'panning' : isEditMode ? 'editing' : 'can-pan'}`}
         style={{
-          backgroundColor: bgColor,
-          cursor: isEditMode ? (isDragging ? 'grabbing' : 'crosshair') : 'default'
+          backgroundColor: bgColor
         }}
+        onMouseDown={handleCanvasMouseDown}
+        onMouseMove={handleContainerMouseMove}
+        onMouseUp={handleContainerMouseUp}
+        onDoubleClick={handleCanvasDoubleClick}
       >
         <div
           style={{
-            transform: `scale(${zoomLevel})`,
-            transition: isDragging ? 'none' : 'transform 0.25s ease-out',
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})`,
+            transformOrigin: 'center center',
+            transition: isPanning || (isDragging && isEditMode) ? 'none' : 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)',
             width: '100%',
             height: '100%',
             display: 'flex',
@@ -790,11 +1176,8 @@ export default function FixedAssetsFloorPlan({
           <svg
             ref={svgRef}
             viewBox={isGroundFloor ? '0 0 960 970' : '0 0 960 620'}
-            style={{ width: '100%', height: '100%', maxHeight: isGroundFloor ? '630px' : '580px' }}
+            style={{ width: '100%', height: '100%', maxHeight: isGroundFloor ? '630px' : '580px', overflow: 'visible' }}
             preserveAspectRatio="xMidYMid meet"
-            onMouseMove={handleSvgMouseMove}
-            onMouseUp={handleSvgMouseUp}
-            onClick={handleCanvasClick}
           >
             <defs>
               <pattern id="archCadGrid" width="24" height="24" patternUnits="userSpaceOnUse">
@@ -814,7 +1197,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-chilaw-lab"
                   className={`fa-room-zone ${selectedZone === 'chilaw_lab' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'chilaw_lab' ? null : 'chilaw_lab')}
+                  onClick={() => handleZoneClick('chilaw_lab')}
                 >
                   <rect x="250" y="85" width="150" height="150" rx="4" fill={wallFill} stroke={wallStroke} strokeWidth="4" />
                   <rect x="258" y="93" width="134" height="134" rx="2" fill="none" stroke={innerWallStroke} strokeWidth="1.2" opacity="0.5" />
@@ -861,7 +1244,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-rest-room"
                   className={`fa-room-zone ${selectedZone === 'rest_room' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'rest_room' ? null : 'rest_room')}
+                  onClick={() => handleZoneClick('rest_room')}
                 >
                   <text x="730" y="90" fill={textColor} fontSize="12" fontWeight="800" textAnchor="middle">
                     Discussion Room
@@ -876,7 +1259,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-conference-room"
                   className={`fa-room-zone ${selectedZone === 'conference_room' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'conference_room' ? null : 'conference_room')}
+                  onClick={() => handleZoneClick('conference_room')}
                 >
                   <rect x="670" y="195" width="120" height="30" rx="15" fill={isLight ? '#F1F5F9' : 'rgba(148, 163, 184, 0.2)'} stroke={innerWallStroke} strokeWidth="1.5" />
                   <text x="730" y="172" fill={textColor} fontSize="12.5" fontWeight="800" textAnchor="middle">
@@ -889,7 +1272,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-first-dining"
                   className={`fa-room-zone ${selectedZone === 'first_dining' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'first_dining' ? null : 'first_dining')}
+                  onClick={() => handleZoneClick('first_dining')}
                 >
                   <rect x="710" y="306" width="40" height="24" rx="3" fill={isLight ? '#F1F5F9' : 'rgba(148, 163, 184, 0.2)'} stroke={innerWallStroke} strokeWidth="1.4" />
                   <text x="730" y="295" fill={textColor} fontSize="11.5" fontWeight="800" textAnchor="middle">
@@ -902,7 +1285,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-nadun-office"
                   className={`fa-room-zone ${selectedZone === 'nadun_office' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'nadun_office' ? null : 'nadun_office')}
+                  onClick={() => handleZoneClick('nadun_office')}
                 >
                   <line x1="670" y1="365" x2="670" y2="440" stroke={innerWallStroke} strokeWidth="3" />
                   <line x1="670" y1="440" x2="880" y2="440" stroke={innerWallStroke} strokeWidth="3" />
@@ -917,7 +1300,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-nadun-lobby"
                   className={`fa-room-zone ${selectedZone === 'nadun_lobby' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'nadun_lobby' ? null : 'nadun_lobby')}
+                  onClick={() => handleZoneClick('nadun_lobby')}
                 >
                   <text x="620" y="490" fill={textColor} fontSize="12" fontWeight="800" textAnchor="middle">
                     1st Floor Operations Hall
@@ -929,7 +1312,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-auditorium"
                   className={`fa-room-zone ${selectedZone === 'auditorium' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'auditorium' ? null : 'auditorium')}
+                  onClick={() => handleZoneClick('auditorium')}
                 >
                   <rect x="240" y="375" width="120" height="22" rx="4" fill={isLight ? '#E0F2FE' : 'rgba(0, 163, 255, 0.12)'} stroke="#00A3FF" strokeWidth="1.5" strokeDasharray="3 2" />
                   <text x="300" y="390" fill="#00A3FF" fontSize="8.5" fontWeight="800" textAnchor="middle">
@@ -988,7 +1371,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-ground-dining"
                   className={`fa-room-zone ${selectedZone === 'ground_dining' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'ground_dining' ? null : 'ground_dining')}
+                  onClick={() => handleZoneClick('ground_dining')}
                 >
                   <rect x="254" y="99" width="32" height="32" rx="3" fill={isLight ? '#F1F5F9' : 'rgba(148, 163, 184, 0.2)'} stroke={innerWallStroke} strokeWidth="1.5" />
                   <text x="270" y="85" fill={textColor} fontSize="11.5" fontWeight="800" textAnchor="middle">
@@ -1001,43 +1384,88 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-main-office"
                   className={`fa-room-zone ${selectedZone === 'main_office' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'main_office' ? null : 'main_office')}
+                  onClick={() => handleZoneClick('main_office')}
                 >
                   <line x1="210" y1="225" x2="400" y2="225" stroke={innerWallStroke} strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
                   <line x1="210" y1="325" x2="400" y2="325" stroke={innerWallStroke} strokeWidth="0.8" strokeDasharray="3 3" opacity="0.3" />
 
-                  <text x="310" y="175" fill={textColor} fontSize="13" fontWeight="800" textAnchor="middle">
+                  <text x="370" y="184" fill={textColor} fontSize="13" fontWeight="800" textAnchor="middle">
                     Ground Operations Hall (Main Office)
                   </text>
-                  <text x="310" y="188" fill={textMuted} fontSize="8" fontWeight="600" textAnchor="middle">
-                    Staff Desks: Ishara, Antonette, Deepika, Lahiru, Indika, etc.
+                  <text x="370" y="197" fill={textMuted} fontSize="7.8" fontWeight="600" textAnchor="middle">
+                    Staff Desks: Deepika, Ishara, Dilushi, Narmada, Lahiru, Chaminda, Indika, Tharindu & 6-Desk Pod
                   </text>
-                  {renderRoomBadge('main_office', 310, 275, '24 Desks & Chairs')}
+                  {renderRoomBadge('main_office', 370, 290, '24 Desks & Chairs')}
                 </g>
 
                 {/* 4. RECEPTION & LOBBY */}
                 <g
                   id="zone-reception"
                   className={`fa-room-zone ${selectedZone === 'reception' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'reception' ? null : 'reception')}
+                  onClick={() => handleZoneClick('reception')}
                 >
                   <path d="M 550 380 Q 615 395 680 380" fill="none" stroke="#00A3FF" strokeWidth="2.5" strokeDasharray="4 3" />
                   <text x="615" y="365" fill="#00A3FF" fontSize="9" fontWeight="800" textAnchor="middle">RECEPTION COUNTER</text>
                   <text x="615" y="420" fill={textColor} fontSize="13" fontWeight="800" textAnchor="middle">
                     Reception Lobby
                   </text>
-                  {renderRoomBadge('reception', 615, 475, 'Reception Chairs')}
+                  <text x="570" y="390" fill={isLight ? '#0284C7' : '#38BDF8'} fontSize="7.8" fontWeight="800" textAnchor="middle">
+                    Guest Chairs (3)
+                  </text>
+                  <text x="730" y="390" fill={isLight ? '#0284C7' : '#38BDF8'} fontSize="7.8" fontWeight="800" textAnchor="middle">
+                    Reception Desks (2)
+                  </text>
+                  {renderRoomBadge('reception', 615, 500, '2 Desks • 5 Chairs')}
+                </g>
+
+                {/* Architectural Office Legend matching user's pencil drawing & legend */}
+                <g id="ground-cad-legend" transform="translate(765, 185)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="128"
+                    height="88"
+                    rx="6"
+                    fill={isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)'}
+                    stroke={isLight ? '#94A3B8' : '#334155'}
+                    strokeWidth="1.2"
+                    filter={isLight ? 'drop-shadow(0 2px 5px rgba(0,0,0,0.06))' : 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))'}
+                  />
+                  <text x="14" y="18" fill={textColor} fontSize="9.5" fontWeight="900" letterSpacing="0.6">
+                    OFFICE LEGEND
+                  </text>
+                  <line x1="14" y1="23" x2="114" y2="23" stroke={isLight ? '#CBD5E1' : '#334155'} strokeWidth="1" />
+
+                  {/* 1. Black Office Chair ■ ▲ */}
+                  <g transform="translate(24, 38)">
+                    <rect x="-6" y="-6" width="12" height="12" rx="2" fill={isLight ? '#1E293B' : '#0F172A'} stroke={isLight ? '#0F172A' : '#38BDF8'} strokeWidth="1" />
+                    <polygon points="-3,-7 0,-11 3,-7" fill={isLight ? '#1E293B' : '#38BDF8'} />
+                    <text x="18" y="3" fill={textColor} fontSize="8" fontWeight="700">Black Chair (Office)</text>
+                  </g>
+
+                  {/* 2. Table ▭ */}
+                  <g transform="translate(24, 55)">
+                    <rect x="-8" y="-4" width="16" height="8" rx="1.5" fill={isLight ? '#F1F5F9' : '#1E293B'} stroke={isLight ? '#334155' : '#64748B'} strokeWidth="1.2" />
+                    <line x1="-5" y1="0" x2="5" y2="0" stroke={isLight ? '#334155' : '#64748B'} strokeWidth="0.8" strokeDasharray="2 1" />
+                    <text x="18" y="3" fill={textColor} fontSize="8" fontWeight="700">Workstation Table</text>
+                  </g>
+
+                  {/* 3. Normal Chair ▯ */}
+                  <g transform="translate(24, 72)">
+                    <rect x="-5" y="-6" width="10" height="12" rx="2" fill={isLight ? '#FFFFFF' : '#1E293B'} stroke={isLight ? '#475569' : '#94A3B8'} strokeWidth="1.2" />
+                    <text x="18" y="3" fill={textColor} fontSize="8" fontWeight="700">Normal / Visitor Chair</text>
+                  </g>
                 </g>
 
                 {/* 5. FISH TANK GALLERY */}
                 <g
                   id="zone-fish-tank"
                   className={`fa-room-zone ${selectedZone === 'fish_tank' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'fish_tank' ? null : 'fish_tank')}
+                  onClick={() => handleZoneClick('fish_tank')}
                 >
-                  <rect x="330" y="520" width="130" height="40" rx="4" fill="rgba(14, 165, 233, 0.15)" stroke="#00A3FF" strokeWidth="1.5" />
-                  <text x="395" y="544" fill="#00A3FF" fontSize="9" fontWeight="800" textAnchor="middle">
-                    🐠 Fish Tank Gallery
+                  <rect x="330" y="520" width="130" height="40" rx="4" fill="rgba(14, 165, 233, 0.22)" stroke="#00A3FF" strokeWidth="2" />
+                  <text x="395" y="544" fill="#00A3FF" fontSize="10.5" fontWeight="900" textAnchor="middle">
+                    🐠 Fish Tank
                   </text>
                   {renderRoomBadge('fish_tank', 395, 558, 'Fish Tank')}
                 </g>
@@ -1046,7 +1474,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-stores"
                   className={`fa-room-zone ${selectedZone === 'stores' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'stores' ? null : 'stores')}
+                  onClick={() => handleZoneClick('stores')}
                 >
                   <text x="830" y="490" fill={textColor} fontSize="11" fontWeight="800" textAnchor="middle">
                     📦 Stores
@@ -1061,13 +1489,13 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-md-office"
                   className={`fa-room-zone ${selectedZone === 'md_office' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'md_office' ? null : 'md_office')}
+                  onClick={() => handleZoneClick('md_office')}
                 >
                   <text x="330" y="588" fill={textColor} fontSize="13" fontWeight="800" textAnchor="middle">
-                    MD's Office Room
+                    MD's Office Room (Boss Office)
                   </text>
                   <text x="330" y="602" fill={textMuted} fontSize="8" fontWeight="600" textAnchor="middle">
-                    Executive Suite (8 Chairs & Tables)
+                    Executive Suite (Boss Desk & 3 Front Chairs)
                   </text>
                   {renderRoomBadge('md_office', 330, 672, "MD's Chairs")}
                 </g>
@@ -1076,10 +1504,10 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-recovery-office"
                   className={`fa-room-zone ${selectedZone === 'recovery_office' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'recovery_office' ? null : 'recovery_office')}
+                  onClick={() => handleZoneClick('recovery_office')}
                 >
                   <text x="330" y="705" fill={textColor} fontSize="12" fontWeight="800" textAnchor="middle">
-                    Recovery Team Office
+                    Recovery Team Office (HRO)
                   </text>
                   {renderRoomBadge('recovery_office', 330, 785, 'Recovery Chairs')}
                 </g>
@@ -1088,7 +1516,7 @@ export default function FixedAssetsFloorPlan({
                 <g
                   id="zone-stationary-room"
                   className={`fa-room-zone ${selectedZone === 'stationary_room' ? 'selected' : ''}`}
-                  onClick={() => onSelectZone(selectedZone === 'stationary_room' ? null : 'stationary_room')}
+                  onClick={() => handleZoneClick('stationary_room')}
                 >
                   <text x="330" y="835" fill={textColor} fontSize="12" fontWeight="800" textAnchor="middle">
                     Stationary & Records Room
@@ -1106,14 +1534,7 @@ export default function FixedAssetsFloorPlan({
             </g>
 
             {/* ======================================================== */}
-            {/* LAYER 2: COMPUTERS & MONITORS ON DESKS                   */}
-            {/* ======================================================== */}
-            <g id="architectural-computers-layer">
-              {floorAssets.filter(a => a.category === 'Computers & IT' || a.furnitureType === 'pc_monitor').map(renderArchitecturalComputer)}
-            </g>
-
-            {/* ======================================================== */}
-            {/* LAYER 3: CHAIRS (Interactive Architectural Symbols!)     */}
+            {/* LAYER 2: CHAIRS (Interactive Architectural Symbols!)     */}
             {/* ======================================================== */}
             <g id="architectural-chairs-layer">
               {floorAssets.filter(a => a.isChair || a.furnitureType?.startsWith('chair_')).map(renderArchitecturalChair)}
@@ -1161,6 +1582,148 @@ export default function FixedAssetsFloorPlan({
               </g>
             )}
           </svg>
+        </div>
+
+        {/* Floating Selected Asset Popover Card on Map */}
+        {selectedAsset && (
+          <div className="fa-blueprint-asset-popover">
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'rgba(0, 163, 255, 0.15)',
+                    border: '1px solid rgba(0, 163, 255, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.25rem',
+                    flexShrink: 0
+                  }}
+                >
+                  {selectedAsset.isChair ? '🪑' : selectedAsset.keyword === 'Table & Desk' ? '💼' : selectedAsset.category === 'Computers & IT' ? '💻' : '📦'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {selectedAsset.itemName}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#38BDF8', fontWeight: 700 }}>
+                    {selectedAsset.tagNumber}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => onSelectAsset(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  borderRadius: 12,
+                  padding: '3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Close"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* In Excel or Not Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  padding: '0.15rem 0.55rem',
+                  borderRadius: '9999px',
+                  background: selectedAsset.inExcelRegister !== false ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                  color: selectedAsset.inExcelRegister !== false ? '#10B981' : '#F59E0B',
+                  border: `1px solid ${selectedAsset.inExcelRegister !== false ? 'rgba(16, 185, 129, 0.45)' : 'rgba(245, 158, 11, 0.45)'}`
+                }}
+              >
+                <FileSpreadsheet size={13} />
+                <span>{selectedAsset.inExcelRegister !== false ? 'In Excel: Chilaw FA Register 2026 .xlsx' : 'Not in Excel Register (Manual)'}</span>
+              </span>
+              <span className="badge" style={{ fontSize: '0.68rem', background: 'rgba(0, 163, 255, 0.15)', color: '#00A3FF' }}>
+                {selectedAsset.floor}
+              </span>
+              <span className="badge" style={{ fontSize: '0.68rem', background: selectedAsset.condition === 'Damaged' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.15)', color: selectedAsset.condition === 'Damaged' ? '#EF4444' : '#10B981' }}>
+                {selectedAsset.condition || 'Usable'}
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', fontSize: '0.73rem', color: '#CBD5E1', marginBottom: '0.6rem', background: 'rgba(0, 0, 0, 0.3)', padding: '0.45rem 0.65rem', borderRadius: 6 }}>
+              <div>👤 Custodian: <strong style={{ color: '#FFFFFF' }}>{selectedAsset.user || 'Shared Facility'}</strong></div>
+              <div>📍 Room: <strong style={{ color: '#FFFFFF' }}>{selectedAsset.zoneName || selectedAsset.locationName}</strong></div>
+              <div>🕒 Audit: <strong style={{ color: '#10B981' }}>5 Cycles Recorded</strong></div>
+              <div>💰 Value: <strong style={{ color: '#FCD34D' }}>{selectedAsset.amount && selectedAsset.amount !== '-' ? `LKR ${Number(selectedAsset.amount).toLocaleString()}` : '-'}</strong></div>
+            </div>
+
+            {/* Quick 1-Click Custodian / Person Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.55rem', padding: '0.35rem 0.55rem', background: 'rgba(0, 0, 0, 0.45)', borderRadius: 6, border: '1px solid rgba(0, 163, 255, 0.3)' }}>
+              <span style={{ fontSize: '0.68rem', color: '#38BDF8', whiteSpace: 'nowrap', fontWeight: 800 }}>
+                👤 Assign:
+              </span>
+              <select
+                value={selectedAsset.user || ''}
+                onChange={(e) => onUpdateCustodian && onUpdateCustodian(selectedAsset.id, e.target.value)}
+                style={{ background: '#0F172A', color: '#FFFFFF', border: '1px solid #334155', borderRadius: 4, fontSize: '0.72rem', padding: '0.2rem 0.4rem', width: '100%', cursor: 'pointer' }}
+              >
+                <option value="">-- Assign Person from Excel --</option>
+                {EXCEL_STAFF_CUSTODIANS.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+              <div style={{ fontSize: '0.68rem', color: '#94A3B8' }}>
+                Full audit history & custody logged in drawer 👉
+              </div>
+              <button
+                onClick={() => {
+                  const drawer = document.querySelector('.fa-inspector-card');
+                  if (drawer) drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }}
+                className="btn btn-primary"
+                style={{ padding: '0.22rem 0.65rem', fontSize: '0.72rem', height: 'auto', whiteSpace: 'nowrap' }}
+              >
+                Inspect All Details
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Google Maps Style Navigation HUD in bottom-right */}
+        <div className="fa-map-controls-hud">
+          <button onClick={() => handleZoom(0.2)} title="Zoom In (+)">
+            <ZoomIn size={15} />
+          </button>
+          <button onClick={resetZoom} className="fa-hud-zoom-btn" title="Reset Zoom / Fit to Screen">
+            {Math.round(zoomLevel * 100)}%
+          </button>
+          <button onClick={() => handleZoom(-0.2)} title="Zoom Out (-)">
+            <ZoomOut size={15} />
+          </button>
+          <div className="fa-hud-divider" />
+          <button onClick={resetZoom} title="Reset to Full Floor (Fit)">
+            <RotateCcw size={14} />
+          </button>
+        </div>
+
+        {/* Floating Navigation Hint in bottom-left */}
+        <div className="fa-map-hint-pill">
+          <Compass size={12} style={{ color: '#00A3FF' }} />
+          <span>Drag map to pan • Wheel to zoom • Double-click to zoom in</span>
         </div>
       </div>
     </div>
