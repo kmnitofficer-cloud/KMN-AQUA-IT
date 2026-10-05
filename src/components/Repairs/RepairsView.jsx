@@ -44,8 +44,8 @@ export default function RepairsView({ onOpenAsset: _onOpenAsset }) {
 
   const filteredRepairs = repairs.filter(r => {
     if (filter === 'Completed' && r.Status !== 'Completed') return false;
-    if (filter === 'Warnings' && !r.Status.includes('Warning') && !r.Status.includes('Observation')) return false;
-    if (filter === 'Under Repair' && (r.Status === 'Completed' || r.Status.includes('Warning'))) return false;
+    if (filter === 'Warnings' && !(r.Status || '').includes('Warning') && !(r.Status || '').includes('Observation')) return false;
+    if (filter === 'Under Repair' && (r.Status === 'Completed' || (r.Status || '').includes('Warning'))) return false;
 
     const q = search.toLowerCase();
     return (
@@ -103,7 +103,7 @@ export default function RepairsView({ onOpenAsset: _onOpenAsset }) {
             className={`filter-tab ${filter === 'Under Repair' ? 'active' : ''}`}
             onClick={() => setFilter('Under Repair')}
           >
-            Active In Repair ({repairs.filter(r => r.Status !== 'Completed' && !r.Status.includes('Warning')).length})
+            Active In Repair ({repairs.filter(r => r.Status !== 'Completed' && !(r.Status || '').includes('Warning')).length})
           </button>
         </div>
 

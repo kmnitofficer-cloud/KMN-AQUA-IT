@@ -108,7 +108,7 @@ export default function DashboardOverview({ onNavigate, onOpenPrinter, selectedL
     }
 
     // 2. Printers requiring attention
-    const printerAttention = printers.filter(p => p.Status.includes('Error') || p.Notes.toLowerCase().includes('error'));
+    const printerAttention = printers.filter(p => (p.Status || '').includes('Error') || (p.Notes && p.Notes.toLowerCase().includes('error')));
     if (printerAttention.length > 0) {
       list.push({
         id: 'alert-printers',

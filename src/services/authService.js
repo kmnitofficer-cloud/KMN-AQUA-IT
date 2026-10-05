@@ -17,11 +17,11 @@ const DEFAULT_AUTH_CONFIG = {
 };
 
 const getAuthConfig = () => {
-  if (typeof __AUTH_CONFIG__ !== 'undefined') {
-    return __AUTH_CONFIG__;
-  }
   if (typeof window !== 'undefined' && window.__AUTH_CONFIG__) {
     return window.__AUTH_CONFIG__;
+  }
+  if (typeof globalThis !== 'undefined' && globalThis.__AUTH_CONFIG__) {
+    return globalThis.__AUTH_CONFIG__;
   }
   return DEFAULT_AUTH_CONFIG;
 };

@@ -15,7 +15,8 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
-  Layers
+  Layers,
+  AlertTriangle
 } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 
@@ -27,8 +28,8 @@ export default function AssetProfileModal({ assetId, isOpen, onClose, onReassign
   const asset = assetService.getAssetById(assetId);
   if (!asset) return null;
 
-  const timeline = assetService.getAssetTimeline(assetId);
-  const components = assetService.getAssetComponents(assetId);
+  const timeline = assetService.getAssetTimeline(assetId) || [];
+  const components = assetService.getAssetComponents(assetId) || [];
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -61,12 +62,16 @@ export default function AssetProfileModal({ assetId, isOpen, onClose, onReassign
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="btn btn-outline btn-sm" onClick={() => onReassign(asset.AssetID)}>
-              Reassign / Handover
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={() => onLogRepair(asset.AssetID)}>
-              <Wrench size={14} /> Log Repair
-            </button>
+            {onReassign && (
+              <button className="btn btn-outline btn-sm" onClick={() => onReassign(asset.AssetID)}>
+                Reassign / Handover
+              </button>
+            )}
+            {onLogRepair && (
+              <button className="btn btn-outline btn-sm" onClick={() => onLogRepair(asset.AssetID)}>
+                <Wrench size={14} /> Log Repair
+              </button>
+            )}
             <button className="icon-btn" onClick={onClose}><X size={20} /></button>
           </div>
         </div>

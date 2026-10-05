@@ -56,7 +56,7 @@ export default function PrintersView({ selectedLocation = 'All' }) {
 
       {/* Filter / Search Bar */}
       <div className="filter-bar">
-        <span className="font-medium text-sm text-muted">Active Office Printers ({printers.length})</span>
+        <span className="font-medium text-sm text-muted">Active Office Printers ({locationPrinters.length})</span>
         <div className="search-input-wrapper">
           <Search size={16} className="text-muted" />
           <input
@@ -73,7 +73,7 @@ export default function PrintersView({ selectedLocation = 'All' }) {
       <div className="printers-grid">
         {filteredPrinters.map(p => {
           const costSummary = printerService.getPrinterCostSummary(p.AssetID);
-          const hasError = p.Status.includes('Error') || (p.Notes && p.Notes.toLowerCase().includes('error'));
+          const hasError = (p.Status || '').includes('Error') || (p.Notes && p.Notes.toLowerCase().includes('error'));
 
           return (
             <div

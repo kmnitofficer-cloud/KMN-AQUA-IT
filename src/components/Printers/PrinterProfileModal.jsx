@@ -27,7 +27,7 @@ export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogR
             <div>
               <div className="flex items-center gap-2">
                 <h2>{printer.PrinterName}</h2>
-                <span className={`badge ${printer.Status.includes('Error') ? 'badge-danger' : 'badge-success'}`}>
+                <span className={`badge ${(printer.Status || '').includes('Error') ? 'badge-danger' : 'badge-success'}`}>
                   {printer.Status}
                 </span>
               </div>
