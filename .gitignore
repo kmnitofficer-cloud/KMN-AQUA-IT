@@ -30,3 +30,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 legacy_local_db_archive/
+backups/
+scratch/
+database/
+*.xlsx
+

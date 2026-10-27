@@ -1,4 +1,5 @@
 import { dbRepository } from './dbRepository';
+import { googleDriveService } from './googleDriveService';
 
 export const CCTV_OFFICES = [
   {
@@ -179,19 +180,21 @@ export const cctvService = {
       filePath = `/invoices/${safeName}`;
       fileSize = `${Math.round(file.size / 1024)} KB`;
 
-      try {
-        const base64 = await this.readFileAsBase64(file);
-        // Upload to backend if server is active
-        await fetch('/api/invoices/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: safeName,
-            base64Data: base64
-          })
-        });
-      } catch (err) {
-        console.warn('CCTV bill file upload to server failed, storing metadata in record:', err);
+      if (googleDriveService.isConfigured()) {
+        try {
+          const driveRes = await googleDriveService.uploadInvoice(file, {
+            InvoiceNumber: billData.BillNumber || billId,
+            Supplier: billData.Supplier || 'CCTV & Utilities',
+            Amount: totalAmt,
+            InvoiceDate: billData.BillDate || new Date().toISOString().split('T')[0],
+            Description: `CCTV / Utility Bill: ${billData.BillCategory || 'General'}`
+          });
+          if (driveRes && driveRes.fileUrl) {
+            filePath = driveRes.fileUrl;
+          }
+        } catch (err) {
+          console.warn('CCTV bill file upload to Google Drive failed:', err);
+        }
       }
     }
 

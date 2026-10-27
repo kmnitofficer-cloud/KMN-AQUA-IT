@@ -1,4 +1,5 @@
 import { dbRepository } from './dbRepository';
+import { googleDriveService } from './googleDriveService';
 
 export const AC_FLOORS = ['Ground Floor', 'First Floor'];
 
@@ -176,23 +177,20 @@ export const acService = {
     if (serviceData.billFile) {
       fileName = serviceData.billFile.name;
       fileSize = `${Math.round(serviceData.billFile.size / 1024)} KB`;
-      try {
-        const base64Data = await this.readFileAsBase64(serviceData.billFile);
-        const res = await fetch('/api/excel-database/upload-invoice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: `${serviceData.InvoiceNo || serviceId}_${fileName}`,
-            fileData: base64Data
-          })
-        });
-        if (res.ok) {
-          const json = await res.json();
-          filePath = json.filePath || `/invoices/${fileName}`;
-        } else {
+      if (googleDriveService.isConfigured()) {
+        try {
+          const driveRes = await googleDriveService.uploadInvoice(serviceData.billFile, {
+            InvoiceNumber: serviceData.InvoiceNo || serviceId,
+            Supplier: serviceData.TechnicianCompany || 'AC Service Technician',
+            Amount: serviceData.Cost || 0,
+            InvoiceDate: serviceData.ServiceDate || new Date().toISOString().split('T')[0],
+            Description: `AC Service Bill: ${serviceData.ServiceType || 'Routine Service'}`
+          });
+          filePath = (driveRes && driveRes.fileUrl) || `/invoices/${fileName}`;
+        } catch {
           filePath = `/invoices/${fileName}`;
         }
-      } catch {
+      } else {
         filePath = `/invoices/${fileName}`;
       }
     }
@@ -269,23 +267,20 @@ export const acService = {
     if (repairData.billFile) {
       fileName = repairData.billFile.name;
       fileSize = `${Math.round(repairData.billFile.size / 1024)} KB`;
-      try {
-        const base64Data = await this.readFileAsBase64(repairData.billFile);
-        const res = await fetch('/api/excel-database/upload-invoice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: `${repairData.InvoiceNo || repairId}_${fileName}`,
-            fileData: base64Data
-          })
-        });
-        if (res.ok) {
-          const json = await res.json();
-          filePath = json.filePath || `/invoices/${fileName}`;
-        } else {
+      if (googleDriveService.isConfigured()) {
+        try {
+          const driveRes = await googleDriveService.uploadInvoice(repairData.billFile, {
+            InvoiceNumber: repairData.InvoiceNo || repairId,
+            Supplier: repairData.TechnicianCompany || 'AC Repair Technician',
+            Amount: repairData.RepairCost || 0,
+            InvoiceDate: repairData.IssueDate || new Date().toISOString().split('T')[0],
+            Description: `AC Repair Bill: ${repairData.IssueDescription || 'Repair'}`
+          });
+          filePath = (driveRes && driveRes.fileUrl) || `/invoices/${fileName}`;
+        } catch {
           filePath = `/invoices/${fileName}`;
         }
-      } catch {
+      } else {
         filePath = `/invoices/${fileName}`;
       }
     }

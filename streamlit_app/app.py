@@ -4,13 +4,16 @@ from styles import apply_custom_styles
 from config import ADMIN_USERNAME, ADMIN_PASSWORD, USER_USERNAME, USER_PASSWORD, SPREADSHEET_URL, INVOICES_FOLDER_ID
 from services.cloud_db import cloud_db
 
-# Page configuration
-st.set_page_config(
-    page_title="KMN IT Asset & Cloud Vault Hub",
-    page_icon="🏢",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Page configuration (guarded if already invoked)
+try:
+    st.set_page_config(
+        page_title="KMN IT Asset & Cloud Vault Hub",
+        page_icon="🏢",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+except Exception:
+    pass
 
 # Apply global CSS design system
 apply_custom_styles()

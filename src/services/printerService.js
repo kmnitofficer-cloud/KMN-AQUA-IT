@@ -1,4 +1,5 @@
 import { dbRepository } from './dbRepository';
+import { googleDriveService } from './googleDriveService';
 
 export const printerService = {
   getPrinters() {
@@ -135,26 +136,19 @@ export const printerService = {
         Description: `${consumableType} for printer`
       };
 
-      // Upload file to disk if possible
-      try {
-        const reader = new FileReader();
-        reader.onload = async () => {
-          try {
-            await fetch('/api/invoices/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                filename: safeName,
-                base64Data: reader.result,
-                invoiceData: newInvoice
-              })
-            });
-          } catch (e) {
-            console.warn('Could not post invoice to backend:', e.message);
+      if (googleDriveService.isConfigured()) {
+        try {
+          const driveRes = await googleDriveService.uploadInvoice(invoiceFile, newInvoice);
+          if (driveRes && driveRes.fileUrl) {
+            newInvoice.FilePath = driveRes.fileUrl;
+            newInvoice.DriveUrl = driveRes.driveUrl;
+            newInvoice.DownloadUrl = driveRes.downloadUrl;
+            newInvoice.DriveFileID = driveRes.invoice?.DriveFileID || '';
           }
-        };
-        reader.readAsDataURL(invoiceFile);
-      } catch (e) {}
+        } catch (e) {
+          console.warn('Could not post invoice to Google Drive:', e.message);
+        }
+      }
 
       await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
     } else if (!invoiceId && invoiceNumber) {

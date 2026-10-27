@@ -1,6 +1,5 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
-import { excelDatabasePlugin } from './server/excelDatabasePlugin.js'
 import crypto from 'node:crypto'
 
 // https://vite.dev/config/
@@ -12,12 +11,12 @@ export default defineConfig(({ mode }) => {
 
   const stripParens = (str) => String(str || '').trim().replace(/^\((.*)\)$/, '$1').trim();
 
-  const adminUser = (env.VITE_ADMIN_USERNAME || 'admin').trim();
-  const rawAdminPass = (env.VITE_ADMIN_PASSWORD || 'admin123').trim();
+  const adminUser = (env.VITE_ADMIN_USERNAME || 'kmnaquaitadmin').trim();
+  const rawAdminPass = (env.VITE_ADMIN_PASSWORD || '(adminaqua30@IT)').trim();
   const cleanAdminPass = stripParens(rawAdminPass);
 
   const userUser = (env.VITE_USER_USERNAME || 'user').trim();
-  const rawUserPass = (env.VITE_USER_PASSWORD || 'user123').trim();
+  const rawUserPass = (env.VITE_USER_PASSWORD || '(useraqua30@IT)').trim();
   const cleanUserPass = stripParens(rawUserPass);
 
   return {
@@ -33,23 +32,11 @@ export default defineConfig(({ mode }) => {
         salt: salt
       })
     },
-    server: {
-      watch: {
-        ignored: [
-          '**/database/**',
-          '**/backups/**',
-          '**/*.xlsx',
-          '**/*.xls',
-          '**/*.csv',
-          '**/public/invoices/**'
-        ]
-      }
-    },
     plugins: [
-      react(),
-      excelDatabasePlugin()
+      react()
     ],
   };
 })
+
 
 

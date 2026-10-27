@@ -226,5 +226,5 @@ if __name__ == "__main__":
     print(f"  • Cloud Vault: Google Drive Invoices Folder")
     print(f"  • Live URL: http://localhost:{port}")
     print(f"============================================================================\n")
-    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
