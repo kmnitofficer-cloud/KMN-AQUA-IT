@@ -43,9 +43,9 @@ export const userService = {
     const repairs = dbRepository.getTable('Repairs');
     const expenses = dbRepository.getTable('Expenses');
 
-    // 1. Direct expenses assigned to user
+    // 1. Direct expenses assigned to user (excluding repairs already counted in repairCosts)
     const directExpenses = expenses
-      .filter(e => e.UserID === userId)
+      .filter(e => e.UserID === userId && e.ExpenseType !== 'Repair')
       .reduce((sum, e) => sum + (Number(e.Amount) || 0), 0);
 
     // 2. Repairs incurred by user's assigned assets (current and historical)

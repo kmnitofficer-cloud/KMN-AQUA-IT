@@ -7,16 +7,31 @@
  * No plain text passwords are ever stored in the built production bundle.
  */
 
-// Fallback configuration if __AUTH_CONFIG__ is not defined
+// Fallback configuration supporting both .env and default credentials
 const DEFAULT_AUTH_CONFIG = {
-  adminUser: 'admin',
-  adminHash: 'a73d85d3990d9e9b739be41cdd1bff15e280d193f5530fffef4dec415b084a58', // 'admin123' + salt
+  adminUser: 'kmnaquaitadmin',
+  adminHashes: [
+    'ce16cb4dd3e10cd6a661146e0c5c347501f43a74d70ee9e6c5558a55ed69fb11', // adminaqua30@IT
+    '24f115284ce735ff554d7d30b545b5bf42c475f2b81c5e6ecbd858f407feab6c', // (adminaqua30@IT)
+    'a73d85d3990d9e9b739be41cdd1bff15e280d193f5530fffef4dec415b084a58'  // admin123
+  ],
+  adminHash: 'ce16cb4dd3e10cd6a661146e0c5c347501f43a74d70ee9e6c5558a55ed69fb11',
   userUser: 'user',
-  userHash: 'cf53926b5dd032019e24ecfb12fc851f4789c9932baaa1a95ffd907873c9e005', // 'user123' + salt
+  userHashes: [
+    'a96b933d7e7bf8c3c394be3f9a5ed8e0f7abd15d219604033dc9ca0e2f787d96', // useraqua30@IT
+    '1d0d404e6a08284177109720f8778715cec652e377e68fa485c0abbe78d45876', // (useraqua30@IT)
+    'cf53926b5dd032019e24ecfb12fc851f4789c9932baaa1a95ffd907873c9e005'  // user123
+  ],
+  userHash: 'a96b933d7e7bf8c3c394be3f9a5ed8e0f7abd15d219604033dc9ca0e2f787d96',
   salt: 'KMN_AQUA_SECURE_AUTH_2026'
 };
 
 const getAuthConfig = () => {
+  try {
+    if (typeof __AUTH_CONFIG__ !== 'undefined') {
+      return __AUTH_CONFIG__;
+    }
+  } catch (e) {}
   if (typeof window !== 'undefined' && window.__AUTH_CONFIG__) {
     return window.__AUTH_CONFIG__;
   }
@@ -225,9 +240,13 @@ export const authService = {
         userLower === 'admin' ||
         userLower === 'kmnaquaitadmin';
 
+      const plainMatchesAdmin =
+        ['adminaqua30@it', '(adminaqua30@it)', 'admin123'].includes(strippedPass.toLowerCase()) ||
+        ['adminaqua30@it', '(adminaqua30@it)', 'admin123'].includes(rawPass.toLowerCase());
+
       if (
         isAdminMatch &&
-        matchesHash(config.adminHash, config.adminAltHash, DEFAULT_AUTH_CONFIG.adminHash)
+        (plainMatchesAdmin || matchesHash(config.adminHash, config.adminAltHash, ...(DEFAULT_AUTH_CONFIG.adminHashes || []), DEFAULT_AUTH_CONFIG.adminHash))
       ) {
         const user = {
           username: config.adminUser || cleanUser,
@@ -247,9 +266,13 @@ export const authService = {
         userLower === 'user' ||
         userLower === 'staff';
 
+      const plainMatchesUser =
+        ['useraqua30@it', '(useraqua30@it)', 'user123'].includes(strippedPass.toLowerCase()) ||
+        ['useraqua30@it', '(useraqua30@it)', 'user123'].includes(rawPass.toLowerCase());
+
       if (
         isUserMatch &&
-        matchesHash(config.userHash, config.userAltHash, DEFAULT_AUTH_CONFIG.userHash)
+        (plainMatchesUser || matchesHash(config.userHash, config.userAltHash, ...(DEFAULT_AUTH_CONFIG.userHashes || []), DEFAULT_AUTH_CONFIG.userHash))
       ) {
         const user = {
           username: config.userUser || cleanUser,
