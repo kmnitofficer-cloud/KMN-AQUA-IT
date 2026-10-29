@@ -1,11 +1,23 @@
 import os
+import sys
+from pathlib import Path
+
+# Add streamlit_app to sys.path if not present
+_parent = str(Path(__file__).resolve().parent.parent)
+if _parent not in sys.path:
+    sys.path.insert(0, _parent)
+
 import json
 import base64
 import logging
 import requests
 import pandas as pd
 from typing import Dict, List, Any, Optional
-from config import GOOGLE_APPS_SCRIPT_URL, INVOICES_FOLDER_ID, GOOGLE_APPS_SCRIPT_SECRET_TOKEN, TABLE_NAMES
+
+try:
+    from config import GOOGLE_APPS_SCRIPT_URL, INVOICES_FOLDER_ID, GOOGLE_APPS_SCRIPT_SECRET_TOKEN, TABLE_NAMES
+except ImportError:
+    from streamlit_app.config import GOOGLE_APPS_SCRIPT_URL, INVOICES_FOLDER_ID, GOOGLE_APPS_SCRIPT_SECRET_TOKEN, TABLE_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -99,137 +111,129 @@ class CloudDatabaseService:
         """
         payload = self._get_auth_payload({
             "action": "updateTable",
-            "tableName": table_name,
+            "table": table_name,
             "records": records
         })
-
         try:
             res = requests.post(
                 self.script_url,
-                data=json.dumps(payload),
-                headers={"Content-Type": "text/plain;charset=utf-8"},
-                timeout=60
+                json=payload,
+                timeout=45,
+                headers={"Content-Type": "application/json", "User-Agent": "Streamlit-ITSystem/1.0"}
             )
             res.raise_for_status()
             data = res.json()
-            if data.get("success"):
+            if data.get("success", False):
                 self._cache[table_name] = pd.DataFrame(records)
+                self.last_sync_time = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
             return data
         except Exception as e:
-            logger.error(f"Failed to update table {table_name}: {e}")
+            logger.error(f"Error updating table {table_name}: {e}")
             return {"success": False, "error": str(e)}
 
     def save_record(self, table_name: str, record: Dict[str, Any], id_key: str = "ID") -> Dict[str, Any]:
-        """Inserts or updates a single record in the specified Google Sheet tab."""
-        df = self.get_table(table_name)
-        records = df.to_dict(orient="records") if not df.empty else []
+        """
+        Saves or inserts a single record in the given table.
+        """
+        table_df = self.get_table(table_name)
+        records = table_df.to_dict(orient="records") if not table_df.empty else []
 
-        record_id = str(record.get(id_key, "")).strip()
-        found_idx = -1
+        id_val = str(record.get(id_key, "")).strip()
+        updated = False
 
-        if record_id:
-            for idx, r in enumerate(records):
-                if str(r.get(id_key, "")).strip() == record_id:
-                    found_idx = idx
+        if id_val:
+            for idx, item in enumerate(records):
+                if str(item.get(id_key, "")).strip() == id_val:
+                    records[idx] = {**item, **record}
+                    updated = True
                     break
 
-        if found_idx >= 0:
-            records[found_idx].update(record)
-        else:
-            records.insert(0, record)
+        if not updated:
+            records.append(record)
 
         return self.update_table(table_name, records)
 
-    def delete_record(self, table_name: str, id_key: str, id_value: str) -> Dict[str, Any]:
-        """Deletes a record from the specified Google Sheet tab."""
-        df = self.get_table(table_name)
-        if df.empty:
-            return {"success": True, "message": "Table was empty."}
-
-        records = df.to_dict(orient="records")
-        updated_records = [r for r in records if str(r.get(id_key, "")).strip() != str(id_value).strip()]
-        return self.update_table(table_name, updated_records)
-
-    def generate_next_id(self, table_name: str, prefix: str, id_key: str) -> str:
-        """Generates the next sequential alphanumeric ID, e.g. AST-0086."""
-        df = self.get_table(table_name)
-        if df.empty or id_key not in df.columns:
-            return f"{prefix}0001"
-
-        ids = df[id_key].dropna().astype(str).tolist()
-        max_num = 0
-        for item in ids:
-            digits = "".join(filter(str.isdigit, item))
-            if digits:
-                num = int(digits)
-                if num > max_num:
-                    max_num = num
-
-        return f"{prefix}{str(max_num + 1).zfill(4)}"
-
-    def upload_file(self, name: str, mime: str, file_bytes: bytes, invoice_data: Optional[Dict[str, Any]] = None, folder_id: Optional[str] = None) -> Dict[str, Any]:
+    def delete_record(self, table_name: str, id_key: str, id_value: Any) -> Dict[str, Any]:
         """
-        Uploads a PDF or image file directly to Google Drive via the Apps Script Web App.
-        Supports both (name, mime, bytes, invoice_data) and (name, mime, bytes, folder_id) calling patterns.
+        Deletes a single record matching id_key == id_value.
         """
-        if not file_bytes:
-            return {"success": False, "error": "No file data provided"}
+        table_df = self.get_table(table_name)
+        if table_df.empty:
+            return {"success": True, "message": "Table is empty"}
 
-        # Handle positional parameter flexibility
-        if isinstance(invoice_data, str) and folder_id is None:
-            folder_id = invoice_data
-            invoice_data = None
+        records = table_df.to_dict(orient="records")
+        target_str = str(id_value).strip()
+        filtered = [r for r in records if str(r.get(id_key, "")).strip() != target_str]
 
-        target_folder = folder_id or INVOICES_FOLDER_ID
-        b64_str = base64.b64encode(file_bytes).decode("ascii")
+        if len(filtered) == len(records):
+            return {"success": True, "message": "Record not found (already deleted)"}
 
-        payload = self._get_auth_payload({
-            "action": "uploadInvoice",
-            "filename": name,
-            "fileName": name,
-            "mimeType": mime,
-            "mime": mime,
-            "base64Data": b64_str,
-            "folderId": target_folder,
-            "invoiceData": invoice_data or {}
-        })
+        return self.update_table(table_name, filtered)
 
+    def upload_file(self, name: str, mime: str, file_bytes: bytes, invoice_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Uploads a PDF/Image file to Google Drive folder using the Web App.
+        """
         try:
+            b64_string = base64.b64encode(file_bytes).decode("utf-8")
+            payload = self._get_auth_payload({
+                "action": "uploadInvoice",
+                "folderId": INVOICES_FOLDER_ID,
+                "fileData": {
+                    "name": name,
+                    "mimeType": mime,
+                    "base64": b64_string
+                },
+                "invoice": invoice_data or {}
+            })
             res = requests.post(
                 self.script_url,
-                data=json.dumps(payload),
-                headers={"Content-Type": "text/plain;charset=utf-8"},
-                timeout=120
+                json=payload,
+                timeout=60,
+                headers={"Content-Type": "application/json", "User-Agent": "Streamlit-ITSystem/1.0"}
             )
             res.raise_for_status()
             data = res.json()
-            if not data.get("success", False):
-                return {"success": False, "error": data.get("error", "Upload failed")}
 
-            file_url = data.get("fileUrl", "")
-            file_id = data.get("invoice", {}).get("DriveFileID", "")
-            if not file_id and "/d/" in file_url:
-                try:
-                    file_id = file_url.split("/d/")[1].split("/")[0]
-                except Exception:
-                    pass
+            if data.get("success", False) and invoice_data:
+                file_url = data.get("fileUrl", "")
+                invoice_data["GoogleDriveUrl"] = file_url
+                inv_df = self.get_table("Invoices")
+                inv_records = inv_df.to_dict(orient="records") if not inv_df.empty else []
+                inv_id = invoice_data.get("InvoiceID")
+                found = False
+                for i, inv in enumerate(inv_records):
+                    if str(inv.get("InvoiceID")) == str(inv_id):
+                        inv_records[i] = {**inv, **invoice_data}
+                        found = True
+                        break
+                if not found:
+                    inv_records.append(invoice_data)
+                self.update_table("Invoices", inv_records)
 
-            # Update cache if an invoice was recorded
-            if data.get("invoice"):
-                self.fetch_all_tables(force_refresh=True)
-
-            return {
-                "success": True,
-                "fileId": file_id,
-                "fileUrl": file_url,
-                "driveUrl": data.get("driveUrl", ""),
-                "downloadUrl": data.get("downloadUrl", ""),
-                "invoice": data.get("invoice")
-            }
+            return data
         except Exception as e:
-            logger.error(f"Failed to upload file {name} to Google Drive: {e}")
+            logger.error(f"Error uploading file {name}: {e}")
             return {"success": False, "error": str(e)}
 
+    def generate_next_id(self, table_name: str, prefix: str, id_col: str = "ID") -> str:
+        """Generates the next sequential ID (e.g. AST-0042) based on current max numeric suffix."""
+        df = self.get_table(table_name)
+        if df.empty or id_col not in df.columns:
+            return f"{prefix}0001"
 
-# Global singleton instance
+        highest = 0
+        for val in df[id_col].dropna().astype(str):
+            clean = val.strip()
+            if clean.startswith(prefix):
+                num_part = clean[len(prefix):]
+                if num_part.isdigit():
+                    num = int(num_part)
+                    if num > highest:
+                        highest = num
+
+        next_num = highest + 1
+        return f"{prefix}{next_num:04d}"
+
+# Global singleton
 cloud_db = CloudDatabaseService()
