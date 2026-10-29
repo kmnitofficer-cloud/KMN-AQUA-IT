@@ -34,7 +34,7 @@ goto exit_app
 echo.
 echo Starting Streamlit Cloud Hub...
 start http://localhost:8501
-python -m streamlit run app.py
+python -m streamlit run streamlit_app/app.py
 pause
 goto exit_app
 

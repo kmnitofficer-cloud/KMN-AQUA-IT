@@ -19,7 +19,7 @@ def render_drive_vault():
     with t_col1:
         st.caption(f"📂 Google Drive Storage Folder ID: `{INVOICES_FOLDER_ID}`")
     with t_col2:
-        if st.button("🔄 Sync with Google Drive Folder", use_container_width=True):
+        if st.button("🔄 Sync with Google Drive Folder", width="stretch"):
             with st.spinner("Scanning Google Drive folder for newly added bills..."):
                 sync_res = drive_vault.sync_drive_folder()
                 if sync_res.get("success"):

@@ -23,15 +23,8 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
   const storageSource = dbRepository.getStorageSource();
 
   const loadBackups = async () => {
-    try {
-      const res = await fetch('/api/database/backups');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) setBackups(json.backups || []);
-      }
-    } catch (e) {
-      console.warn('Could not list backups:', e);
-    }
+    // Backups managed on server
+    setBackups([]);
   };
 
   useEffect(() => {
@@ -173,13 +166,10 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
   const handleManualBackup = async () => {
     setIsBackingUp(true);
     try {
-      const res = await fetch('/api/database/backup', { method: 'POST' });
-      if (res.ok) {
-        alert('Manual backup snapshot created successfully in backups/ folder!');
-        loadBackups();
-      }
+      await dbRepository.refresh();
+      alert('Database synced with Streamlit cloud database!');
     } catch (err) {
-      alert('Backup failed: ' + err.message);
+      alert('Sync failed: ' + err.message);
     } finally {
       setIsBackingUp(false);
     }

@@ -6,7 +6,7 @@
  */
 
 export const DRIVE_CONFIG = {
-  DEFAULT_SCRIPT_URL: import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbw5aKkqbVd-O10MGlWimVDMtToFbAXPZ6zGtPX8aLdBXF-x3KVH-Gn07CAPp25sNmw/exec',
+  DEFAULT_SCRIPT_URL: '',
 
   // Preferred mode: 'google_drive' connects directly to cloud database
   DEFAULT_STORAGE_MODE: 'google_drive',

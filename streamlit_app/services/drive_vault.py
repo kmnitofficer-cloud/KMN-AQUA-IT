@@ -110,9 +110,9 @@ class DriveVaultService:
         with col1:
             st.caption(f"🔗 **Google Drive Document Link**")
         with col2:
-            st.link_button("↗️ Open in Drive", view_url, use_container_width=True)
+            st.link_button("↗️ Open in Drive", view_url, width="stretch")
         with col3:
-            st.link_button("⬇️ Direct Download", download_url, use_container_width=True)
+            st.link_button("⬇️ Direct Download", download_url, width="stretch")
 
         # Embedded iframe
         iframe_html = f"""

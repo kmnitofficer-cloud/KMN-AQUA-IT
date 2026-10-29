@@ -1,25 +1,41 @@
+import os
 import json
+import base64
 import logging
 import requests
 import pandas as pd
 from typing import Dict, List, Any, Optional
-from config import GOOGLE_APPS_SCRIPT_URL, TABLE_NAMES
+from config import GOOGLE_APPS_SCRIPT_URL, INVOICES_FOLDER_ID, GOOGLE_APPS_SCRIPT_SECRET_TOKEN, TABLE_NAMES
 
 logger = logging.getLogger(__name__)
 
 class CloudDatabaseService:
-    def __init__(self, script_url: str = GOOGLE_APPS_SCRIPT_URL):
+    def __init__(self, script_url: str = GOOGLE_APPS_SCRIPT_URL, secret_token: str = GOOGLE_APPS_SCRIPT_SECRET_TOKEN):
         self.script_url = script_url
+        self.secret_token = secret_token
         self._cache: Dict[str, pd.DataFrame] = {}
         self.is_connected = False
         self.last_sync_time: Optional[str] = None
 
+    def _get_auth_params(self, base_params: Dict[str, Any]) -> Dict[str, Any]:
+        params = dict(base_params)
+        if self.secret_token:
+            params["token"] = self.secret_token
+        return params
+
+    def _get_auth_payload(self, base_payload: Dict[str, Any]) -> Dict[str, Any]:
+        payload = dict(base_payload)
+        if self.secret_token:
+            payload["token"] = self.secret_token
+        return payload
+
     def test_connection(self) -> Dict[str, Any]:
         """Verifies connection with the Google Apps Script Web App."""
         try:
+            params = self._get_auth_params({"action": "test", "_t": pd.Timestamp.now().timestamp()})
             res = requests.get(
                 self.script_url,
-                params={"action": "test", "_t": pd.Timestamp.now().timestamp()},
+                params=params,
                 timeout=20,
                 headers={"User-Agent": "Streamlit-ITSystem/1.0"}
             )
@@ -40,9 +56,10 @@ class CloudDatabaseService:
             return self._cache
 
         try:
+            params = self._get_auth_params({"action": "getDatabase", "_t": pd.Timestamp.now().timestamp()})
             res = requests.get(
                 self.script_url,
-                params={"action": "getDatabase", "_t": pd.Timestamp.now().timestamp()},
+                params=params,
                 timeout=60,
                 headers={"User-Agent": "Streamlit-ITSystem/1.0"}
             )
@@ -80,24 +97,22 @@ class CloudDatabaseService:
         Pushes an updated table to Google Sheets via POST.
         Updates local memory cache immediately for zero-lag UI response.
         """
-        payload = {
+        payload = self._get_auth_payload({
             "action": "updateTable",
             "tableName": table_name,
             "records": records
-        }
+        })
 
         try:
-            # We send as plain text/json with follow redirects enabled
             res = requests.post(
                 self.script_url,
                 data=json.dumps(payload),
                 headers={"Content-Type": "text/plain;charset=utf-8"},
-                timeout=45
+                timeout=60
             )
             res.raise_for_status()
             data = res.json()
             if data.get("success"):
-                # Update in-memory cache
                 self._cache[table_name] = pd.DataFrame(records)
             return data
         except Exception as e:
@@ -151,6 +166,69 @@ class CloudDatabaseService:
                     max_num = num
 
         return f"{prefix}{str(max_num + 1).zfill(4)}"
+
+    def upload_file(self, name: str, mime: str, file_bytes: bytes, invoice_data: Optional[Dict[str, Any]] = None, folder_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Uploads a PDF or image file directly to Google Drive via the Apps Script Web App.
+        Supports both (name, mime, bytes, invoice_data) and (name, mime, bytes, folder_id) calling patterns.
+        """
+        if not file_bytes:
+            return {"success": False, "error": "No file data provided"}
+
+        # Handle positional parameter flexibility
+        if isinstance(invoice_data, str) and folder_id is None:
+            folder_id = invoice_data
+            invoice_data = None
+
+        target_folder = folder_id or INVOICES_FOLDER_ID
+        b64_str = base64.b64encode(file_bytes).decode("ascii")
+
+        payload = self._get_auth_payload({
+            "action": "uploadInvoice",
+            "filename": name,
+            "fileName": name,
+            "mimeType": mime,
+            "mime": mime,
+            "base64Data": b64_str,
+            "folderId": target_folder,
+            "invoiceData": invoice_data or {}
+        })
+
+        try:
+            res = requests.post(
+                self.script_url,
+                data=json.dumps(payload),
+                headers={"Content-Type": "text/plain;charset=utf-8"},
+                timeout=120
+            )
+            res.raise_for_status()
+            data = res.json()
+            if not data.get("success", False):
+                return {"success": False, "error": data.get("error", "Upload failed")}
+
+            file_url = data.get("fileUrl", "")
+            file_id = data.get("invoice", {}).get("DriveFileID", "")
+            if not file_id and "/d/" in file_url:
+                try:
+                    file_id = file_url.split("/d/")[1].split("/")[0]
+                except Exception:
+                    pass
+
+            # Update cache if an invoice was recorded
+            if data.get("invoice"):
+                self.fetch_all_tables(force_refresh=True)
+
+            return {
+                "success": True,
+                "fileId": file_id,
+                "fileUrl": file_url,
+                "driveUrl": data.get("driveUrl", ""),
+                "downloadUrl": data.get("downloadUrl", ""),
+                "invoice": data.get("invoice")
+            }
+        except Exception as e:
+            logger.error(f"Failed to upload file {name} to Google Drive: {e}")
+            return {"success": False, "error": str(e)}
 
 
 # Global singleton instance

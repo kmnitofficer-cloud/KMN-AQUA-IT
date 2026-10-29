@@ -1,5 +1,5 @@
 import { dbRepository } from './dbRepository';
-import { googleDriveService } from './googleDriveService';
+import { streamlitBridge } from '../lib/streamlitBridge';
 import { KNOWN_INVOICE_MAP } from '../config/driveConfig';
 
 export const invoiceService = {
@@ -93,37 +93,25 @@ export const invoiceService = {
       Description: metadata.Description || `Uploaded Invoice: ${file.name}`
     };
 
-    // If Google Drive is configured, upload directly to Google Drive
-    if (googleDriveService.isConfigured()) {
-      try {
-        const driveRes = await googleDriveService.uploadInvoice(file, {
+    // Upload directly through Streamlit's Python backend (which saves to Google Drive)
+    try {
+      const res = await streamlitBridge.callAction('upload_file', {
+        filename: safeName,
+        base64Data: base64,
+        mimeType: file.type || 'application/pdf',
+        invoiceData: {
           ...newInvoice,
-          createMatchingExpense: false // already handled above locally
-        });
-        if (driveRes && driveRes.fileUrl) {
-          newInvoice.FilePath = driveRes.fileUrl; // Preview iframe URL
-          newInvoice.DriveUrl = driveRes.driveUrl;
-          newInvoice.DownloadUrl = driveRes.downloadUrl;
-          newInvoice.DriveFileID = driveRes.invoice?.DriveFileID || '';
+          createMatchingExpense: false
         }
-      } catch (err) {
-        console.warn('Google Drive invoice upload failed, falling back to local:', err);
+      });
+      if (res && res.data) {
+        newInvoice.FilePath = res.data.fileUrl || res.data.previewUrl || '';
+        newInvoice.DriveUrl = res.data.driveUrl || '';
+        newInvoice.DownloadUrl = res.data.downloadUrl || '';
+        newInvoice.DriveFileID = res.data.fileId || res.data.invoice?.DriveFileID || '';
       }
-    } else {
-      // Try posting to local backend server if available
-      try {
-        await fetch('/api/invoices/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filename: safeName,
-            base64Data: base64,
-            invoiceData: newInvoice
-          })
-        });
-      } catch (err) {
-        console.warn('Backend upload failed, persisting in DB repository:', err);
-      }
+    } catch (err) {
+      console.warn('Streamlit upload failed, persisting in DB repository:', err);
     }
 
     await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);

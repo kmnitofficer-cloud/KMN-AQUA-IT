@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Moon, Sun, Database, Shield, Menu, Laptop, Cloud, LogOut, User as UserIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Moon, Sun, Database, Shield, Menu, Laptop, Cloud, LogOut, User as UserIcon, Maximize, Minimize } from 'lucide-react';
 import { dbRepository } from '../../services/dbRepository';
 
 import LocationSelector from './LocationSelector';
@@ -18,9 +18,19 @@ export default function Navbar({
   onSelectLocation
 }) {
   const storageSource = dbRepository.getStorageSource();
-  const isGoogleDrive = storageSource === 'google_drive';
+  const isGoogleDrive = storageSource === 'google_drive' || storageSource === 'streamlit_python';
   const isLocalDisk = storageSource === 'local_disk';
   const isAdmin = (currentUser?.role || role) === 'admin';
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      const doc = window.parent?.document || document;
+      setIsFullscreen(Boolean(doc.fullscreenElement || document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   return (
     <header className="app-navbar">
@@ -121,6 +131,36 @@ export default function Navbar({
             <span className="role-btn-text capitalize">{role}</span>
           </button>
         )}
+
+        {/* Fullscreen Mode */}
+        <button
+          className="icon-btn"
+          onClick={() => {
+            try {
+              const doc = window.parent?.document || document;
+              if (!doc.fullscreenElement) {
+                const el = doc.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen();
+                setIsFullscreen(true);
+              } else {
+                if (doc.exitFullscreen) doc.exitFullscreen();
+                setIsFullscreen(false);
+              }
+            } catch (e) {
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+                setIsFullscreen(true);
+              } else {
+                document.exitFullscreen().catch(() => {});
+                setIsFullscreen(false);
+              }
+            }
+          }}
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen Mode"}
+          aria-label="Toggle Fullscreen"
+        >
+          {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+        </button>
 
         {/* Theme Toggle */}
         <button

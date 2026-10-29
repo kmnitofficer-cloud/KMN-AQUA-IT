@@ -88,7 +88,7 @@ export default function AdminPinModal({
                 marginBottom: '0.5rem'
               }}>
                 <ShieldAlert size={14} />
-                <span>Incorrect password. Default is: <strong>admin123</strong></span>
+                <span>Incorrect password. Authorization failed.</span>
               </div>
             )}
           </div>

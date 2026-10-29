@@ -12,7 +12,9 @@ import {
   Sun, 
   Moon,
   KeyRound,
-  Shield
+  Shield,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 
@@ -25,6 +27,38 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(() => {
+    try {
+      return Boolean(window.parent?.document?.fullscreenElement || document.fullscreenElement);
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleFullscreen = () => {
+    try {
+      const doc = window.parent?.document || document;
+      if (!doc.fullscreenElement && !document.fullscreenElement) {
+        const el = doc.documentElement || document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        if (doc.exitFullscreen) doc.exitFullscreen().catch(() => {});
+        else if (document.exitFullscreen) doc.exitFullscreen().catch(() => {});
+        setIsFullscreen(false);
+      }
+    } catch (e) {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        setIsFullscreen(true);
+      } else {
+        document.exitFullscreen().catch(() => {});
+        setIsFullscreen(false);
+      }
+    }
+  };
 
   const handleProfileSelect = (profileType) => {
     setActiveProfileTab(profileType);
@@ -43,6 +77,15 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+
+    // Auto-enter fullscreen upon signing in (valid user gesture)
+    try {
+      const doc = window.parent?.document || document;
+      if (!doc.fullscreenElement && !document.fullscreenElement) {
+        const el = doc.documentElement || document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      }
+    } catch (err) {}
 
     try {
       const res = await authService.login(username, password, rememberMe);
@@ -73,16 +116,27 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
           <ShieldCheck size={14} className="text-cyan-400" />
           <span>KMN SECURE GATEWAY v2.6</span>
         </div>
-        {onToggleTheme && (
+        <div className="flex items-center gap-1">
           <button 
             type="button" 
-            className="icon-btn theme-toggle-btn"
-            onClick={onToggleTheme}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            className="icon-btn"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen Mode"}
+            aria-label="Toggle Fullscreen"
           >
-            {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
+            {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
           </button>
-        )}
+          {onToggleTheme && (
+            <button 
+              type="button" 
+              className="icon-btn theme-toggle-btn"
+              onClick={onToggleTheme}
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            >
+              {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Glass Card */}
@@ -131,18 +185,12 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
                 <CheckCircle2 size={13} />
                 <span>Full administrator access: Assets, Floor Plans, Cloud DB Sync</span>
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94A3B8)', paddingLeft: '1.25rem' }}>
-                ID: <strong style={{ color: '#38BDF8' }}>{currentConfig?.adminUser || 'kmnaquaitadmin'}</strong> &bull; Password: <strong style={{ color: '#38BDF8', fontFamily: 'monospace' }}>(adminaqua30@IT)</strong>
-              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <div className="flex items-center gap-2 text-xs text-indigo-300">
                 <CheckCircle2 size={13} />
                 <span>Read-only staff access: View assets, blueprints, inspection</span>
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #94A3B8)', paddingLeft: '1.25rem' }}>
-                ID: <strong style={{ color: '#818CF8' }}>{currentConfig?.userUser || 'user'}</strong> &bull; Password: <strong style={{ color: '#818CF8', fontFamily: 'monospace' }}>(useraqua30@IT)</strong>
               </div>
             </div>
           )}

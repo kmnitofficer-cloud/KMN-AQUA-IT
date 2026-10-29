@@ -1,39 +1,65 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-# Load root .env file if available
-load_dotenv()
+# Search and load .env from current directory or project root
+current_dir = Path(__file__).resolve().parent
+root_dir = current_dir.parent
+env_path = root_dir / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()
 
-GOOGLE_APPS_SCRIPT_URL = os.getenv(
-    "VITE_GOOGLE_APPS_SCRIPT_URL",
-    "https://script.google.com/macros/s/AKfycbw5aKkqbVd-O10MGlWimVDMtToFbAXPZ6zGtPX8aLdBXF-x3KVH-Gn07CAPp25sNmw/exec"
-).strip('"').strip("'")
+# Streamlit Cloud secrets support fallback helper
+def get_config_val(key: str, alt_key: str = "") -> str:
+    val = os.getenv(key) or (os.getenv(alt_key) if alt_key else None)
+    if not val:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets"):
+                val = st.secrets.get(key) or (st.secrets.get(alt_key) if alt_key else None)
+        except Exception:
+            pass
+    return (val or "").strip().strip('"').strip("'")
 
-INVOICES_FOLDER_ID = os.getenv(
-    "GOOGLE_DRIVE_INVOICES_FOLDER_ID",
-    "1vgrHwewH0tTGwG0NMLzHRQioazXiAamD"
-).strip('"').strip("'")
+# 1. Google Apps Script Web App Endpoint
+GOOGLE_APPS_SCRIPT_URL = get_config_val("GOOGLE_APPS_SCRIPT_URL", "VITE_GOOGLE_APPS_SCRIPT_URL")
+if not GOOGLE_APPS_SCRIPT_URL:
+    raise RuntimeError(
+        "Missing required configuration: GOOGLE_APPS_SCRIPT_URL. "
+        "Please define it in your .env file or Streamlit secrets."
+    )
+
+# 2. Google Drive Invoices Folder ID
+INVOICES_FOLDER_ID = get_config_val("GOOGLE_DRIVE_INVOICES_FOLDER_ID", "INVOICES_FOLDER_ID")
+if not INVOICES_FOLDER_ID:
+    raise RuntimeError(
+        "Missing required configuration: GOOGLE_DRIVE_INVOICES_FOLDER_ID. "
+        "Please define it in your .env file or Streamlit secrets."
+    )
+
+# 3. Optional Shared Secret Token for Google Apps Script authorization
+GOOGLE_APPS_SCRIPT_SECRET_TOKEN = get_config_val("GOOGLE_APPS_SCRIPT_SECRET_TOKEN", "APPS_SCRIPT_TOKEN")
+
+# 4. Streamlit Authentication Credentials
+ADMIN_USERNAME = get_config_val("ADMIN_USERNAME", "VITE_ADMIN_USERNAME") or "kmnaquaitadmin"
+ADMIN_PASSWORD = get_config_val("ADMIN_PASSWORD", "VITE_ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise RuntimeError(
+        "Missing required configuration: ADMIN_PASSWORD. "
+        "Please define it in your .env file or Streamlit secrets."
+    )
+
+USER_USERNAME = get_config_val("USER_USERNAME", "VITE_USER_USERNAME") or "user"
+USER_PASSWORD = get_config_val("USER_PASSWORD", "VITE_USER_PASSWORD")
+if not USER_PASSWORD:
+    raise RuntimeError(
+        "Missing required configuration: USER_PASSWORD. "
+        "Please define it in your .env file or Streamlit secrets."
+    )
 
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1BAgaC2W6_nVhwQZ82hFhT5JgiN2pcRW1j8YzqjXs1m8/edit"
-
-# Credentials
-ADMIN_USERNAME = os.getenv("VITE_ADMIN_USERNAME", "kmnaquaitadmin")
-ADMIN_PASSWORD = os.getenv("VITE_ADMIN_PASSWORD", "(adminaqua30@IT)")
-USER_USERNAME = os.getenv("VITE_USER_USERNAME", "user")
-USER_PASSWORD = os.getenv("VITE_USER_PASSWORD", "(useraqua30@IT)")
-
-# Streamlit Cloud secrets support
-try:
-    import streamlit as st
-    if hasattr(st, "secrets"):
-        GOOGLE_APPS_SCRIPT_URL = st.secrets.get("GOOGLE_APPS_SCRIPT_URL", GOOGLE_APPS_SCRIPT_URL)
-        INVOICES_FOLDER_ID = st.secrets.get("INVOICES_FOLDER_ID", INVOICES_FOLDER_ID)
-        ADMIN_USERNAME = st.secrets.get("ADMIN_USERNAME", ADMIN_USERNAME)
-        ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", ADMIN_PASSWORD)
-        USER_USERNAME = st.secrets.get("USER_USERNAME", USER_USERNAME)
-        USER_PASSWORD = st.secrets.get("USER_PASSWORD", USER_PASSWORD)
-except Exception:
-    pass
 
 TABLE_NAMES = [
     "Users",

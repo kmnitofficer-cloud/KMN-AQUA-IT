@@ -1,6 +1,6 @@
 import { relationalDatabaseSeed } from '../data/relationalDatabaseSeed';
 import { parseExcelDate } from '../utils/dateUtils';
-import { googleDriveService } from './googleDriveService';
+import { streamlitBridge } from '../lib/streamlitBridge';
 import * as XLSX from 'xlsx';
 
 const STORAGE_KEY = 'kmn_relational_excel_db';
@@ -33,8 +33,11 @@ class DBRepository {
     this.isServerConnected = false;
     this.isSaving = false;
     this.lastSaved = null;
-    this.storageSource = 'local_cache'; // 'google_drive' | 'local_disk' | 'local_cache'
-    this.spreadsheetName = '';
+    this.storageSource = 'streamlit_python';
+    this.spreadsheetName = 'Google Drive Cloud Sheets';
+    this.lastResult = null;
+    this.pendingActionsCount = 0;
+    this.initialized = false;
   }
 
   subscribe(callback) {
@@ -51,113 +54,234 @@ class DBRepository {
         try {
           cb(this.database);
         } catch (e) {
-          console.error('Error notifying DB listener:', e);
+          console.error('[dbRepository] Error notifying DB listener:', e);
         }
       }
     });
   }
 
+  /**
+   * Initializes data layer with Streamlit Two-Way Bridge.
+   * Reads come directly from the tables object passed by Python.
+   */
   async init() {
-    // 1. Direct connection to Google Drive (Cloud Database) if configured
-    if (googleDriveService.isConfigured()) {
-      try {
-        console.log('[dbRepository] Connecting directly to Google Drive Cloud Database...');
-        const driveRes = await googleDriveService.fetchDatabase();
-        if (driveRes && driveRes.success && driveRes.data) {
-          const hasData = Object.values(driveRes.data).some(arr => Array.isArray(arr) && arr.length > 0);
-          if (hasData) {
-            this.database = this.validateAndNormalize(driveRes.data);
-            this.isServerConnected = true;
-            this.storageSource = 'google_drive';
-            this.spreadsheetName = driveRes.spreadsheetName || 'Google Drive Spreadsheet';
-            this.saveToLocalCache();
-            this.notify();
-            console.log('[dbRepository] Successfully connected to Google Drive directly!', this.spreadsheetName);
-            return this.database;
-          } else {
-            console.log('[dbRepository] Google Sheet is connected but empty. Auto-seeding initial database to Google Drive...');
-            this.database = this.validateAndNormalize(relationalDatabaseSeed);
-            this.isServerConnected = true;
-            this.storageSource = 'google_drive';
-            this.spreadsheetName = driveRes.spreadsheetName || 'Google Drive Spreadsheet';
-            this.saveToLocalCache();
-            // Automatically push seed database to Google Drive so all 19 sheets get created
-            googleDriveService.saveDatabase(this.database).catch(e => console.warn('Could not auto-seed Google Drive:', e));
-            this.notify();
-            return this.database;
-          }
-        }
-      } catch (err) {
-        console.warn('[dbRepository] Could not fetch directly from Google Drive:', err.message);
-        // If Google Drive is configured, stay in Google Drive mode using local cache as offline fallback
-        const cached = localStorage.getItem(STORAGE_KEY);
-        if (cached) {
-          try {
-            this.database = this.validateAndNormalize(JSON.parse(cached));
-            this.storageSource = 'google_drive';
-            this.isServerConnected = false;
-            this.notify();
-            return this.database;
-          } catch (e) {
-            console.error('Failed to parse cached database:', e);
-          }
-        }
-      }
+    if (this.initialized) return this.database;
+    this.initialized = true;
 
-      // If Google Drive failed and no local cache exists, initialize relational seed under google_drive mode
-      this.database = this.validateAndNormalize(relationalDatabaseSeed);
-      this.storageSource = 'google_drive';
-      this.saveToLocalCache();
-      this.notify();
-      return this.database;
-    }
-
-    // 2. Only attempt to fetch from local Vite API server (Excel file directly on disk) if Google Drive is NOT configured
-    try {
-      const res = await fetch('/api/database');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          this.database = this.validateAndNormalize(json.data);
+    // Listen to Streamlit render events
+    streamlitBridge.onData((args) => {
+      if (args && args.tables && typeof args.tables === 'object') {
+        const hasData = Object.values(args.tables).some(arr => Array.isArray(arr) && arr.length > 0);
+        if (hasData) {
+          this.database = this.validateAndNormalize(args.tables);
           this.isServerConnected = true;
-          this.storageSource = 'local_disk';
+          this.storageSource = 'streamlit_python';
           this.saveToLocalCache();
           this.notify();
-
-          // Listen for real-time Excel file modifications on disk via Vite websocket
-          if (typeof window !== 'undefined' && import.meta.hot) {
-            import.meta.hot.on('excel-database-disk-update', async () => {
-              console.log('[dbRepository] External Excel update detected on disk! Refreshing database...');
-              await this.refreshFromDisk();
-            });
-          }
-
-          return this.database;
         }
       }
-    } catch (err) {
-      console.warn('Backend Excel API not reachable, falling back to local cache/seed:', err.message);
-    }
 
-    // 3. Fallback to localStorage cache
-    try {
-      const cached = localStorage.getItem(STORAGE_KEY);
-      if (cached) {
-        this.database = this.validateAndNormalize(JSON.parse(cached));
-        this.storageSource = 'local_cache';
+      if (args && args.last_result) {
+        this.lastResult = args.last_result;
         this.notify();
-        return this.database;
       }
-    } catch (e) {
-      console.error('Failed to read local cache:', e);
+    });
+
+    // Fallback to local cache if waiting for first Streamlit render
+    if (!this.database) {
+      try {
+        const cached = localStorage.getItem(STORAGE_KEY);
+        if (cached) {
+          this.database = this.validateAndNormalize(JSON.parse(cached));
+          this.notify();
+        }
+      } catch (e) {
+        console.warn('[dbRepository] Could not parse local cache:', e);
+      }
     }
 
-    // 4. Fallback to seeded relational database
-    this.database = this.validateAndNormalize(relationalDatabaseSeed);
-    this.storageSource = 'local_cache';
+    if (!this.database) {
+      this.database = this.validateAndNormalize(relationalDatabaseSeed);
+      this.notify();
+    }
+
+    return this.database;
+  }
+
+  saveToLocalCache() {
+    if (!this.database) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.database));
+    } catch (e) {
+      // Storage quota or private mode
+    }
+  }
+
+  getDB() {
+    if (!this.database) {
+      this.database = this.validateAndNormalize(relationalDatabaseSeed);
+    }
+    return this.database;
+  }
+
+  getTable(tableName) {
+    const db = this.getDB();
+    return db[tableName] || [];
+  }
+
+  /**
+   * Updates an entire table through Streamlit's Python backend.
+   * Optimistically updates local state for instant UI response and sends write to Python.
+   */
+  async updateTable(tableName, updaterOrNewRecords) {
+    const db = this.getDB();
+    const current = db[tableName] || [];
+    const updated = typeof updaterOrNewRecords === 'function' ? updaterOrNewRecords(current) : updaterOrNewRecords;
+
+    db[tableName] = updated;
+    this.database = db;
     this.saveToLocalCache();
     this.notify();
-    return this.database;
+
+    try {
+      this.pendingActionsCount++;
+      const res = await streamlitBridge.callAction('update_table', {
+        table: tableName,
+        records: updated
+      });
+      this.lastSaved = new Date().toISOString();
+      return res;
+    } catch (err) {
+      console.error(`[dbRepository] Failed to update table ${tableName} via Streamlit:`, err);
+      throw err;
+    } finally {
+      this.pendingActionsCount = Math.max(0, this.pendingActionsCount - 1);
+      this.notify();
+    }
+  }
+
+  /**
+   * Inserts or updates a single record through Streamlit's Python backend.
+   */
+  async saveRecord(tableName, record, idKey = 'ID') {
+    const db = this.getDB();
+    const records = [...(db[tableName] || [])];
+    const recordId = String(record[idKey] || '').trim();
+
+    let foundIdx = -1;
+    if (recordId) {
+      foundIdx = records.findIndex(r => String(r[idKey] || '').trim() === recordId);
+    }
+
+    if (foundIdx >= 0) {
+      records[foundIdx] = { ...records[foundIdx], ...record };
+    } else {
+      records.unshift(record);
+    }
+
+    db[tableName] = records;
+    this.database = db;
+    this.saveToLocalCache();
+    this.notify();
+
+    try {
+      this.pendingActionsCount++;
+      const res = await streamlitBridge.callAction('save_record', {
+        table: tableName,
+        record,
+        id_key: idKey
+      });
+      this.lastSaved = new Date().toISOString();
+      return res;
+    } catch (err) {
+      console.error(`[dbRepository] Failed to save record in ${tableName}:`, err);
+      throw err;
+    } finally {
+      this.pendingActionsCount = Math.max(0, this.pendingActionsCount - 1);
+      this.notify();
+    }
+  }
+
+  /**
+   * Deletes a record through Streamlit's Python backend.
+   */
+  async deleteRecord(tableName, idKey, idValue) {
+    const db = this.getDB();
+    const records = (db[tableName] || []).filter(r => String(r[idKey] || '').trim() !== String(idValue).trim());
+
+    db[tableName] = records;
+    this.database = db;
+    this.saveToLocalCache();
+    this.notify();
+
+    try {
+      this.pendingActionsCount++;
+      const res = await streamlitBridge.callAction('delete_record', {
+        table: tableName,
+        id_key: idKey,
+        id_value: idValue
+      });
+      this.lastSaved = new Date().toISOString();
+      return res;
+    } catch (err) {
+      console.error(`[dbRepository] Failed to delete record in ${tableName}:`, err);
+      throw err;
+    } finally {
+      this.pendingActionsCount = Math.max(0, this.pendingActionsCount - 1);
+      this.notify();
+    }
+  }
+
+  /**
+   * Triggers a full force-refresh from Google Sheets via Python.
+   */
+  async refresh() {
+    try {
+      this.pendingActionsCount++;
+      return await streamlitBridge.callAction('refresh');
+    } finally {
+      this.pendingActionsCount = Math.max(0, this.pendingActionsCount - 1);
+      this.notify();
+    }
+  }
+
+  async setFullDatabase(newDb) {
+    this.database = this.validateAndNormalize(newDb);
+    this.saveToLocalCache();
+    this.notify();
+
+    // Push updated tables to Python
+    for (const [table, records] of Object.entries(this.database)) {
+      if (Array.isArray(records)) {
+        await this.updateTable(table, records);
+      }
+    }
+  }
+
+  getNextId(tableName, prefix = 'AST-', idField = 'AssetID', padLength = 4) {
+    const records = this.getTable(tableName);
+    let maxNum = 0;
+    records.forEach(r => {
+      const val = String(r[idField] || '');
+      const match = val.match(/(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    return `${prefix}${String(maxNum + 1).padStart(padLength, '0')}`;
+  }
+
+  getStorageSource() {
+    return this.storageSource;
+  }
+
+  getLastResult() {
+    return this.lastResult;
+  }
+
+  isPending() {
+    return this.pendingActionsCount > 0;
   }
 
   validateAndNormalize(db) {
@@ -223,7 +347,7 @@ class DBRepository {
       });
     }
 
-    // Relational Cross-Sync: Keep Printers table and Assets table 100% unified
+    // Relational Cross-Sync: Keep Printers table and Assets table unified
     if (Array.isArray(normalized.Printers) && Array.isArray(normalized.Assets)) {
       normalized.Printers.forEach(prn => {
         const astIndex = normalized.Assets.findIndex(a => a.AssetID === prn.AssetID);
@@ -232,7 +356,6 @@ class DBRepository {
           const printerName = String(prn.PrinterName || '').trim();
           const assetFullName = `${ast.Brand || ''} ${ast.Model || ''}`.trim();
 
-          // If user updated PrinterName in Printers sheet, sync into Assets Brand and Model
           if (printerName && printerName !== assetFullName && printerName !== 'Printer') {
             const parts = printerName.split(' ');
             const knownBrands = ['HP', 'CANON', 'EPSON', 'BROTHER', 'SAMSUNG', 'XEROX', 'RICOH', 'DELL', 'KYOCERA', 'LEXMARK', 'PANTUM'];
@@ -260,206 +383,7 @@ class DBRepository {
       });
     }
 
-    // Normalize 1F AC Units coordinates fallback without overwriting user manual data
-    if (Array.isArray(normalized.ACUnits)) {
-      const ac1FCoordsFallback = {
-        'AC-0008': { UnitNumber: '08', CoordX: 845, CoordY: 405 },
-        'AC-0009': { UnitNumber: '09', CoordX: 860, CoordY: 506 },
-        'AC-0010': { UnitNumber: '10', CoordX: 390, CoordY: 546 },
-        'AC-0011': { UnitNumber: '11', CoordX: 300, CoordY: 546 },
-        'AC-0012': { UnitNumber: '12', CoordX: 210, CoordY: 546 },
-        'AC-0013': { UnitNumber: '13', CoordX: 860, CoordY: 210 },
-        'AC-0014': { UnitNumber: '14', CoordX: 375, CoordY: 153 }
-      };
-
-      normalized.ACUnits = normalized.ACUnits.map(unit => {
-        if (unit && unit.UnitID && ac1FCoordsFallback[unit.UnitID]) {
-          const fallback = ac1FCoordsFallback[unit.UnitID];
-          return {
-            ...unit, // ALL USER VALUES TAKE PRECEDENCE - DO NOT OVERWRITE!
-            CoordX: (unit.CoordX !== undefined && unit.CoordX !== 0) ? unit.CoordX : fallback.CoordX,
-            CoordY: (unit.CoordY !== undefined && unit.CoordY !== 0) ? unit.CoordY : fallback.CoordY,
-            UnitNumber: unit.UnitNumber || fallback.UnitNumber
-          };
-        }
-        return unit;
-      });
-    }
-
     return normalized;
-  }
-
-  async refreshFromDisk() {
-    try {
-      const res = await fetch('/api/database');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          this.database = this.validateAndNormalize(json.data);
-          this.isServerConnected = true;
-          this.saveToLocalCache();
-          this.notify();
-          console.log('[dbRepository] Successfully re-synced from Excel file on disk!');
-          return this.database;
-        }
-      }
-    } catch (err) {
-      console.warn('[dbRepository] Could not refresh database from disk:', err.message);
-    }
-  }
-
-  saveToLocalCache() {
-    if (!this.database) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.database));
-    } catch (e) {
-      console.error('Failed to save to localStorage:', e);
-    }
-  }
-
-  getDB() {
-    if (!this.database) {
-      this.database = this.validateAndNormalize(relationalDatabaseSeed);
-    }
-    return this.database;
-  }
-
-  getTable(tableName) {
-    const db = this.getDB();
-    return db[tableName] || [];
-  }
-
-  scheduleSave() {
-    if (this.saveTimeout) {
-      clearTimeout(this.saveTimeout);
-    }
-    this.saveTimeout = setTimeout(() => {
-      this.persistToExcel();
-    }, 250);
-  }
-
-  async updateTable(tableName, updaterOrNewRecords) {
-    const db = this.getDB();
-    const current = db[tableName] || [];
-    const updated = typeof updaterOrNewRecords === 'function' ? updaterOrNewRecords(current) : updaterOrNewRecords;
-    
-    db[tableName] = updated;
-    this.database = db;
-    this.saveToLocalCache();
-    this.notify();
-
-    // Debounced asynchronous persistence to Excel on disk
-    this.scheduleSave();
-    return updated;
-  }
-
-  async setFullDatabase(newDb) {
-    this.database = this.validateAndNormalize(newDb);
-    this.saveToLocalCache();
-    this.notify();
-    this.scheduleSave();
-  }
-
-  getNextId(tableName, prefix = 'AST-', idField = 'AssetID', padLength = 4) {
-    const records = this.getTable(tableName);
-    let maxNum = 0;
-    records.forEach(r => {
-      const val = String(r[idField] || '');
-      const match = val.match(/(\d+)/);
-      if (match) {
-        const num = parseInt(match[1], 10);
-        if (num > maxNum) maxNum = num;
-      }
-    });
-    return `${prefix}${String(maxNum + 1).padStart(padLength, '0')}`;
-  }
-
-  async persistToExcel() {
-    if (this.isSaving) {
-      this.pendingSave = true;
-      return;
-    }
-    this.isSaving = true;
-    this.pendingSave = false;
-
-    try {
-      if (googleDriveService.isConfigured()) {
-        const res = await googleDriveService.saveDatabase(this.database);
-        if (res && res.success) {
-          this.isServerConnected = true;
-          this.storageSource = 'google_drive';
-          this.lastSaved = new Date().toISOString();
-        }
-      } else {
-        const res = await fetch('/api/database/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ database: this.database })
-        });
-
-        if (res.ok) {
-          this.isServerConnected = true;
-          this.storageSource = 'local_disk';
-          this.lastSaved = new Date().toISOString();
-        }
-      }
-    } catch (err) {
-      console.warn('Could not auto-sync to database:', err.message);
-    } finally {
-      this.isSaving = false;
-      if (this.pendingSave) {
-        this.pendingSave = false;
-        setTimeout(() => this.persistToExcel(), 100);
-      }
-    }
-  }
-
-  /**
-   * Force refresh data directly from Google Drive
-   */
-  async refreshFromGoogleDrive() {
-    if (!googleDriveService.isConfigured()) {
-      throw new Error('Google Apps Script URL is not configured.');
-    }
-    const res = await googleDriveService.fetchDatabase();
-    if (res && res.data) {
-      const hasData = Object.values(res.data).some(arr => Array.isArray(arr) && arr.length > 0);
-      if (!hasData) {
-        console.log('[dbRepository] Google Sheet is empty, auto-pushing initial database to Google Drive...');
-        await this.pushToGoogleDrive();
-        return this.database;
-      }
-      this.database = this.validateAndNormalize(res.data);
-      this.isServerConnected = true;
-      this.storageSource = 'google_drive';
-      this.spreadsheetName = res.spreadsheetName || 'Google Drive Spreadsheet';
-      this.saveToLocalCache();
-      this.notify();
-      return this.database;
-    }
-    throw new Error('No data received from Google Drive.');
-  }
-
-  /**
-   * Push all current data (or seed) directly to Google Drive spreadsheet
-   */
-  async pushToGoogleDrive() {
-    if (!googleDriveService.isConfigured()) {
-      throw new Error('Google Apps Script URL is not configured.');
-    }
-    const currentData = this.getDB();
-    const res = await googleDriveService.saveDatabase(currentData);
-    if (res && res.success) {
-      this.isServerConnected = true;
-      this.storageSource = 'google_drive';
-      this.lastSaved = new Date().toISOString();
-      return res;
-    }
-    throw new Error(res?.error || 'Failed to save to Google Drive.');
-  }
-
-  getStorageSource() {
-    return this.storageSource;
   }
 
   exportToExcelFile(customDb = null, filename = 'IT_Asset_Relational_Database.xlsx') {

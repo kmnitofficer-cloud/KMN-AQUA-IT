@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node -e \"const fs=require('fs'); fs.rmSync('streamlit_app/frontend', {recursive:true, force:true}); fs.cpSync('dist', 'streamlit_app/frontend', {recursive:true}); console.log('Copied dist to streamlit_app/frontend');\"",
     "lint": "oxlint",
     "preview": "vite preview"
   },
