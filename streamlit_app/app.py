@@ -1,9 +1,26 @@
 import os
 import sys
+from pathlib import Path
+
+# -----------------------------------------------------------------------------
+# 0. ENSURE STREAMLIT_APP & REPO ROOT ARE ON PYTHON PATH IMMEDIATELY
+# -----------------------------------------------------------------------------
+CURRENT_FILE = Path(__file__).resolve()
+APP_DIR = CURRENT_FILE.parent
+if APP_DIR.name != "streamlit_app" and (APP_DIR / "streamlit_app").exists():
+    STREAMLIT_DIR = APP_DIR / "streamlit_app"
+    ROOT_DIR = APP_DIR
+else:
+    STREAMLIT_DIR = APP_DIR
+    ROOT_DIR = APP_DIR.parent
+
+for p in [str(STREAMLIT_DIR), str(ROOT_DIR)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 import base64
 import logging
 import subprocess
-from pathlib import Path
 
 # -----------------------------------------------------------------------------
 # 1. BARE-SCRIPT AUTO-LAUNCHER
@@ -11,8 +28,7 @@ from pathlib import Path
 try:
     import streamlit as st
     if not (hasattr(st, "runtime") and hasattr(st.runtime, "exists") and st.runtime.exists()):
-        current_file = str(Path(__file__).resolve())
-        args = [sys.executable, "-m", "streamlit", "run", current_file] + sys.argv[1:]
+        args = [sys.executable, "-m", "streamlit", "run", str(CURRENT_FILE)] + sys.argv[1:]
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         subprocess.run(args, env=env)
@@ -23,28 +39,28 @@ except ImportError:
 
 import pandas as pd
 import streamlit.components.v1 as components
-from config import ADMIN_USERNAME, ADMIN_PASSWORD, USER_USERNAME, USER_PASSWORD, SPREADSHEET_URL, INVOICES_FOLDER_ID
-from services.cloud_db import cloud_db
+
+try:
+    from config import ADMIN_USERNAME, ADMIN_PASSWORD, USER_USERNAME, USER_PASSWORD, SPREADSHEET_URL, INVOICES_FOLDER_ID
+except ImportError:
+    from streamlit_app.config import ADMIN_USERNAME, ADMIN_PASSWORD, USER_USERNAME, USER_PASSWORD, SPREADSHEET_URL, INVOICES_FOLDER_ID
+
+try:
+    from services.cloud_db import cloud_db
+except ImportError:
+    from streamlit_app.services.cloud_db import cloud_db
 
 logger = logging.getLogger("streamlit_app")
-APP_DIR = Path(__file__).resolve().parent
-if APP_DIR.name != "streamlit_app" and (APP_DIR / "streamlit_app").exists():
-    STREAMLIT_DIR = APP_DIR / "streamlit_app"
-else:
-    STREAMLIT_DIR = APP_DIR
-
-if str(STREAMLIT_DIR) not in sys.path:
-    sys.path.insert(0, str(STREAMLIT_DIR))
 
 # Locate React production build folder
 if (STREAMLIT_DIR / "frontend").exists():
     frontend_dir = STREAMLIT_DIR / "frontend"
-elif (APP_DIR / "frontend").exists():
-    frontend_dir = APP_DIR / "frontend"
+elif (ROOT_DIR / "dist").exists():
+    frontend_dir = ROOT_DIR / "dist"
 elif (STREAMLIT_DIR.parent / "dist").exists():
     frontend_dir = STREAMLIT_DIR.parent / "dist"
-elif (APP_DIR / "dist").exists():
-    frontend_dir = APP_DIR / "dist"
+elif (APP_DIR / "frontend").exists():
+    frontend_dir = APP_DIR / "frontend"
 else:
     frontend_dir = STREAMLIT_DIR / "frontend"
 
