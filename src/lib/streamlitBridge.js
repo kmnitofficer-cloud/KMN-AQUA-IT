@@ -8,6 +8,7 @@
 
 const listeners = new Set();
 const pendingActions = new Map();
+let renderAcknowledged = false;
 
 function sendFrameHeight() {
   try {
@@ -27,12 +28,41 @@ function sendFrameHeight() {
   }
 }
 
-// Global window message listener
+function sendComponentReady() {
+  try {
+    window.parent.postMessage({
+      isStreamlitMessage: true,
+      type: "streamlit:componentReady",
+      apiVersion: 1
+    }, "*");
+    sendFrameHeight();
+  } catch (e) {
+    // Ignore cross-origin issues
+  }
+}
+
+// Global window message listener and early ready handshake
 if (typeof window !== "undefined") {
+  // 1. Immediately signal ready so Streamlit Cloud never times out
+  sendComponentReady();
+
+  // 2. Continually retry handshake until the first render event is acknowledged
+  const handshakeInterval = setInterval(() => {
+    if (renderAcknowledged) {
+      clearInterval(handshakeInterval);
+    } else {
+      sendComponentReady();
+    }
+  }, 250);
+
+  // Cease retry loop after 20 seconds
+  setTimeout(() => clearInterval(handshakeInterval), 20000);
+
   window.addEventListener("message", (event) => {
     if (!event.data) return;
 
     if (event.data.type === "streamlit:render") {
+      renderAcknowledged = true;
       const args = event.data.args || {};
 
       // If last_result returned, resolve any pending action promises
@@ -84,16 +114,7 @@ export const streamlitBridge = {
     listeners.add(cb);
 
     // Announce ready to Streamlit
-    try {
-      window.parent.postMessage({
-        isStreamlitMessage: true,
-        type: "streamlit:componentReady",
-        apiVersion: 1
-      }, "*");
-      sendFrameHeight();
-    } catch (e) {
-      console.warn("[streamlitBridge] Could not post componentReady:", e);
-    }
+    sendComponentReady();
 
     return () => listeners.delete(cb);
   },
@@ -157,7 +178,6 @@ export const streamlitBridge = {
       const reader = new FileReader();
       reader.onload = () => {
         const res = reader.result;
-        // Keep as full data url or extract base64
         resolve(res);
       };
       reader.onerror = (err) => reject(err);

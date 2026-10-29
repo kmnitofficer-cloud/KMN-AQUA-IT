@@ -177,22 +177,20 @@ if "last_event_id" not in st.session_state:
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
 
-# Initial database fetch from Google Sheets (cached in cloud_db singleton)
-if not cloud_db._cache:
-    try:
-        cloud_db.fetch_all_tables()
-    except Exception as e:
-        logger.error(f"Could not connect to Google Cloud: {e}")
-
 # Verify frontend build exists
 if not (frontend_dir / "index.html").exists():
     st.error("React production build (`frontend/index.html`) not found. Please run `npm run build`.")
     st.stop()
 
 # -----------------------------------------------------------------------------
-# 4. SERIALIZE RELATIONAL TABLES TO JSON-SAFE PAYLOAD
+# 4. FETCH & SERIALIZE RELATIONAL TABLES TO JSON-SAFE PAYLOAD
 # -----------------------------------------------------------------------------
-raw_tables = cloud_db.fetch_all_tables()
+try:
+    raw_tables = cloud_db.fetch_all_tables()
+except Exception as e:
+    logger.error(f"Could not connect to Google Cloud: {e}")
+    raw_tables = cloud_db._cache or {}
+
 data_payload = {}
 for tbl, df in raw_tables.items():
     if df is not None and not df.empty:
