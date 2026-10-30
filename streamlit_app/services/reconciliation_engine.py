@@ -1,7 +1,19 @@
+import sys
+from pathlib import Path
+
+# Add streamlit_app to sys.path if not present
+_parent = str(Path(__file__).resolve().parent.parent)
+if _parent not in sys.path:
+    sys.path.insert(0, _parent)
+
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List
-from services.cloud_db import cloud_db
+
+try:
+    from services.cloud_db import cloud_db
+except ImportError:
+    from streamlit_app.services.cloud_db import cloud_db
 
 class ReconciliationEngine:
     """
@@ -54,31 +66,37 @@ class ReconciliationEngine:
         # 3. Intelligent Match Audit
         matched_pairs = []
         unmatched_invoices = []
-        unmatched_expenses = []
 
         if not invoices_df.empty and not expenses_df.empty:
-            exp_inv_id_map = {}
+            exp_keys = set()
             for idx, e in expenses_df.iterrows():
                 e_inv = str(e.get("InvoiceID", "")).strip().lower()
+                e_exp_id = str(e.get("ExpenseID", "")).strip().lower()
                 e_desc = str(e.get("Description", "")).strip().lower()
-                e_id = str(e.get("ExpenseID", "")).strip()
+                e_notes = str(e.get("Notes", "")).strip().lower()
+
                 if e_inv:
-                    exp_inv_id_map[e_inv] = idx
-                # also map by description token
-                tokens = e_desc.split()
-                for tok in tokens:
-                    if len(tok) >= 5:
-                        exp_inv_id_map[tok] = idx
+                    exp_keys.add(e_inv)
+                if e_exp_id:
+                    exp_keys.add(e_exp_id)
+                for tok in (e_desc + " " + e_notes).split():
+                    if len(tok) >= 4:
+                        exp_keys.add(tok)
 
             for _, inv in invoices_df.iterrows():
                 inv_id = str(inv.get("InvoiceID", "")).strip().lower()
                 inv_num = str(inv.get("InvoiceNumber", "")).strip().lower()
-                inv_cost = float(self._clean_num(pd.Series([inv.get("Amount")])).iloc[0])
+                inv_file = str(inv.get("FileName", "")).strip().lower()
+                inv_exp = str(inv.get("ExpenseID", "")).strip().lower()
 
                 matched = False
-                if inv_id and inv_id in exp_inv_id_map:
+                if inv_id and inv_id in exp_keys:
                     matched = True
-                elif inv_num and inv_num in exp_inv_id_map:
+                elif inv_num and inv_num in exp_keys:
+                    matched = True
+                elif inv_exp and inv_exp in exp_keys:
+                    matched = True
+                elif inv_file and any(inv_file in k for k in exp_keys):
                     matched = True
 
                 if matched:
@@ -196,7 +214,6 @@ class ReconciliationEngine:
             "direct_expenses": total_direct_exp,
             "total_associated_cost": total_cost
         }
-
 
 # Global singleton
 reconciliation_engine = ReconciliationEngine()

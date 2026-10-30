@@ -43,6 +43,9 @@ class DriveVaultService:
         payload = {
             "action": "uploadInvoice",
             "folderId": self.folder_id,
+            "filename": clean_name,
+            "base64Data": base64_data,
+            "invoiceData": invoice_data or {},
             "fileData": {
                 "name": clean_name,
                 "mimeType": "application/pdf",

@@ -65,35 +65,38 @@ export const invoiceService = {
         AssetID: metadata.AssetID || '',
         UserID: metadata.UserID || '',
         PrinterAssetID: metadata.PrinterAssetID || '',
-        DepartmentID: metadata.DepartmentID || 'DEP-0004',
-        Supplier: metadata.Supplier || 'General Vendor',
-        Description: metadata.Description || `Invoice ${metadata.InvoiceNumber || invoiceId}`,
+        DepartmentID: metadata.DepartmentID || '',
+        Supplier: metadata.Supplier || 'Verified Vendor',
+        Description: metadata.Description || `Expense for invoice ${metadata.InvoiceNumber || safeName}`,
         Amount: Number(metadata.Amount) || 0,
         PaymentMethod: metadata.PaymentMethod || 'Company Cheque',
         InvoiceID: invoiceId,
-        Notes: metadata.Notes || `Uploaded via PDF Invoice Vault (${safeName})`
+        Notes: `Uploaded via PDF Invoice Vault (${safeName})`
       };
       await dbRepository.updateTable('Expenses', [newExpense, ...expenses]);
     }
 
     const newInvoice = {
       InvoiceID: invoiceId,
-      InvoiceNumber: metadata.InvoiceNumber || `INV-${Date.now().toString().slice(-4)}`,
+      InvoiceNumber: metadata.InvoiceNumber || safeName.replace(/\.pdf$/i, ''),
       InvoiceDate: today,
-      Supplier: metadata.Supplier || 'General Vendor',
+      Supplier: metadata.Supplier || 'Verified Vendor',
       Amount: Number(metadata.Amount) || 0,
       AssetID: metadata.AssetID || '',
       UserID: metadata.UserID || '',
       PrinterAssetID: metadata.PrinterAssetID || '',
       ExpenseID: expenseId,
       FileName: safeName,
-      FilePath: `/invoices/${safeName}`,
-      FileSize: `${Math.round(file.size / 1024)} KB`,
+      FilePath: '',
+      DriveUrl: '',
+      DownloadUrl: '',
+      DriveFileID: '',
+      FileSize: `${(file.size / 1024).toFixed(0)} KB`,
       UploadDate: new Date().toISOString().split('T')[0],
-      Description: metadata.Description || `Uploaded Invoice: ${file.name}`
+      Description: metadata.Description || `Uploaded invoice ${safeName}`
     };
 
-    // Upload directly through Streamlit's Python backend (which saves to Google Drive)
+    // Forward upload to Streamlit Python backend
     try {
       const res = await streamlitBridge.callAction('upload_file', {
         filename: safeName,
@@ -129,7 +132,10 @@ export const invoiceService = {
       expenses.some(e => 
         e.InvoiceID === i.InvoiceID || 
         (i.InvoiceNumber && e.InvoiceID === i.InvoiceNumber) ||
-        (i.InvoiceNumber && e.Description && e.Description.includes(i.InvoiceNumber))
+        (i.InvoiceNumber && e.Description && e.Description.includes(i.InvoiceNumber)) ||
+        (i.ExpenseID && e.ExpenseID === i.ExpenseID) ||
+        (i.FileName && e.Notes && e.Notes.includes(i.FileName)) ||
+        (i.InvoiceID && e.Notes && e.Notes.includes(i.InvoiceID))
       )
     ).length;
 
@@ -141,7 +147,7 @@ export const invoiceService = {
       invoicesCount: invoices.length,
       expensesCount: expenses.length,
       matchedInvoicesCount,
-      unmatchedInvoicesCount: invoices.length - matchedInvoicesCount
+      unmatchedInvoicesCount: Math.max(0, invoices.length - matchedInvoicesCount)
     };
   },
 

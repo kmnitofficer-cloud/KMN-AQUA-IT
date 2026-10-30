@@ -3,7 +3,7 @@ import { X, FileText, Download, ExternalLink, FolderOpen, AlertCircle, Eye, Clou
 import { DRIVE_CONFIG, KNOWN_INVOICE_MAP } from '../../config/driveConfig';
 
 export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
-  const [viewerMode, setViewerMode] = useState('direct'); // 'direct' | 'drive'
+  const [viewerMode, setViewerMode] = useState('drive'); // Default directly to Google Drive preview
   const [loadError, setLoadError] = useState(false);
 
   if (!isOpen || !invoice) return null;
@@ -37,7 +37,7 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
     ? `https://drive.google.com/uc?export=download&id=${driveId}` 
     : (invoice.DownloadUrl || localPdfUrl || driveFolderUrl);
 
-  // Active preview URL according to selected mode
+  // Active preview URL according to selected mode (prioritizes Google Drive)
   const activePreviewUrl = viewerMode === 'drive' 
     ? (drivePreviewUrl || localPdfUrl) 
     : (localPdfUrl || drivePreviewUrl);
@@ -69,6 +69,20 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}
             <div className="inline-flex rounded-lg border border-subtle p-0.5 bg-surface-elevated text-xs mr-2">
+              {drivePreviewUrl && (
+                <button
+                  type="button"
+                  className={`px-2.5 py-1 rounded font-medium flex items-center gap-1 transition-all ${
+                    viewerMode === 'drive' 
+                      ? 'bg-primary text-white shadow-sm' 
+                      : 'text-muted hover:text-foreground'
+                  }`}
+                  onClick={() => { setViewerMode('drive'); setLoadError(false); }}
+                  title="View via Google Drive Preview"
+                >
+                  <Cloud size={12} /> Google Drive Link
+                </button>
+              )}
               {localPdfUrl && (
                 <button
                   type="button"
@@ -81,20 +95,6 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
                   title="View PDF directly in browser"
                 >
                   <Eye size={12} /> Direct PDF
-                </button>
-              )}
-              {drivePreviewUrl && (
-                <button
-                  type="button"
-                  className={`px-2.5 py-1 rounded font-medium flex items-center gap-1 transition-all ${
-                    viewerMode === 'drive' 
-                      ? 'bg-primary text-white shadow-sm' 
-                      : 'text-muted hover:text-foreground'
-                  }`}
-                  onClick={() => { setViewerMode('drive'); setLoadError(false); }}
-                  title="View via Google Drive Preview"
-                >
-                  <Cloud size={12} /> Drive Preview
                 </button>
               )}
             </div>
@@ -153,24 +153,24 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
                 <strong>{fileName || invoice.InvoiceNumber}</strong> is stored securely in your Google Drive Invoices Folder. If the inline iframe is blocked by browser security or third-party cookies, click below to open directly:
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
+                <a
+                  href={driveViewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                >
+                  <ExternalLink size={16} /> Open Document in Google Drive
+                </a>
                 {localPdfUrl && (
                   <a
                     href={localPdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-primary"
+                    className="btn btn-outline"
                   >
                     <Eye size={16} /> Open Local PDF Document
                   </a>
                 )}
-                <a
-                  href={driveViewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-outline"
-                >
-                  <ExternalLink size={16} /> Open Document in Google Drive
-                </a>
                 <a
                   href={driveFolderUrl}
                   target="_blank"
@@ -198,4 +198,3 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
     </div>
   );
 }
-

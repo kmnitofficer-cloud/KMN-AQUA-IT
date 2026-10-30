@@ -111,6 +111,7 @@ class CloudDatabaseService:
         """
         payload = self._get_auth_payload({
             "action": "updateTable",
+            "tableName": table_name,
             "table": table_name,
             "records": records
         })
@@ -179,6 +180,9 @@ class CloudDatabaseService:
             payload = self._get_auth_payload({
                 "action": "uploadInvoice",
                 "folderId": INVOICES_FOLDER_ID,
+                "filename": name,
+                "base64Data": b64_string,
+                "invoiceData": invoice_data or {},
                 "fileData": {
                     "name": name,
                     "mimeType": mime,
