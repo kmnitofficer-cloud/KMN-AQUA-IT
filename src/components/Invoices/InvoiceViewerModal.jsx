@@ -15,6 +15,24 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
   
   // 2. Resolve Google Drive ID
   let driveId = invoice.DriveFileID || '';
+  if (!driveId) {
+    const candidateUrls = [
+      invoice.FilePath,
+      invoice.DriveUrl,
+      invoice.GoogleDriveUrl,
+      invoice.DownloadUrl,
+      invoice.url
+    ];
+    for (const u of candidateUrls) {
+      if (typeof u === 'string') {
+        const m = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || u.match(/id=([a-zA-Z0-9_-]+)/);
+        if (m && m[1]) {
+          driveId = m[1];
+          break;
+        }
+      }
+    }
+  }
   if (!driveId && fileName && KNOWN_INVOICE_MAP[fileName]) {
     driveId = KNOWN_INVOICE_MAP[fileName].driveId;
   }
@@ -29,10 +47,12 @@ export default function InvoiceViewerModal({ invoice, isOpen, onClose }) {
   // 3. Resolve URLs
   const baseUrl = import.meta.env.BASE_URL || './';
   const localPdfUrl = fileName ? `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}invoices/${fileName}` : null;
-  const drivePreviewUrl = driveId ? `https://drive.google.com/file/d/${driveId}/preview` : null;
+  const drivePreviewUrl = driveId 
+    ? `https://drive.google.com/file/d/${driveId}/preview` 
+    : (invoice.FilePath && invoice.FilePath.includes('drive.google.com') ? invoice.FilePath : null);
   const driveViewUrl = driveId 
     ? `https://drive.google.com/file/d/${driveId}/view?usp=drivesdk` 
-    : (invoice.DriveUrl || driveFolderUrl);
+    : (invoice.DriveUrl || (invoice.FilePath && invoice.FilePath.includes('drive.google.com') ? invoice.FilePath : driveFolderUrl));
   const downloadUrl = driveId 
     ? `https://drive.google.com/uc?export=download&id=${driveId}` 
     : (invoice.DownloadUrl || localPdfUrl || driveFolderUrl);

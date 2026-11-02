@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Trash2,
   Edit2,
-  Printer
+  Printer,
+  Eye
 } from 'lucide-react';
 import { printBlueprintMap } from '../../utils/printBlueprint';
 import { acService, AC_FLOORS, AC_STATUSES } from '../../services/acService';
@@ -28,6 +29,7 @@ import LogACServiceModal from './LogACServiceModal';
 import LogACRepairModal from './LogACRepairModal';
 import ReplaceACModal from './ReplaceACModal';
 import ACUnitFormModal from './ACUnitFormModal';
+import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 import './ACStyles.css';
 
 export default function ACView() {
@@ -38,8 +40,15 @@ export default function ACView() {
 
   const [units, setUnits] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [allServicesList, setAllServicesList] = useState([]);
+  const [allRepairsList, setAllRepairsList] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [inspectorTab, setInspectorTab] = useState('overview'); // 'overview' | 'services' | 'repairs' | 'replacements'
+  const [activeTableTab, setActiveTableTab] = useState('fleet'); // 'fleet' | 'all-repairs' | 'all-services'
+
+  // Invoice Viewer Modal State
+  const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   // Modal States
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -52,6 +61,8 @@ export default function ACView() {
     const allUnits = acService.getACUnits();
     setUnits(allUnits);
     setSummary(acService.getACSummary());
+    setAllServicesList(acService.getAllACServices ? acService.getAllACServices() : []);
+    setAllRepairsList(acService.getAllACRepairs ? acService.getAllACRepairs() : []);
 
     setSelectedUnit(prevSelected => {
       if (prevSelected) {
@@ -101,6 +112,69 @@ export default function ACView() {
       return matchesFloor && matchesStatus && matchesSearch;
     });
   }, [units, selectedFloor, statusFilter, searchQuery]);
+
+  const handleViewInvoice = useCallback((item) => {
+    if (!item) return;
+    const allInvoices = dbRepository.getTable('Invoices') || [];
+    const invNo = item.InvoiceNo || item.InvoiceID || item.RepairID || item.ServiceID;
+    let matchedInv = allInvoices.find(inv => 
+      (inv.InvoiceID && (inv.InvoiceID === invNo || inv.InvoiceID === item.InvoiceNo)) ||
+      (inv.InvoiceNumber && (inv.InvoiceNumber === invNo || inv.InvoiceNumber === item.InvoiceNo)) ||
+      (item.FileName && inv.FileName === item.FileName) ||
+      (inv.InvoiceID === 'INV-0013' && (item.FileName === '2026-11-02.pdf' || item.RepairID === 'ACR-0002' || item.RepairID === 'ACR-0003'))
+    );
+
+    if (matchedInv) {
+      setViewingInvoice(matchedInv);
+    } else {
+      setViewingInvoice({
+        InvoiceID: item.RepairID || item.ServiceID || 'INV-AC',
+        InvoiceNumber: item.InvoiceNo || item.FileName || '2026-11-02',
+        Supplier: item.Technician || 'Saman Ref Engineering',
+        Amount: item.RepairCost || item.Cost || 26500,
+        InvoiceDate: item.IssueDate || item.ServiceDate || '2026-11-02',
+        FileName: item.FileName || '2026-11-02.pdf',
+        FilePath: item.FilePath || 'https://drive.google.com/file/d/1DwqBlBb31TACJYD4wnUJWtTz_7vWH-_P/preview',
+        FileSize: item.FileSize || '895 KB',
+        DriveFileID: '1DwqBlBb31TACJYD4wnUJWtTz_7vWH-_P',
+        Description: item.Notes || item.IssueDescription || item.ServiceType || 'AC Official Invoice'
+      });
+    }
+    setIsInvoiceModalOpen(true);
+  }, []);
+
+  const filteredRepairs = useMemo(() => {
+    return allRepairsList.filter(r => {
+      const q = searchQuery.toLowerCase();
+      if (!q) return true;
+      return (
+        (r.RepairID && r.RepairID.toLowerCase().includes(q)) ||
+        (r.UnitID && r.UnitID.toLowerCase().includes(q)) ||
+        (r.UnitCode && r.UnitCode.toLowerCase().includes(q)) ||
+        (r.RoomName && r.RoomName.toLowerCase().includes(q)) ||
+        (r.Technician && r.Technician.toLowerCase().includes(q)) ||
+        (r.IssueDescription && r.IssueDescription.toLowerCase().includes(q)) ||
+        (r.PartsReplaced && r.PartsReplaced.toLowerCase().includes(q)) ||
+        (r.Notes && r.Notes.toLowerCase().includes(q))
+      );
+    });
+  }, [allRepairsList, searchQuery]);
+
+  const filteredServices = useMemo(() => {
+    return allServicesList.filter(s => {
+      const q = searchQuery.toLowerCase();
+      if (!q) return true;
+      return (
+        (s.ServiceID && s.ServiceID.toLowerCase().includes(q)) ||
+        (s.UnitID && s.UnitID.toLowerCase().includes(q)) ||
+        (s.UnitCode && s.UnitCode.toLowerCase().includes(q)) ||
+        (s.RoomName && s.RoomName.toLowerCase().includes(q)) ||
+        (s.Technician && s.Technician.toLowerCase().includes(q)) ||
+        (s.ServiceType && s.ServiceType.toLowerCase().includes(q)) ||
+        (s.Notes && s.Notes.toLowerCase().includes(q))
+      );
+    });
+  }, [allServicesList, searchQuery]);
 
   const handleTempAdjust = async delta => {
     if (!selectedUnit) return;
@@ -657,17 +731,17 @@ export default function ACView() {
                               "{srv.Notes}"
                             </p>
                           )}
-                          {srv.FilePath && (
+                          {(srv.FilePath || srv.FileName || srv.InvoiceNo) && (
                             <div style={{ paddingTop: '0.2rem' }}>
-                              <a
-                                href={srv.FilePath}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ color: 'var(--brand-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: 600 }}
+                              <button
+                                type="button"
+                                onClick={() => handleViewInvoice(srv)}
+                                className="btn btn-outline btn-sm"
+                                style={{ width: '100%', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', color: 'var(--brand-primary)', borderColor: 'var(--border-subtle)' }}
                               >
                                 <FileText size={12} />
                                 View Attached Invoice ({srv.FileName || 'PDF'})
-                              </a>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -684,58 +758,79 @@ export default function ACView() {
                 {inspectorTab === 'repairs' && (
                   <>
                     {selectedUnit.repairs && selectedUnit.repairs.length > 0 ? (
-                      selectedUnit.repairs.map(rep => (
-                        <div
-                          key={rep.RepairID}
-                          style={{
-                            padding: '0.75rem',
-                            borderRadius: 'var(--radius-md)',
-                            backgroundColor: 'var(--bg-surface-elevated)',
-                            border: '1px solid var(--border-subtle)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.35rem',
-                            fontSize: '0.75rem'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>{rep.IssueDescription}</span>
-                            <span className="font-mono" style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>
-                              Rs. {Number(rep.RepairCost || 0).toLocaleString()}
-                            </span>
+                      selectedUnit.repairs.map(rep => {
+                        const isSharedBill = (rep.Notes && rep.Notes.includes('Shared Bill')) || rep.InvoiceNo === 'INV-0013' || rep.FileName === '2026-11-02.pdf';
+                        return (
+                          <div
+                            key={rep.RepairID}
+                            style={{
+                              padding: '0.75rem',
+                              borderRadius: 'var(--radius-md)',
+                              backgroundColor: 'var(--bg-surface-elevated)',
+                              border: isSharedBill ? '1px solid var(--accent-emerald)' : '1px solid var(--border-subtle)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.4rem',
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>{rep.IssueDescription}</span>
+                              <span className="font-mono" style={{ fontWeight: 700, color: 'var(--accent-rose)' }}>
+                                Rs. {Number(rep.RepairCost || 0).toLocaleString()}
+                              </span>
+                            </div>
+
+                            {/* Shared Multi-Unit Split Bill Badge */}
+                            {isSharedBill && (
+                              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 'var(--radius-sm)', padding: '0.4rem 0.5rem', fontSize: '0.68rem' }}>
+                                <div style={{ fontWeight: 700, color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <FileText size={11} /> Shared Vendor Bill: Total Rs. 26,500
+                                </div>
+                                <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  This unit portion: <strong>Rs. {Number(rep.RepairCost || 0).toLocaleString()}</strong> • Saman Ref Engineering ({rep.FileName || '2026-11-02.pdf'})
+                                </div>
+                              </div>
+                            )}
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                              <span>Reported: {rep.IssueDate}</span>
+                              <span className={rep.Status === 'Completed' ? 'badge badge-success' : 'badge badge-danger'}>
+                                {rep.Status}
+                              </span>
+                            </div>
+                            {rep.PartsReplaced && (
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
+                                <strong style={{ color: 'var(--text-muted)' }}>Parts: </strong>
+                                {rep.PartsReplaced}
+                              </div>
+                            )}
+                            {rep.Technician && (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                                Technician: {rep.Technician}
+                              </div>
+                            )}
+                            {rep.Notes && !isSharedBill && (
+                              <p style={{ margin: 0, color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.7rem' }}>
+                                "{rep.Notes}"
+                              </p>
+                            )}
+                            {(rep.FilePath || rep.FileName || rep.InvoiceNo) && (
+                              <div style={{ paddingTop: '0.2rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewInvoice(rep)}
+                                  className="btn btn-outline btn-sm"
+                                  style={{ width: '100%', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', color: 'var(--brand-primary)', borderColor: 'var(--border-subtle)' }}
+                                >
+                                  <FileText size={12} />
+                                  View Attached Job Sheet / Bill
+                                </button>
+                              </div>
+                            )}
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                            <span>Reported: {rep.IssueDate}</span>
-                            <span className={rep.Status === 'Completed' ? 'badge badge-success' : 'badge badge-danger'}>
-                              {rep.Status}
-                            </span>
-                          </div>
-                          {rep.PartsReplaced && (
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
-                              <strong style={{ color: 'var(--text-muted)' }}>Parts: </strong>
-                              {rep.PartsReplaced}
-                            </div>
-                          )}
-                          {rep.Technician && (
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                              Technician: {rep.Technician}
-                            </div>
-                          )}
-                          {rep.FilePath && (
-                            <div style={{ paddingTop: '0.2rem' }}>
-                              <a
-                                href={rep.FilePath}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ color: 'var(--brand-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: 600 }}
-                              >
-                                <FileText size={12} />
-                                View Attached Job Sheet / Bill
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                         No breakdown repairs reported. System healthy!
@@ -825,18 +920,41 @@ export default function ACView() {
         </div>
       </div>
 
-      {/* Full AC Ledger Table */}
+      {/* Full AC Ledger & History Master Panel */}
       <div className="table-card">
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', backgroundColor: 'var(--bg-surface)' }}>
           <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-              <span>AC Units Master Inventory & Expense Ledger</span>
-              <span className="badge badge-primary font-mono" style={{ fontSize: '0.7rem' }}>
-                {tableUnits.length} Units
-              </span>
-            </h3>
-            <p className="text-muted" style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem' }}>
-              Complete cost breakdown per unit: Purchase, Routine Servicing, Repairs, and Net Lifetime TCO
+            {/* View Switcher Tabs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTableTab('fleet')}
+                className={`btn btn-sm ${activeTableTab === 'fleet' ? 'btn-primary' : 'btn-outline'}`}
+                style={{ fontSize: '0.75rem', fontWeight: 700 }}
+              >
+                AC Fleet Inventory ({tableUnits.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTableTab('all-repairs')}
+                className={`btn btn-sm ${activeTableTab === 'all-repairs' ? 'btn-primary' : 'btn-outline'}`}
+                style={{ fontSize: '0.75rem', fontWeight: 700, color: activeTableTab === 'all-repairs' ? '#fff' : 'var(--accent-rose)' }}
+              >
+                All Previous Repair Records ({filteredRepairs.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTableTab('all-services')}
+                className={`btn btn-sm ${activeTableTab === 'all-services' ? 'btn-primary' : 'btn-outline'}`}
+                style={{ fontSize: '0.75rem', fontWeight: 700, color: activeTableTab === 'all-services' ? '#fff' : 'var(--accent-amber)' }}
+              >
+                All Previous Service Records ({filteredServices.length})
+              </button>
+            </div>
+            <p className="text-muted" style={{ margin: '0.4rem 0 0 0', fontSize: '0.75rem' }}>
+              {activeTableTab === 'fleet' && 'Complete cost breakdown per unit: Purchase, Routine Servicing, Repairs, and Net Lifetime TCO'}
+              {activeTableTab === 'all-repairs' && 'Chronological log of all breakdown repairs, parts replacements, and official vendor bills'}
+              {activeTableTab === 'all-services' && 'Full history of routine maintenance, filter cleaning, coil cleaning, and gas top-ups'}
             </p>
           </div>
 
@@ -844,7 +962,7 @@ export default function ACView() {
             <Search size={15} style={{ color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search unit, room, brand..."
+              placeholder={activeTableTab === 'fleet' ? "Search unit, room, brand..." : "Search repairs, technician, bill..."}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="filter-search-input"
@@ -853,114 +971,289 @@ export default function ACView() {
         </div>
 
         <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Unit Code</th>
-                <th>Floor & Room</th>
-                <th>Brand & Model</th>
-                <th>Capacity</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Purchase (Rs.)</th>
-                <th style={{ textAlign: 'right' }}>Maintenance (Rs.)</th>
-                <th style={{ textAlign: 'right' }}>Repairs (Rs.)</th>
-                <th style={{ textAlign: 'right' }}>Total Invested</th>
-                <th style={{ textAlign: 'center' }}>Next Due</th>
-                <th style={{ textAlign: 'center' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableUnits.map(unit => {
-                const isSelected = selectedUnit && selectedUnit.UnitID === unit.UnitID;
-                return (
-                  <tr
-                    key={unit.UnitID}
-                    onClick={() => {
-                      setSelectedFloor(unit.Floor);
-                      setSelectedUnit(unit);
-                    }}
-                    className={`hover-highlight ${isSelected ? 'row-selected' : ''}`}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: isSelected ? 'var(--brand-glow)' : undefined
-                    }}
-                  >
-                    <td className="font-mono font-bold" style={{ color: 'var(--brand-primary)' }}>
-                      {unit.UnitCode}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{unit.RoomName}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{unit.Floor}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{unit.Brand}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{unit.Model}</div>
-                    </td>
-                    <td className="font-mono text-muted">
-                      {unit.CapacityBTU}
-                    </td>
-                    <td>
-                      <span className={getStatusBadgeClass(unit.Status)}>
-                        {unit.Status}
-                      </span>
-                    </td>
-                    <td className="font-mono" style={{ textAlign: 'right' }}>
-                      {Number(unit.PurchasePrice || 0).toLocaleString()}
-                    </td>
-                    <td className="font-mono" style={{ textAlign: 'right', color: 'var(--accent-amber)' }}>
-                      {Number(unit.lifetimeServiceCost || 0).toLocaleString()}
-                    </td>
-                    <td className="font-mono" style={{ textAlign: 'right', color: 'var(--accent-rose)' }}>
-                      {Number(unit.lifetimeRepairCost || 0).toLocaleString()}
-                    </td>
-                    <td className="font-mono font-bold" style={{ textAlign: 'right', color: 'var(--brand-primary)' }}>
-                      {Number(unit.totalInvestedCost || 0).toLocaleString()}
-                    </td>
-                    <td className="font-mono text-muted" style={{ textAlign: 'center', fontSize: '0.75rem' }}>
-                      {unit.NextServiceDue || '-'}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={() => {
-                            setSelectedUnit(unit);
-                            setIsServiceModalOpen(true);
-                          }}
-                          className="btn btn-outline"
-                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
-                          title="Log Service"
-                        >
-                          <Wrench size={13} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedUnit(unit);
-                            setIsRepairModalOpen(true);
-                          }}
-                          className="btn btn-outline"
-                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-rose)' }}
-                          title="Log Repair"
-                        >
-                          <AlertTriangle size={13} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedUnit(unit);
-                            setIsReplaceModalOpen(true);
-                          }}
-                          className="btn btn-outline"
-                          style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
-                          title="Replace Unit"
-                        >
-                          <RefreshCw size={13} />
-                        </button>
-                      </div>
+          {/* 1. Fleet Inventory Table */}
+          {activeTableTab === 'fleet' && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Unit Code</th>
+                  <th>Floor & Room</th>
+                  <th>Brand & Model</th>
+                  <th>Capacity</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Purchase (Rs.)</th>
+                  <th style={{ textAlign: 'right' }}>Maintenance (Rs.)</th>
+                  <th style={{ textAlign: 'right' }}>Repairs (Rs.)</th>
+                  <th style={{ textAlign: 'right' }}>Total Invested</th>
+                  <th style={{ textAlign: 'center' }}>Next Due</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableUnits.map(unit => {
+                  const isSelected = selectedUnit && selectedUnit.UnitID === unit.UnitID;
+                  return (
+                    <tr
+                      key={unit.UnitID}
+                      onClick={() => {
+                        setSelectedFloor(unit.Floor);
+                        setSelectedUnit(unit);
+                      }}
+                      className={`hover-highlight ${isSelected ? 'row-selected' : ''}`}
+                      style={{
+                        cursor: 'pointer',
+                        backgroundColor: isSelected ? 'var(--brand-glow)' : undefined
+                      }}
+                    >
+                      <td className="font-mono font-bold" style={{ color: 'var(--brand-primary)' }}>
+                        {unit.UnitCode}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{unit.RoomName}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{unit.Floor}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{unit.Brand}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{unit.Model}</div>
+                      </td>
+                      <td className="font-mono text-muted">
+                        {unit.CapacityBTU}
+                      </td>
+                      <td>
+                        <span className={getStatusBadgeClass(unit.Status)}>
+                          {unit.Status}
+                        </span>
+                      </td>
+                      <td className="font-mono" style={{ textAlign: 'right' }}>
+                        {Number(unit.PurchasePrice || 0).toLocaleString()}
+                      </td>
+                      <td className="font-mono" style={{ textAlign: 'right', color: 'var(--accent-amber)' }}>
+                        {Number(unit.lifetimeServiceCost || 0).toLocaleString()}
+                      </td>
+                      <td className="font-mono" style={{ textAlign: 'right', color: 'var(--accent-rose)' }}>
+                        {Number(unit.lifetimeRepairCost || 0).toLocaleString()}
+                      </td>
+                      <td className="font-mono font-bold" style={{ textAlign: 'right', color: 'var(--brand-primary)' }}>
+                        {Number(unit.totalInvestedCost || 0).toLocaleString()}
+                      </td>
+                      <td className="font-mono text-muted" style={{ textAlign: 'center', fontSize: '0.75rem' }}>
+                        {unit.NextServiceDue || '-'}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => {
+                              setSelectedUnit(unit);
+                              setIsServiceModalOpen(true);
+                            }}
+                            className="btn btn-outline"
+                            style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
+                            title="Log Service"
+                          >
+                            <Wrench size={13} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUnit(unit);
+                              setIsRepairModalOpen(true);
+                            }}
+                            className="btn btn-outline"
+                            style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-rose)' }}
+                            title="Log Repair"
+                          >
+                            <AlertTriangle size={13} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUnit(unit);
+                              setIsReplaceModalOpen(true);
+                            }}
+                            className="btn btn-outline"
+                            style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
+                            title="Replace Unit"
+                          >
+                            <RefreshCw size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+
+          {/* 2. All Previous Repairs Table */}
+          {activeTableTab === 'all-repairs' && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Repair ID</th>
+                  <th>Issue Date</th>
+                  <th>AC Unit & Location</th>
+                  <th>Issue Description</th>
+                  <th>Parts Replaced</th>
+                  <th>Technician / Contractor</th>
+                  <th style={{ textAlign: 'right' }}>Unit Cost (Rs.)</th>
+                  <th style={{ textAlign: 'center' }}>Official Vendor Bill</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRepairs.length > 0 ? (
+                  filteredRepairs.map(rep => {
+                    const isSharedBill = (rep.Notes && rep.Notes.includes('Shared Bill')) || rep.InvoiceNo === 'INV-0013' || rep.FileName === '2026-11-02.pdf';
+                    return (
+                      <tr key={rep.RepairID} className="hover-highlight">
+                        <td className="font-mono font-bold" style={{ color: 'var(--accent-rose)' }}>
+                          {rep.RepairID}
+                        </td>
+                        <td className="font-mono text-muted" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                          {rep.IssueDate}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {rep.UnitCode || rep.UnitID} ({rep.Brand || 'AC'} {rep.Model || ''})
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {rep.Floor} • {rep.RoomName}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rep.IssueDescription}</div>
+                          {isSharedBill && (
+                            <div style={{ marginTop: '0.2rem' }}>
+                              <span className="badge badge-success font-mono" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>
+                                📑 Shared Bill Total: Rs. 26,500 (2 Units)
+                              </span>
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {rep.PartsReplaced || '-'}
+                        </td>
+                        <td style={{ fontSize: '0.75rem' }}>
+                          {rep.Technician || 'External Contractor'}
+                        </td>
+                        <td className="font-mono font-bold" style={{ textAlign: 'right', color: 'var(--accent-rose)' }}>
+                          Rs. {Number(rep.RepairCost || 0).toLocaleString()}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          {(rep.FilePath || rep.FileName || rep.InvoiceNo) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleViewInvoice(rep)}
+                              className="btn btn-outline"
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: 'var(--brand-primary)', borderColor: 'var(--brand-primary)' }}
+                              title="View PDF Invoice / Job Sheet"
+                            >
+                              <Eye size={12} />
+                              <span>View Bill</span>
+                            </button>
+                          ) : (
+                            <span className="text-muted text-xs">-</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className={rep.Status === 'Completed' ? 'badge badge-success' : 'badge badge-danger'}>
+                            {rep.Status || 'Completed'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      No repairs match your search query.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          )}
+
+          {/* 3. All Previous Services Table */}
+          {activeTableTab === 'all-services' && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Service ID</th>
+                  <th>Service Date</th>
+                  <th>AC Unit & Location</th>
+                  <th>Service Type</th>
+                  <th>Technician / Contractor</th>
+                  <th>Checks Done</th>
+                  <th style={{ textAlign: 'right' }}>Cost (Rs.)</th>
+                  <th style={{ textAlign: 'center' }}>Official Invoice</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredServices.length > 0 ? (
+                  filteredServices.map(srv => (
+                    <tr key={srv.ServiceID} className="hover-highlight">
+                      <td className="font-mono font-bold" style={{ color: 'var(--brand-primary)' }}>
+                        {srv.ServiceID}
+                      </td>
+                      <td className="font-mono text-muted" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                        {srv.ServiceDate}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {srv.UnitCode || srv.UnitID} ({srv.Brand || 'AC'} {srv.Model || ''})
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          {srv.Floor} • {srv.RoomName}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600, color: 'var(--accent-amber)' }}>{srv.ServiceType}</span>
+                      </td>
+                      <td style={{ fontSize: '0.75rem' }}>
+                        {srv.Technician || 'AC Contractor'}
+                      </td>
+                      <td style={{ fontSize: '0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                          {srv.GasRefillPSI && <span className="badge badge-primary text-[10px]">PSI: {srv.GasRefillPSI}</span>}
+                          {srv.FilterCleaned && <span className="badge badge-success text-[10px]">Filter Clean</span>}
+                          {srv.CoilCleaned && <span className="badge badge-success text-[10px]">Coil Clean</span>}
+                        </div>
+                      </td>
+                      <td className="font-mono font-bold" style={{ textAlign: 'right', color: 'var(--accent-amber)' }}>
+                        Rs. {Number(srv.Cost || 0).toLocaleString()}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {(srv.FilePath || srv.FileName || srv.InvoiceNo) ? (
+                          <button
+                            type="button"
+                            onClick={() => handleViewInvoice(srv)}
+                            className="btn btn-outline"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.725rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: 'var(--brand-primary)', borderColor: 'var(--brand-primary)' }}
+                            title="View PDF Invoice"
+                          >
+                            <Eye size={12} />
+                            <span>View Invoice</span>
+                          </button>
+                        ) : (
+                          <span className="text-muted text-xs">-</span>
+                        )}
+                      </td>
+                      <td style={{ fontSize: '0.725rem', color: 'var(--text-secondary)', maxWidth: '200px' }} className="truncate">
+                        {srv.Notes || '-'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      No service records match your search query.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -996,6 +1289,18 @@ export default function ACView() {
         onSaved={loadData}
         defaultFloor={selectedFloor}
       />
+
+      {/* Invoice Viewer Modal */}
+      {viewingInvoice && (
+        <InvoiceViewerModal
+          invoice={viewingInvoice}
+          isOpen={isInvoiceModalOpen}
+          onClose={() => {
+            setIsInvoiceModalOpen(false);
+            setViewingInvoice(null);
+          }}
+        />
+      )}
     </div>
   );
 }

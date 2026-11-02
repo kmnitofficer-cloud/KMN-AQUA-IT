@@ -91,5 +91,54 @@ class DriveVaultService:
         """Constructs direct Google Drive web view URL from file ID."""
         return f"https://drive.google.com/file/d/{file_id}/view?usp=drivesdk"
 
+    def render_pdf_viewer(self, target: str, height: int = 520):
+        """Renders an inline iframe preview of a Google Drive PDF file or URL."""
+        if not target:
+            st.warning("No file URL or Drive ID provided for preview.")
+            return
+
+        import re
+        drive_id = ""
+        target_str = str(target).strip()
+        if re.match(r'^[a-zA-Z0-9_-]{20,}$', target_str):
+            drive_id = target_str
+        else:
+            m = re.search(r'/file/d/([a-zA-Z0-9_-]+)', target_str) or re.search(r'id=([a-zA-Z0-9_-]+)', target_str)
+            if m:
+                drive_id = m.group(1)
+
+        if drive_id:
+            embed_url = f"https://drive.google.com/file/d/{drive_id}/preview"
+            view_url = f"https://drive.google.com/file/d/{drive_id}/view?usp=drivesdk"
+            st.markdown(
+                f'<iframe src="{embed_url}" width="100%" height="{height}" style="border: 1px solid #e2e8f0; border-radius: 8px;" allow="fullscreen"></iframe>',
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                f'<div style="margin-top: 0.5rem;"><a href="{view_url}" target="_blank" style="font-size: 0.85rem; color: #0284c7; text-decoration: none; font-weight: 600;">↗️ Open Document in Google Drive Tab</a></div>',
+                unsafe_allow_html=True
+            )
+        elif target_str.startswith("http"):
+            st.markdown(
+                f'<iframe src="{target_str}" width="100%" height="{height}" style="border: 1px solid #e2e8f0; border-radius: 8px;" allow="fullscreen"></iframe>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.info(f"Document registered: {target_str}")
+
+    def sync_drive_folder(self) -> Dict[str, Any]:
+        """Triggers a scan of the Google Drive folder via Apps Script."""
+        try:
+            res = requests.get(
+                self.script_url,
+                params={"action": "syncDriveFolder", "folderId": self.folder_id},
+                timeout=45
+            )
+            res.raise_for_status()
+            return res.json()
+        except Exception as e:
+            logger.error(f"Failed to sync drive folder: {e}")
+            return {"success": False, "error": str(e)}
+
 # Global singleton
 drive_vault = DriveVaultService()
