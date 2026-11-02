@@ -36,16 +36,24 @@ export const acService = {
         return matchesFloor && matchesStatus;
       })
       .map(unit => {
+        const isMatch = (id) => {
+          if (!id) return false;
+          const cleanId = String(id).trim().toLowerCase();
+          const cleanUnitId = String(unit.UnitID || '').trim().toLowerCase();
+          const cleanUnitCode = String(unit.UnitCode || '').trim().toLowerCase();
+          return cleanId === cleanUnitId || cleanId === cleanUnitCode;
+        };
+
         const services = allServices
-          .filter(s => s.UnitID === unit.UnitID)
+          .filter(s => isMatch(s.UnitID))
           .sort((a, b) => new Date(b.ServiceDate || 0) - new Date(a.ServiceDate || 0));
 
         const repairs = allRepairs
-          .filter(r => r.UnitID === unit.UnitID)
+          .filter(r => isMatch(r.UnitID))
           .sort((a, b) => new Date(b.IssueDate || 0) - new Date(a.IssueDate || 0));
 
         const replacements = allReplacements
-          .filter(rep => rep.NewUnitID === unit.UnitID || rep.SpotCode === unit.UnitCode)
+          .filter(rep => isMatch(rep.NewUnitID) || isMatch(rep.SpotCode))
           .sort((a, b) => new Date(b.RemovalDate || 0) - new Date(a.RemovalDate || 0));
 
         const purchasePrice = Number(unit.PurchasePrice) || 0;
@@ -110,6 +118,50 @@ export const acService = {
   getACUnitById(unitId) {
     const units = this.getACUnits();
     return units.find(u => u.UnitID === unitId || u.UnitCode === unitId) || null;
+  },
+
+  getAllACServices() {
+    const rawUnits = dbRepository.getTable('ACUnits') || [];
+    const allServices = dbRepository.getTable('ACServices') || [];
+    const unitMap = {};
+    rawUnits.forEach(u => {
+      if (u.UnitID) unitMap[u.UnitID] = u;
+      if (u.UnitCode) unitMap[u.UnitCode] = u;
+    });
+
+    return (allServices || []).map(s => {
+      const u = unitMap[s.UnitID] || {};
+      return {
+        ...s,
+        UnitCode: u.UnitCode || s.UnitID,
+        Brand: u.Brand || '',
+        Model: u.Model || '',
+        Floor: u.Floor || '',
+        RoomName: u.RoomName || ''
+      };
+    }).sort((a, b) => new Date(b.ServiceDate || 0) - new Date(a.ServiceDate || 0));
+  },
+
+  getAllACRepairs() {
+    const rawUnits = dbRepository.getTable('ACUnits') || [];
+    const allRepairs = dbRepository.getTable('ACRepairs') || [];
+    const unitMap = {};
+    rawUnits.forEach(u => {
+      if (u.UnitID) unitMap[u.UnitID] = u;
+      if (u.UnitCode) unitMap[u.UnitCode] = u;
+    });
+
+    return (allRepairs || []).map(r => {
+      const u = unitMap[r.UnitID] || {};
+      return {
+        ...r,
+        UnitCode: u.UnitCode || r.UnitID,
+        Brand: u.Brand || '',
+        Model: u.Model || '',
+        Floor: u.Floor || '',
+        RoomName: u.RoomName || ''
+      };
+    }).sort((a, b) => new Date(b.IssueDate || 0) - new Date(a.IssueDate || 0));
   },
 
   getACSummary() {
@@ -227,26 +279,64 @@ export const acService = {
       return u;
     });
 
-    // Mirror to Invoices table for unified expense vault
+    // Mirror to Expenses and Invoices tables for unified financial consistency
     if (newService.Cost > 0) {
-      const invoices = dbRepository.getTable('Invoices') || [];
-      const newInvoice = {
-        InvoiceID: serviceId,
-        InvoiceNumber: newService.InvoiceNo || serviceId,
-        InvoiceDate: newService.ServiceDate,
-        Supplier: newService.Technician,
-        Amount: newService.Cost,
+      const expenses = dbRepository.getTable('Expenses') || [];
+      const nextExpNum = expenses.length + 1;
+      const expenseId = `EXP-${String(nextExpNum).padStart(4, '0')}`;
+      const newExpense = {
+        ExpenseID: expenseId,
+        ExpenseDate: newService.ServiceDate || new Date().toISOString().split('T')[0],
+        ExpenseType: 'AC Service',
         AssetID: newService.UnitID,
         UserID: '',
         PrinterAssetID: '',
-        ExpenseID: serviceId,
-        FileName: fileName,
-        FilePath: filePath,
-        FileSize: fileSize,
-        UploadDate: newService.ServiceDate,
-        Description: `[AC Service - ${newService.UnitID}] ${newService.ServiceType}: ${newService.Notes}`
+        DepartmentID: 'DEP-0004',
+        Supplier: newService.Technician || 'AC Service Technician',
+        Description: `[AC Service - ${newService.UnitID}] ${newService.ServiceType}: ${newService.Notes}`,
+        Amount: newService.Cost,
+        PaymentMethod: 'Company Cheque',
+        InvoiceID: newService.InvoiceNo || serviceId,
+        Notes: newService.Notes || ''
       };
-      await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
+      await dbRepository.updateTable('Expenses', [newExpense, ...expenses]);
+
+      const invoices = dbRepository.getTable('Invoices') || [];
+      const existingInv = invoices.find(inv =>
+        (inv.InvoiceID && inv.InvoiceID === newService.InvoiceNo) ||
+        (inv.InvoiceNumber && inv.InvoiceNumber === newService.InvoiceNo) ||
+        (fileName && inv.FileName === fileName)
+      );
+
+      if (!existingInv) {
+        const newInvoice = {
+          InvoiceID: serviceId,
+          InvoiceNumber: newService.InvoiceNo || serviceId,
+          InvoiceDate: newService.ServiceDate,
+          Supplier: newService.Technician,
+          Amount: newService.Cost,
+          AssetID: newService.UnitID,
+          UserID: '',
+          PrinterAssetID: '',
+          ExpenseID: expenseId,
+          FileName: fileName,
+          FilePath: filePath,
+          FileSize: fileSize,
+          UploadDate: newService.ServiceDate,
+          Description: `[AC Service - ${newService.UnitID}] ${newService.ServiceType}: ${newService.Notes}`
+        };
+        await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
+      } else {
+        const updatedInvoices = invoices.map(inv => {
+          if (inv === existingInv) {
+            const expList = inv.ExpenseID ? `${inv.ExpenseID}, ${expenseId}` : expenseId;
+            const assetList = inv.AssetID ? `${inv.AssetID}, ${newService.UnitID}` : newService.UnitID;
+            return { ...inv, ExpenseID: expList, AssetID: assetList };
+          }
+          return inv;
+        });
+        await dbRepository.updateTable('Invoices', updatedInvoices);
+      }
     }
 
     await dbRepository.updateTable('ACUnits', updatedUnits);
@@ -320,26 +410,64 @@ export const acService = {
       return u;
     });
 
-    // Mirror to Invoices table if cost > 0
+    // Mirror to Expenses and Invoices tables for unified financial consistency
     if (newRepair.RepairCost > 0) {
-      const invoices = dbRepository.getTable('Invoices') || [];
-      const newInvoice = {
-        InvoiceID: repairId,
-        InvoiceNumber: newRepair.InvoiceNo || repairId,
-        InvoiceDate: newRepair.IssueDate,
-        Supplier: newRepair.Technician,
-        Amount: newRepair.RepairCost,
+      const expenses = dbRepository.getTable('Expenses') || [];
+      const nextExpNum = expenses.length + 1;
+      const expenseId = `EXP-${String(nextExpNum).padStart(4, '0')}`;
+      const newExpense = {
+        ExpenseID: expenseId,
+        ExpenseDate: newRepair.IssueDate || new Date().toISOString().split('T')[0],
+        ExpenseType: 'AC Repair',
         AssetID: newRepair.UnitID,
         UserID: '',
         PrinterAssetID: '',
-        ExpenseID: repairId,
-        FileName: fileName,
-        FilePath: filePath,
-        FileSize: fileSize,
-        UploadDate: newRepair.IssueDate,
-        Description: `[AC Repair - ${newRepair.UnitID}] ${newRepair.IssueDescription}`
+        DepartmentID: 'DEP-0004',
+        Supplier: newRepair.Technician || 'AC Repair Technician',
+        Description: `[AC Repair - ${newRepair.UnitID}] ${newRepair.IssueDescription}`,
+        Amount: newRepair.RepairCost,
+        PaymentMethod: 'Company Cheque',
+        InvoiceID: newRepair.InvoiceNo || repairId,
+        Notes: newRepair.Notes || ''
       };
-      await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
+      await dbRepository.updateTable('Expenses', [newExpense, ...expenses]);
+
+      const invoices = dbRepository.getTable('Invoices') || [];
+      const existingInv = invoices.find(inv =>
+        (inv.InvoiceID && inv.InvoiceID === newRepair.InvoiceNo) ||
+        (inv.InvoiceNumber && inv.InvoiceNumber === newRepair.InvoiceNo) ||
+        (fileName && inv.FileName === fileName)
+      );
+
+      if (!existingInv) {
+        const newInvoice = {
+          InvoiceID: repairId,
+          InvoiceNumber: newRepair.InvoiceNo || repairId,
+          InvoiceDate: newRepair.IssueDate,
+          Supplier: newRepair.Technician,
+          Amount: newRepair.RepairCost,
+          AssetID: newRepair.UnitID,
+          UserID: '',
+          PrinterAssetID: '',
+          ExpenseID: expenseId,
+          FileName: fileName,
+          FilePath: filePath,
+          FileSize: fileSize,
+          UploadDate: newRepair.IssueDate,
+          Description: `[AC Repair - ${newRepair.UnitID}] ${newRepair.IssueDescription}`
+        };
+        await dbRepository.updateTable('Invoices', [newInvoice, ...invoices]);
+      } else {
+        const updatedInvoices = invoices.map(inv => {
+          if (inv === existingInv) {
+            const expList = inv.ExpenseID ? `${inv.ExpenseID}, ${expenseId}` : expenseId;
+            const assetList = inv.AssetID ? `${inv.AssetID}, ${newRepair.UnitID}` : newRepair.UnitID;
+            return { ...inv, ExpenseID: expList, AssetID: assetList };
+          }
+          return inv;
+        });
+        await dbRepository.updateTable('Invoices', updatedInvoices);
+      }
     }
 
     await dbRepository.updateTable('ACUnits', updatedUnits);

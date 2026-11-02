@@ -141,6 +141,14 @@ async def upload_invoice(request: Request):
         if not result.get("success"):
             return JSONResponse(status_code=500, content={"success": False, "error": result.get("error")})
 
+        # Also cache local copy for instant offline/browser direct view
+        try:
+            for inv_dir in [DIST_DIR / "invoices", APP_DIR / "public" / "invoices"]:
+                if inv_dir.exists():
+                    (inv_dir / filename).write_bytes(file_bytes)
+        except Exception:
+            pass
+
         # Also refresh in-memory cache so React sees the new invoice immediately
         cloud_db.fetch_all_tables(force_refresh=True)
 

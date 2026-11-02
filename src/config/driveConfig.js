@@ -35,5 +35,6 @@ export const KNOWN_INVOICE_MAP = {
   'DI61042.pdf':     { driveId: '17Ra4QDpylu3rYk8TR5IEQhP3NeY21urG', invoiceId: 'INV-0010', number: 'DI61042' },
   'DI61077.pdf':     { driveId: '1dNcxN2ulMibN2iSU5SnA9C04DJNPq3VF', invoiceId: 'INV-0011', number: 'DI61077' },
   '13_10_2026_poweradpter.pdf': { driveId: '1FpMJfv1M-6AHqlGFGBxSOwudO4kaTsiP', invoiceId: 'INV-0012', number: '13_10_2026_poweradapter' },
-  'DI61582.pdf':     { driveId: '1NKUhx5bd_AbdBTbgyRo5ZbKdHAve-OQa', invoiceId: 'CCTV-0004', number: 'DI61582' }
+  'DI61582.pdf':     { driveId: '1NKUhx5bd_AbdBTbgyRo5ZbKdHAve-OQa', invoiceId: 'CCTV-0004', number: 'DI61582' },
+  '2026-11-02.pdf':  { driveId: '1DwqBlBb31TACJYD4wnUJWtTz_7vWH-_P', invoiceId: 'INV-0013', number: '2026-11-02' }
 };

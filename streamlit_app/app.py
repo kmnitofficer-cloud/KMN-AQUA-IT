@@ -348,6 +348,14 @@ if event and isinstance(event, dict) and event.get("id"):
                 if not upload_res.get("success", False):
                     raise RuntimeError(upload_res.get("error", "File upload failed"))
 
+                # Also cache a local copy for instant zero-latency preview
+                try:
+                    for target_dir in [STREAMLIT_DIR / "frontend" / "invoices", ROOT_DIR / "public" / "invoices", ROOT_DIR / "dist" / "invoices"]:
+                        if target_dir.exists():
+                            (target_dir / filename).write_bytes(file_bytes)
+                except Exception as save_err:
+                    logger.warning(f"Could not save local copy of {filename}: {save_err}")
+
                 st.session_state.last_result = {
                     "id": event_id,
                     "success": True,
