@@ -5,7 +5,8 @@ import { locationService } from '../../services/locationService';
 import PrinterProfileModal from './PrinterProfileModal';
 import TonerModal from './TonerModal';
 
-export default function PrintersView({ selectedLocation = 'All' }) {
+export default function PrintersView({ role = 'admin', selectedLocation = 'All' }) {
+  const isAdmin = role === 'admin';
   const [search, setSearch] = useState('');
   const [selectedPrinterId, setSelectedPrinterId] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -47,11 +48,13 @@ export default function PrintersView({ selectedLocation = 'All' }) {
             Monitoring physical printers, assigned locations, static IP addresses, toner consumption, and cumulative operating costs.
           </p>
         </div>
-        <div className="view-header-actions">
-          <button className="btn btn-primary" onClick={() => { setTonerPrinterAssetId(null); setIsTonerModalOpen(true); }}>
-            <Plus size={16} /> Record Toner / Ink
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button className="btn btn-primary" onClick={() => { setTonerPrinterAssetId(null); setIsTonerModalOpen(true); }}>
+              <Plus size={16} /> Record Toner / Ink
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter / Search Bar */}
@@ -137,12 +140,14 @@ export default function PrintersView({ selectedLocation = 'All' }) {
                 >
                   <Eye size={12} /> View Full Profile
                 </button>
-                <button
-                  className="btn btn-primary btn-xs flex-1"
-                  onClick={(e) => handleOpenTonerModal(e, p.AssetID)}
-                >
-                  + Add Toner
-                </button>
+                {isAdmin && (
+                  <button
+                    className="btn btn-primary btn-xs flex-1"
+                    onClick={(e) => handleOpenTonerModal(e, p.AssetID)}
+                  >
+                    + Add Toner
+                  </button>
+                )}
               </div>
             </div>
           );

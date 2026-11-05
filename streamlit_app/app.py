@@ -185,9 +185,9 @@ kmn_ui = components.declare_component("kmn_ui", path=str(frontend_dir))
 
 # Session state defaults
 if "user_role" not in st.session_state:
-    st.session_state.user_role = "Administrator"
+    st.session_state.user_role = None
 if "username" not in st.session_state:
-    st.session_state.username = ADMIN_USERNAME or "Administrator"
+    st.session_state.username = None
 if "last_event_id" not in st.session_state:
     st.session_state.last_event_id = None
 if "last_result" not in st.session_state:
@@ -231,10 +231,12 @@ for tbl, df in raw_tables.items():
 # -----------------------------------------------------------------------------
 # 5. RENDER REACT APP FULLSCREEN & HANDLE BI-DIRECTIONAL EVENTS
 # -----------------------------------------------------------------------------
+user_payload = {"role": st.session_state.user_role, "username": st.session_state.username} if st.session_state.user_role else None
+
 event = kmn_ui(
     tables=data_payload,
     last_result=st.session_state.get("last_result"),
-    user={"role": st.session_state.user_role, "username": st.session_state.username},
+    user=user_payload,
     key="kmn_ui",
     default=None
 )
@@ -248,8 +250,22 @@ if event and isinstance(event, dict) and event.get("id"):
         is_admin = (st.session_state.user_role == "Administrator")
 
         try:
+            # Sync user session state from React frontend
+            if action == "set_user_session":
+                u_info = event.get("user")
+                if u_info and isinstance(u_info, dict):
+                    role_str = (u_info.get("role") or "").lower()
+                    st.session_state.user_role = "Administrator" if "admin" in role_str else "Viewer"
+                    st.session_state.username = u_info.get("username", "User")
+                else:
+                    st.session_state.user_role = None
+                    st.session_state.username = None
+                st.session_state.last_result = {
+                    "id": event_id,
+                    "success": True
+                }
             # Role validation: Viewers are strictly read-only
-            if not is_admin and action != "refresh":
+            elif not is_admin and action != "refresh":
                 st.session_state.last_result = {
                     "id": event_id,
                     "success": False,

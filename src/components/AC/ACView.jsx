@@ -32,7 +32,8 @@ import ACUnitFormModal from './ACUnitFormModal';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 import './ACStyles.css';
 
-export default function ACView() {
+export default function ACView({ role = 'admin' }) {
+  const isAdmin = role === 'admin';
   const [selectedFloor, setSelectedFloor] = useState('Ground Floor');
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,17 +240,19 @@ export default function ACView() {
           </p>
         </div>
 
-        <div className="view-header-actions">
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setUnitToEdit(null);
-              setIsUnitModalOpen(true);
-            }}
-          >
-            <Plus size={16} /> Add AC Unit
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setUnitToEdit(null);
+                setIsUnitModalOpen(true);
+              }}
+            >
+              <Plus size={16} /> Add AC Unit
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI Financial & Infrastructure Summary */}
@@ -573,32 +576,34 @@ export default function ACView() {
               </div>
 
               {/* Action Buttons Row */}
-              <div className="ac-actions-row">
-                <button
-                  onClick={() => setIsServiceModalOpen(true)}
-                  className="ac-action-btn service"
-                >
-                  <Wrench size={16} />
-                  <span>Log Service</span>
-                </button>
+              {isAdmin && (
+                <div className="ac-actions-row">
+                  <button
+                    onClick={() => setIsServiceModalOpen(true)}
+                    className="ac-action-btn service"
+                  >
+                    <Wrench size={16} />
+                    <span>Log Service</span>
+                  </button>
 
-                <button
-                  onClick={() => setIsRepairModalOpen(true)}
-                  className="ac-action-btn repair"
-                >
-                  <AlertTriangle size={16} />
-                  <span>Log Repair</span>
-                </button>
+                  <button
+                    onClick={() => setIsRepairModalOpen(true)}
+                    className="ac-action-btn repair"
+                  >
+                    <AlertTriangle size={16} />
+                    <span>Log Repair</span>
+                  </button>
 
-                <button
-                  onClick={() => setIsReplaceModalOpen(true)}
-                  className="ac-action-btn replace"
-                  title="Replace with new AC unit while preserving old machine history"
-                >
-                  <RefreshCw size={16} />
-                  <span>Replace Unit</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => setIsReplaceModalOpen(true)}
+                    className="ac-action-btn replace"
+                    title="Replace with new AC unit while preserving old machine history"
+                  >
+                    <RefreshCw size={16} />
+                    <span>Replace Unit</span>
+                  </button>
+                </div>
+              )}
 
               {/* Tab Navigation in Inspector */}
               <div className="ac-tab-bar">
@@ -1040,41 +1045,45 @@ export default function ACView() {
                         {unit.NextServiceDue || '-'}
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => {
-                              setSelectedUnit(unit);
-                              setIsServiceModalOpen(true);
-                            }}
-                            className="btn btn-outline"
-                            style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
-                            title="Log Service"
-                          >
-                            <Wrench size={13} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUnit(unit);
-                              setIsRepairModalOpen(true);
-                            }}
-                            className="btn btn-outline"
-                            style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-rose)' }}
-                            title="Log Repair"
-                          >
-                            <AlertTriangle size={13} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUnit(unit);
-                              setIsReplaceModalOpen(true);
-                            }}
-                            className="btn btn-outline"
-                            style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
-                            title="Replace Unit"
-                          >
-                            <RefreshCw size={13} />
-                          </button>
-                        </div>
+                        {isAdmin ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                setSelectedUnit(unit);
+                                setIsServiceModalOpen(true);
+                              }}
+                              className="btn btn-outline"
+                              style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
+                              title="Log Service"
+                            >
+                              <Wrench size={13} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUnit(unit);
+                                setIsRepairModalOpen(true);
+                              }}
+                              className="btn btn-outline"
+                              style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--accent-rose)' }}
+                              title="Log Repair"
+                            >
+                              <AlertTriangle size={13} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUnit(unit);
+                                setIsReplaceModalOpen(true);
+                              }}
+                              className="btn btn-outline"
+                              style={{ padding: '0.25rem 0.45rem', height: 'auto', color: 'var(--primary)' }}
+                              title="Replace Unit"
+                            >
+                              <RefreshCw size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-muted text-xs">-</span>
+                        )}
                       </td>
                     </tr>
                   );

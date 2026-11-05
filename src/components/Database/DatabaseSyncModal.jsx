@@ -7,7 +7,8 @@ import {
 import { dbRepository } from '../../services/dbRepository';
 import { googleDriveService } from '../../services/googleDriveService';
 
-export default function DatabaseSyncModal({ isOpen, onClose }) {
+export default function DatabaseSyncModal({ isOpen, onClose, role = 'admin' }) {
+  const isAdmin = role === 'admin';
   const [backups, setBackups] = useState([]);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
@@ -294,33 +295,38 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
                 placeholder="https://script.google.com/macros/s/AKfycb.../exec"
                 value={driveUrl}
                 onChange={e => setDriveUrl(e.target.value)}
+                disabled={!isAdmin}
               />
-              <button 
-                type="button" 
-                className="btn btn-outline btn-sm"
-                onClick={handleSaveDriveUrl}
-                title="Save URL"
-              >
-                <Check size={14} /> Save
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-primary btn-sm"
-                onClick={handleTestDrive}
-                disabled={isTestingDrive}
-              >
-                {isTestingDrive ? <RefreshCw size={14} className="animate-spin" /> : <Cloud size={14} />}
-                <span>{isTestingDrive ? 'Testing...' : 'Test Connection'}</span>
-              </button>
-              {driveUrl && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm text-rose"
-                  onClick={handleClearDrive}
-                  title="Disconnect Google Drive"
-                >
-                  <Trash2 size={14} />
-                </button>
+              {isAdmin && (
+                <>
+                  <button 
+                    type="button" 
+                    className="btn btn-outline btn-sm"
+                    onClick={handleSaveDriveUrl}
+                    title="Save URL"
+                  >
+                    <Check size={14} /> Save
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary btn-sm"
+                    onClick={handleTestDrive}
+                    disabled={isTestingDrive}
+                  >
+                    {isTestingDrive ? <RefreshCw size={14} className="animate-spin" /> : <Cloud size={14} />}
+                    <span>{isTestingDrive ? 'Testing...' : 'Test Connection'}</span>
+                  </button>
+                  {driveUrl && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm text-rose"
+                      onClick={handleClearDrive}
+                      title="Disconnect Google Drive"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
@@ -336,16 +342,18 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
                 <CloudDownload size={14} />
                 <span>Pull from Google Drive</span>
               </button>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm text-emerald hover:bg-emerald/10"
-                onClick={handlePushToDrive}
-                disabled={isSyncingDrive || !driveUrl}
-                title="Push all current data to Google Drive (Initial Seed / Backup)"
-              >
-                <CloudUpload size={14} />
-                <span>Push Current Data to Google Drive</span>
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm text-emerald hover:bg-emerald/10"
+                  onClick={handlePushToDrive}
+                  disabled={isSyncingDrive || !driveUrl}
+                  title="Push all current data to Google Drive (Initial Seed / Backup)"
+                >
+                  <CloudUpload size={14} />
+                  <span>Push Current Data to Google Drive</span>
+                </button>
+              )}
             </div>
 
             {/* Status Message */}
@@ -358,29 +366,31 @@ export default function DatabaseSyncModal({ isOpen, onClose }) {
           </div>
 
           {/* Import Upload & Manual Backup */}
-          <div className="import-action-card mb-6">
-            <div>
-              <span className="font-semibold text-sm">Import / Restore Local Excel Workbook</span>
-              <p className="text-xs text-muted">Load a multi-sheet relational workbook (.xlsx) directly into the system</p>
+          {isAdmin && (
+            <div className="import-action-card mb-6">
+              <div>
+                <span className="font-semibold text-sm">Import / Restore Local Excel Workbook</span>
+                <p className="text-xs text-muted">Load a multi-sheet relational workbook (.xlsx) directly into the system</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="excel-import-file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleImportFile}
+                />
+                <label htmlFor="excel-import-file" className="btn btn-outline btn-sm cursor-pointer">
+                  <Upload size={14} /> Import File
+                </label>
+                {storageSource === 'local_disk' && (
+                  <button className="btn btn-outline btn-sm" onClick={handleManualBackup} disabled={isBackingUp}>
+                    <Shield size={14} /> {isBackingUp ? 'Backing up...' : 'Snapshot'}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="file"
-                id="excel-import-file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleImportFile}
-              />
-              <label htmlFor="excel-import-file" className="btn btn-outline btn-sm cursor-pointer">
-                <Upload size={14} /> Import File
-              </label>
-              {storageSource === 'local_disk' && (
-                <button className="btn btn-outline btn-sm" onClick={handleManualBackup} disabled={isBackingUp}>
-                  <Shield size={14} /> {isBackingUp ? 'Backing up...' : 'Snapshot'}
-                </button>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Tables Overview */}
           <div className="section-title mb-3">

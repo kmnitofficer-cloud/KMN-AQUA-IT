@@ -19,7 +19,8 @@ import { formatDisplayDate } from '../../utils/dateUtils';
 import AddCCTVBillModal from './AddCCTVBillModal';
 import CCTVBillViewerModal from './CCTVBillViewerModal';
 
-export default function CCTVView({ selectedLocation = 'All' }) {
+export default function CCTVView({ role = 'admin', selectedLocation = 'All' }) {
+  const isAdmin = role === 'admin';
   const [officeFilter, setOfficeFilter] = useState(() => selectedLocation); // 'All' | 'Chilaw' | 'Palawiya'
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [search, setSearch] = useState('');
@@ -91,20 +92,22 @@ export default function CCTVView({ selectedLocation = 'All' }) {
           </p>
         </div>
 
-        <div className="view-header-actions">
-          <button className="btn btn-outline" onClick={() => handleOpenAddModal('Chilaw')}>
-            <Plus size={14} /> Chilaw Bill
-          </button>
-          <button className="btn btn-outline" onClick={() => handleOpenAddModal('Palawiya')}>
-            <Plus size={14} /> Palawiya Bill
-          </button>
-          <button className="btn btn-outline text-primary border-primary/40" onClick={() => handleOpenAddModal('Split')}>
-            <ArrowLeftRight size={14} /> Split Bill (Both)
-          </button>
-          <button className="btn btn-primary" onClick={() => handleOpenAddModal(officeFilter !== 'All' ? officeFilter : 'Chilaw')}>
-            <Plus size={16} /> Add CCTV Bill
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button className="btn btn-outline" onClick={() => handleOpenAddModal('Chilaw')}>
+              <Plus size={14} /> Chilaw Bill
+            </button>
+            <button className="btn btn-outline" onClick={() => handleOpenAddModal('Palawiya')}>
+              <Plus size={14} /> Palawiya Bill
+            </button>
+            <button className="btn btn-outline text-primary border-primary/40" onClick={() => handleOpenAddModal('Split')}>
+              <ArrowLeftRight size={14} /> Split Bill (Both)
+            </button>
+            <button className="btn btn-primary" onClick={() => handleOpenAddModal(officeFilter !== 'All' ? officeFilter : 'Chilaw')}>
+              <Plus size={16} /> Add CCTV Bill
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI Financial & Infrastructure Summary */}
@@ -471,17 +474,19 @@ export default function CCTVView({ selectedLocation = 'All' }) {
                           >
                             <Eye size={15} />
                           </button>
-                          <button 
-                            className="icon-btn text-rose hover:bg-rose/10" 
-                            title="Delete Bill"
-                            onClick={() => {
-                              if (window.confirm(`Delete bill "${b.BillNumber}"?`)) {
-                                handleDeleteBill(b.BillID);
-                              }
-                            }}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          {isAdmin && (
+                            <button 
+                              className="icon-btn text-rose hover:bg-rose/10" 
+                              title="Delete Bill"
+                              onClick={() => {
+                                if (window.confirm(`Delete bill "${b.BillNumber}"?`)) {
+                                  handleDeleteBill(b.BillID);
+                                }
+                              }}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

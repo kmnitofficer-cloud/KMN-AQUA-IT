@@ -136,9 +136,11 @@ export const streamlitBridge = {
     };
 
     try {
-      window.parent.postMessage(message, "*");
+      if (typeof window !== "undefined" && window.parent && typeof window.parent.postMessage === "function") {
+        window.parent.postMessage(message, "*");
+      }
     } catch (err) {
-      console.error("[streamlitBridge] Failed to postMessage to Streamlit parent:", err);
+      console.warn("[streamlitBridge] Failed to postMessage to Streamlit parent:", err);
     }
 
     return id;

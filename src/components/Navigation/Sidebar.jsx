@@ -69,7 +69,7 @@ export default function Sidebar({
     }
   ];
 
-  const isAdmin = (currentUser?.role || 'admin') === 'admin';
+  const isAdmin = currentUser?.role === 'admin';
 
   return (
     <>
@@ -181,7 +181,7 @@ export default function Sidebar({
                   {currentUser?.displayName || (isAdmin ? 'Administrator' : 'Staff User')}
                 </span>
                 <span className="sidebar-user-role">
-                  {isAdmin ? 'Admin Profile' : 'User Profile'}
+                  {isAdmin ? 'Admin Profile' : 'Viewer Profile'}
                 </span>
               </div>
             )}

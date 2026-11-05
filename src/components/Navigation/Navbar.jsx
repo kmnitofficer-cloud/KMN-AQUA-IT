@@ -20,7 +20,8 @@ export default function Navbar({
   const storageSource = dbRepository.getStorageSource();
   const isGoogleDrive = storageSource === 'google_drive' || storageSource === 'streamlit_python';
   const isLocalDisk = storageSource === 'local_disk';
-  const isAdmin = (currentUser?.role || role) === 'admin';
+  const isAuthAdmin = currentUser?.role === 'admin';
+  const isAdmin = (role || currentUser?.role) === 'admin';
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -119,8 +120,8 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Role Preview Switcher (Available to Admin) */}
-        {isAdmin && (
+        {/* Role Preview Switcher (Only available to authenticated Admin) */}
+        {isAuthAdmin && (
           <button
             className="role-toggle-btn"
             onClick={onToggleRole}
