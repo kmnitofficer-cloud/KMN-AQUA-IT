@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Search, Shield, Laptop, Eye, Power } from 'lucide-react';
+import { Users, UserPlus, Search, Shield, Laptop, Eye, EyeOff, Power, Key, Copy, Check, Edit2 } from 'lucide-react';
 import { userService } from '../../services/userService';
 import { locationService } from '../../services/locationService';
 import UserProfileModal from './UserProfileModal';
@@ -12,6 +12,8 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [revealedPasswords, setRevealedPasswords] = useState({});
+  const [copiedUserId, setCopiedUserId] = useState(null);
 
   const allUsers = userService.getUsers(filter);
   const locationUsers = allUsers.filter(u => locationService.matchesUser(u, selectedLocation));
@@ -23,6 +25,7 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
       (u.EmployeeID && u.EmployeeID.toLowerCase().includes(q)) ||
       (u.UserID && u.UserID.toLowerCase().includes(q)) ||
       (u.JobTitle && u.JobTitle.toLowerCase().includes(q)) ||
+      (u.PCPassword && u.PCPassword.toLowerCase().includes(q)) ||
       (u.Email && u.Email.toLowerCase().includes(q))
     );
   });
@@ -30,6 +33,20 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
   const handleOpenProfile = (userId) => {
     setSelectedUserId(userId);
     setIsProfileOpen(true);
+  };
+
+  const toggleRevealPassword = (userId) => {
+    setRevealedPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
+
+  const handleCopyPassword = (userId, pwd) => {
+    if (!pwd) return;
+    navigator.clipboard.writeText(pwd);
+    setCopiedUserId(userId);
+    setTimeout(() => setCopiedUserId(null), 2000);
   };
 
   const handleToggleStatus = async (e, userId) => {
@@ -130,6 +147,7 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
                 <th>User ID</th>
                 <th>Employee ID</th>
                 <th>Role / Designation</th>
+                <th>PC Password</th>
                 <th>Branch Location</th>
                 <th>Current Assets</th>
                 <th>Status</th>
@@ -139,7 +157,7 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-8 text-muted">
+                  <td colSpan="9" className="text-center py-8 text-muted">
                     {selectedLocation === 'Palawiya'
                       ? 'No staff members currently registered for Palawiya Branch. Click "+ Add Employee" above to register Palawiya staff.'
                       : selectedLocation === 'Chilaw'
@@ -151,6 +169,8 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
                 filteredUsers.map(u => {
                   const currentAssets = userService.getUserCurrentAssets(u.UserID);
                   const costs = userService.getUserCosts(u.UserID);
+                  const isRevealed = Boolean(revealedPasswords[u.UserID]);
+                  const isCopied = copiedUserId === u.UserID;
 
                   return (
                     <tr
@@ -170,6 +190,51 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
                       <td><span className="id-pill">{u.UserID}</span></td>
                       <td><span className="text-muted font-mono">{u.EmployeeID || 'N/A'}</span></td>
                       <td>{u.JobTitle || 'Office Associate'}</td>
+                      <td onClick={e => e.stopPropagation()}>
+                        {u.PCPassword ? (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="font-mono text-xs px-2 py-0.5 rounded border border-subtle bg-surface-elevated font-medium"
+                              style={{ letterSpacing: isRevealed ? 'normal' : '0.15em', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              title={isRevealed ? u.PCPassword : "Click eye icon to reveal"}
+                            >
+                              {isRevealed ? u.PCPassword : '••••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              style={{ padding: '0.2rem', width: '24px', height: '24px' }}
+                              title={isRevealed ? "Hide password" : "Show password"}
+                              onClick={() => toggleRevealPassword(u.UserID)}
+                            >
+                              {isRevealed ? <EyeOff size={13} /> : <Eye size={13} />}
+                            </button>
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              style={{ padding: '0.2rem', width: '24px', height: '24px' }}
+                              title="Copy password to clipboard"
+                              onClick={() => handleCopyPassword(u.UserID, u.PCPassword)}
+                            >
+                              {isCopied ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-xs text-muted hover:text-primary flex items-center gap-1 italic"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            onClick={() => {
+                              setEditingUser(u);
+                              setIsFormOpen(true);
+                            }}
+                            title="Click to set PC password"
+                          >
+                            <Key size={12} />
+                            <span>Set password</span>
+                          </button>
+                        )}
+                      </td>
                       <td>
                         <span className="location-pill">
                           {u.OfficeLocationID === 'LOC-0001' ? 'Chilaw Office' : u.OfficeLocationID === 'LOC-0002' ? 'Palaviya' : 'HR Lobby'}
@@ -189,6 +254,16 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
                       </td>
                       <td className="text-right" onClick={e => e.stopPropagation()}>
                         <div className="table-actions">
+                          <button
+                            className="icon-btn"
+                            title="Edit Employee & Password"
+                            onClick={() => {
+                              setEditingUser(u);
+                              setIsFormOpen(true);
+                            }}
+                          >
+                            <Edit2 size={16} />
+                          </button>
                           <button
                             className="icon-btn"
                             title="View Full Profile & Timeline"
