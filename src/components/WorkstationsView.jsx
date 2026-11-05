@@ -13,8 +13,14 @@ import {
   AlertCircle, 
   Building2,
   ExternalLink,
-  Plus
+  Plus,
+  Key,
+  Eye,
+  EyeOff,
+  Copy,
+  Check
 } from 'lucide-react';
+import { dbRepository } from '../services/dbRepository';
 
 export default function WorkstationsView({
   machines = [],
@@ -26,17 +32,42 @@ export default function WorkstationsView({
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [officeFilter, setOfficeFilter] = useState('All');
+  const [revealedPwds, setRevealedPwds] = useState({});
+  const [copiedUser, setCopiedUser] = useState(null);
+
+  const toggleRevealed = (userName) => {
+    setRevealedPwds(prev => ({
+      ...prev,
+      [userName]: !prev[userName]
+    }));
+  };
+
+  const copyPassword = (userName, pwd) => {
+    if (!pwd) return;
+    navigator.clipboard.writeText(pwd);
+    setCopiedUser(userName);
+    setTimeout(() => setCopiedUser(null), 2000);
+  };
 
   // Group machines and services by assigned_to
   const workstations = useMemo(() => {
     const map = new Map();
+    const users = dbRepository.getTable('Users') || [];
 
     machines.forEach(m => {
       const user = (m.assigned_to || 'Unassigned').trim();
       if (!map.has(user)) {
+        // Find matching user from Users table for PC password
+        const matchedUser = users.find(u => {
+          const uName = (u.Name || '').trim().toLowerCase();
+          const target = user.toLowerCase();
+          return uName === target || target.includes(uName) || uName.includes(target);
+        });
+
         map.set(user, {
           user,
           office: m.office || 'Main Branch',
+          pcPassword: matchedUser?.PCPassword || '',
           items: [],
           keyboard: null,
           mouse: null,
@@ -170,6 +201,33 @@ export default function WorkstationsView({
                   </span>
                   {w.cpu?.verified_no && (
                     <span className="ws-tag-verified">{w.cpu.verified_no}</span>
+                  )}
+                  {w.pcPassword && (
+                    <div className="flex items-center gap-1.5 mt-1" style={{ fontSize: '0.75rem' }}>
+                      <Key size={12} className="text-primary" />
+                      <span className="text-muted text-[11px] font-mono">Password:</span>
+                      <span className="font-mono text-xs px-1.5 py-0.5 rounded border border-subtle bg-surface" style={{ letterSpacing: revealedPwds[w.user] ? 'normal' : '0.12em' }}>
+                        {revealedPwds[w.user] ? w.pcPassword : '••••••••'}
+                      </span>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        style={{ padding: '0.15rem', width: '20px', height: '20px' }}
+                        title={revealedPwds[w.user] ? "Hide password" : "Show password"}
+                        onClick={() => toggleRevealed(w.user)}
+                      >
+                        {revealedPwds[w.user] ? <EyeOff size={11} /> : <Eye size={11} />}
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        style={{ padding: '0.15rem', width: '20px', height: '20px' }}
+                        title="Copy password"
+                        onClick={() => copyPassword(w.user, w.pcPassword)}
+                      >
+                        {copiedUser === w.user ? <Check size={11} className="text-emerald" /> : <Copy size={11} />}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

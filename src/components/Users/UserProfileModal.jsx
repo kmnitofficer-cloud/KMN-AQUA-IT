@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Laptop, Clock, DollarSign, Shield, Phone, Mail, MapPin, Building, Printer, Plus, RefreshCw, Archive, CheckCircle2 } from 'lucide-react';
+import { X, User, Laptop, Clock, DollarSign, Shield, Phone, Mail, MapPin, Building, Printer, Plus, RefreshCw, Archive, CheckCircle2, Key, Eye, EyeOff, Copy, Check, Edit2 } from 'lucide-react';
 import { userService } from '../../services/userService';
 import { assetService } from '../../services/assetService';
 import { dbRepository } from '../../services/dbRepository';
 import ReassignModal from '../Assignments/ReassignModal';
+import UserFormModal from './UserFormModal';
 
 export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsset }) {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -11,6 +12,9 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
   const [reassignMode, setReassignMode] = useState('return');
   const [preselectedUserId, setPreselectedUserId] = useState('');
   const [isReassignOpen, setIsReassignOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const [historyTab, setHistoryTab] = useState('all'); // 'all', 'returned', 'current'
 
   useEffect(() => {
@@ -57,6 +61,13 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
     setIsReassignOpen(true);
   };
 
+  const handleCopyPassword = (pwd) => {
+    if (!pwd) return;
+    navigator.clipboard.writeText(pwd);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="profile-modal-container" onClick={e => e.stopPropagation()}>
@@ -76,9 +87,19 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
               </div>
             </div>
           </div>
-          <button className="icon-btn" onClick={onClose} title="Close Profile">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm flex items-center gap-1.5"
+              onClick={() => setIsEditUserOpen(true)}
+              title="Edit Employee & Password"
+            >
+              <Edit2 size={14} /> Edit Profile
+            </button>
+            <button className="icon-btn" onClick={onClose} title="Close Profile">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="profile-modal-body">
@@ -110,6 +131,62 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
               <div>
                 <span className="meta-label">Office Location</span>
                 <span className="meta-val">{user.OfficeLocationID === 'LOC-0001' ? 'Chilaw Office' : user.OfficeLocationID === 'LOC-0002' ? 'Palaviya Office' : 'HR Lobby'}</span>
+              </div>
+            </div>
+            {/* Machine / PC Password Card */}
+            <div className="meta-card" style={{ gridColumn: 'span 2', backgroundColor: 'var(--bg-surface-elevated, #f8fafc)', border: '1px solid var(--border-subtle, #e2e8f0)' }}>
+              <Key size={18} className="text-primary" />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className="meta-label" style={{ fontWeight: 600 }}>Machine / PC Login Password</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {user.PCPassword && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-xs"
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          onClick={() => setShowPassword(v => !v)}
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                          <span>{showPassword ? "Hide" : "Show"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-xs"
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                          onClick={() => handleCopyPassword(user.PCPassword)}
+                          title="Copy password to clipboard"
+                        >
+                          {copiedPassword ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
+                          <span>{copiedPassword ? "Copied!" : "Copy"}</span>
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-xs"
+                      style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--brand-primary)' }}
+                      onClick={() => setIsEditUserOpen(true)}
+                      title="Update PC Password"
+                    >
+                      <Edit2 size={12} />
+                      <span>{user.PCPassword ? "Change" : "Set Password"}</span>
+                    </button>
+                  </div>
+                </div>
+                <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {user.PCPassword ? (
+                    <span className="font-mono font-bold text-sm" style={{ letterSpacing: showPassword ? 'normal' : '0.18em', color: showPassword ? 'var(--brand-primary)' : 'var(--text-secondary)' }}>
+                      {showPassword ? user.PCPassword : '••••••••••••'}
+                    </span>
+                  ) : (
+                    <span className="text-muted text-xs italic">
+                      No PC password recorded for this user. Click "Set Password" to add.
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -339,6 +416,15 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
           isOpen={isReassignOpen}
           onClose={() => setIsReassignOpen(false)}
           onCompleted={() => setRefreshKey(k => k + 1)}
+        />
+
+        {/* Modal-embedded User Edit Form */}
+        <UserFormModal
+          isOpen={isEditUserOpen}
+          onClose={() => setIsEditUserOpen(false)}
+          user={user}
+          onSaved={() => setRefreshKey(k => k + 1)}
+          defaultLocationId={user.OfficeLocationID || 'LOC-0001'}
         />
       </div>
     </div>

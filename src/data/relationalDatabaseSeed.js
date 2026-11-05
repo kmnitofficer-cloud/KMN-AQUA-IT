@@ -11,7 +11,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-22",
       "Notes": "",
-      "UserID": "USR-0016"
+      "UserID": "USR-0016",
+      "PCPassword": ""
     },
     {
       "Name": "Mr.Mose Jesudason",
@@ -24,7 +25,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0015"
+      "UserID": "USR-0015",
+      "PCPassword": ""
     },
     {
       "Name": "Mr.Nethusha",
@@ -37,7 +39,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-07",
       "Notes": "",
-      "UserID": "USR-0014"
+      "UserID": "USR-0014",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.Aesha Muthumali",
@@ -50,7 +53,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0013"
+      "UserID": "USR-0013",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.Lakshani",
@@ -63,7 +67,8 @@ export const relationalDatabaseSeed = {
       "Status": "On Leave",
       "JoinDate": "2026-08-02",
       "Notes": "",
-      "UserID": "USR-0012"
+      "UserID": "USR-0012",
+      "PCPassword": ""
     },
     {
       "Name": "Mr.Hiruni",
@@ -76,7 +81,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0011"
+      "UserID": "USR-0011",
+      "PCPassword": ""
     },
     {
       "Name": "Mr.Anjelo",
@@ -89,7 +95,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0010"
+      "UserID": "USR-0010",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.ChalanI",
@@ -102,7 +109,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0009"
+      "UserID": "USR-0009",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.Dilushi",
@@ -115,7 +123,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0008"
+      "UserID": "USR-0008",
+      "PCPassword": ""
     },
     {
       "Name": "Mr.Lahiru",
@@ -128,7 +137,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0007"
+      "UserID": "USR-0007",
+      "PCPassword": ""
     },
     {
       "Name": "Mr.Indika",
@@ -141,7 +151,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0006"
+      "UserID": "USR-0006",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.Deepika",
@@ -154,7 +165,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0005"
+      "UserID": "USR-0005",
+      "PCPassword": ""
     },
     {
       "Name": "Mr.Anjitha",
@@ -167,7 +179,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-08-10",
       "Notes": "",
-      "UserID": "USR-0004"
+      "UserID": "USR-0004",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.Narmadha",
@@ -180,7 +193,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0003"
+      "UserID": "USR-0003",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.Ishara",
@@ -193,7 +207,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0002"
+      "UserID": "USR-0002",
+      "PCPassword": ""
     },
     {
       "Name": "Ms.Mishel",
@@ -206,7 +221,8 @@ export const relationalDatabaseSeed = {
       "Status": "Active",
       "JoinDate": "2026-09-21",
       "Notes": "",
-      "UserID": "USR-0001"
+      "UserID": "USR-0001",
+      "PCPassword": ""
     }
   ],
   "Departments": [

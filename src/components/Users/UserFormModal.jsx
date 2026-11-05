@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Save } from 'lucide-react';
+import { X, UserPlus, Save, Key, Eye, EyeOff } from 'lucide-react';
 import { userService } from '../../services/userService';
 
 export default function UserFormModal({ isOpen, onClose, user = null, onSaved, defaultLocationId = 'LOC-0001' }) {
@@ -10,13 +10,16 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
     JobTitle: '',
     Phone: '',
     Email: '',
+    PCPassword: '',
     OfficeLocationID: defaultLocationId || 'LOC-0001',
     Status: 'Active',
     JoinDate: new Date().toISOString().split('T')[0],
     Notes: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    setShowPassword(false);
     if (user) {
       setFormData({
         UserID: user.UserID,
@@ -26,6 +29,7 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
         JobTitle: user.JobTitle || '',
         Phone: user.Phone || '',
         Email: user.Email || '',
+        PCPassword: user.PCPassword || user.MachinePassword || '',
         OfficeLocationID: user.OfficeLocationID || 'LOC-0001',
         Status: user.Status || 'Active',
         JoinDate: user.JoinDate || '',
@@ -39,6 +43,7 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
         JobTitle: '',
         Phone: '',
         Email: '',
+        PCPassword: '',
         OfficeLocationID: defaultLocationId || 'LOC-0001',
         Status: 'Active',
         JoinDate: new Date().toISOString().split('T')[0],
@@ -180,6 +185,54 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
                 value={formData.JoinDate}
                 onChange={e => setFormData({ ...formData, JoinDate: e.target.value })}
               />
+            </div>
+
+            <div className="form-group">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                  <Key size={14} className="text-primary" />
+                  <span>Machine / PC Password</span>
+                </label>
+                {formData.PCPassword && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.72rem', color: 'var(--brand-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: 0 }}
+                  >
+                    {showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+                    <span>{showPassword ? 'Hide' : 'Show'}</span>
+                  </button>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-input font-mono"
+                  placeholder="e.g. Pass@123 or Windows pass"
+                  value={formData.PCPassword}
+                  onChange={e => setFormData({ ...formData, PCPassword: e.target.value })}
+                  style={{ paddingRight: '2.5rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="icon-btn"
+                  style={{
+                    position: 'absolute',
+                    right: '0.4rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    padding: '0.25rem',
+                    color: 'var(--text-muted)'
+                  }}
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              <span className="text-muted text-[11px]" style={{ marginTop: '0.25rem', display: 'block' }}>
+                Assigned staff computer / workstation login credential
+              </span>
             </div>
           </div>
 

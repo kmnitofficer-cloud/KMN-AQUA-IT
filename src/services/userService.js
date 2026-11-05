@@ -76,7 +76,11 @@ export const userService = {
 
     if (user.UserID) {
       // Update existing
-      updated = users.map(u => u.UserID === user.UserID ? { ...u, ...user } : u);
+      updated = users.map(u => u.UserID === user.UserID ? {
+        ...u,
+        ...user,
+        PCPassword: user.PCPassword !== undefined ? user.PCPassword : (u.PCPassword || u.MachinePassword || '')
+      } : u);
     } else {
       // Create new
       const nextNum = users.length + 1;
@@ -86,6 +90,7 @@ export const userService = {
         ...user,
         UserID: newId,
         EmployeeID: newEmpId,
+        PCPassword: user.PCPassword || user.MachinePassword || '',
         Status: user.Status || 'Active',
         JoinDate: user.JoinDate || new Date().toISOString().split('T')[0]
       };
@@ -94,6 +99,13 @@ export const userService = {
 
     await dbRepository.updateTable('Users', updated);
     return user;
+  },
+
+  async updatePCPassword(userId, pcPassword) {
+    const users = dbRepository.getTable('Users');
+    const updated = users.map(u => u.UserID === userId ? { ...u, PCPassword: pcPassword } : u);
+    await dbRepository.updateTable('Users', updated);
+    return { success: true, userId, pcPassword };
   },
 
   async toggleStatus(userId) {
