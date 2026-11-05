@@ -85,3 +85,4 @@ export async function firebaseSignOut() {
     console.warn('[firebaseAuth] Sign-out error:', e);
   }
 }
+
