@@ -6,7 +6,8 @@ import { DRIVE_CONFIG } from '../../config/driveConfig';
 import InvoiceViewerModal from './InvoiceViewerModal';
 import InvoiceUploadModal from './InvoiceUploadModal';
 
-export default function InvoicesView() {
+export default function InvoicesView({ role = 'admin' }) {
+  const isAdmin = role === 'admin';
   const [search, setSearch] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
@@ -53,9 +54,11 @@ export default function InvoicesView() {
           >
             <FolderOpen size={16} /> Open Drive Folder
           </a>
-          <button className="btn btn-primary" onClick={() => setIsUploadOpen(true)}>
-            <Upload size={16} /> Upload PDF Bill / Invoice
-          </button>
+          {isAdmin && (
+            <button className="btn btn-primary" onClick={() => setIsUploadOpen(true)}>
+              <Upload size={16} /> Upload PDF Bill / Invoice
+            </button>
+          )}
         </div>
       </div>
 

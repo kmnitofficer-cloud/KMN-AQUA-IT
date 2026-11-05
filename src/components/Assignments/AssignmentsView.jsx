@@ -4,7 +4,8 @@ import { assignmentService } from '../../services/assignmentService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 import ReassignModal from './ReassignModal';
 
-export default function AssignmentsView({ selectedLocation = 'All' }) {
+export default function AssignmentsView({ role = 'admin', selectedLocation = 'All' }) {
+  const isAdmin = role === 'admin';
   const [filter, setFilter] = useState('All'); // 'All', 'Current', 'Returned'
   const [search, setSearch] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState(null);
@@ -58,11 +59,13 @@ export default function AssignmentsView({ selectedLocation = 'All' }) {
             Complete, immutable audit trail of every device handover, reassignment, and return since office inception.
           </p>
         </div>
-        <div className="view-header-actions">
-          <button className="btn btn-primary" onClick={() => handleOpenReassign(null)}>
-            <RefreshCw size={16} /> + Hand Over / Assign Equipment to Staff
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button className="btn btn-primary" onClick={() => handleOpenReassign(null)}>
+              <RefreshCw size={16} /> + Hand Over / Assign Equipment to Staff
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter Tabs & Search */}
@@ -163,7 +166,7 @@ export default function AssignmentsView({ selectedLocation = 'All' }) {
                       {asgn.Notes && <div className="text-xs text-amber">{asgn.Notes}</div>}
                     </td>
                     <td className="text-right">
-                      {asgn.AssignmentStatus === 'Current' && (
+                      {isAdmin && asgn.AssignmentStatus === 'Current' && (
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             className="btn btn-outline btn-xs flex items-center gap-1 text-primary"

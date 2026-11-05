@@ -19,7 +19,8 @@ import AssetFormModal from './AssetFormModal';
 import ReassignModal from '../Assignments/ReassignModal';
 import RepairModal from '../Repairs/RepairModal';
 
-export default function AssetsView({ onSelectUser, selectedLocation = 'All' }) {
+export default function AssetsView({ role = 'admin', onSelectUser, selectedLocation = 'All' }) {
+  const isAdmin = role === 'admin';
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState(null);
@@ -74,11 +75,13 @@ export default function AssetsView({ onSelectUser, selectedLocation = 'All' }) {
             Tracking individual devices with unique Asset IDs, tags, specs, and complete historical timelines.
           </p>
         </div>
-        <div className="view-header-actions">
-          <button className="btn btn-primary" onClick={() => { setEditingAsset(null); setIsFormOpen(true); }}>
-            <Plus size={16} /> Register New Asset
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button className="btn btn-primary" onClick={() => { setEditingAsset(null); setIsFormOpen(true); }}>
+              <Plus size={16} /> Register New Asset
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Location Filter Indicator Banner */}
@@ -241,20 +244,24 @@ export default function AssetsView({ onSelectUser, selectedLocation = 'All' }) {
                         >
                           <Eye size={16} />
                         </button>
-                        <button
-                          className="icon-btn"
-                          title="Reassign / Handover to User"
-                          onClick={() => handleOpenReassign(a.AssetID)}
-                        >
-                          <RefreshCw size={16} className="text-primary" />
-                        </button>
-                        <button
-                          className="icon-btn"
-                          title="Log Repair / Service"
-                          onClick={() => handleOpenRepair(a.AssetID)}
-                        >
-                          <Wrench size={16} className="text-amber" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            className="icon-btn"
+                            title="Reassign / Handover to User"
+                            onClick={() => handleOpenReassign(a.AssetID)}
+                          >
+                            <RefreshCw size={16} className="text-primary" />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            className="icon-btn"
+                            title="Log Repair / Service"
+                            onClick={() => handleOpenRepair(a.AssetID)}
+                          >
+                            <Wrench size={16} className="text-amber" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -270,6 +277,7 @@ export default function AssetsView({ onSelectUser, selectedLocation = 'All' }) {
         assetId={selectedAssetId}
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
+        role={role}
         onReassign={(assetId) => {
           setIsProfileOpen(false);
           handleOpenReassign(assetId);

@@ -5,7 +5,8 @@ import { locationService } from '../../services/locationService';
 import UserProfileModal from './UserProfileModal';
 import UserFormModal from './UserFormModal';
 
-export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
+export default function UsersView({ role = 'admin', onSelectAsset, selectedLocation = 'All' }) {
+  const isAdmin = role === 'admin';
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -66,11 +67,13 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
             Managing company employees, assigned workstations, and permanent assignment histories.
           </p>
         </div>
-        <div className="view-header-actions">
-          <button className="btn btn-primary" onClick={() => { setEditingUser(null); setIsFormOpen(true); }}>
-            <UserPlus size={16} /> Add Employee
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button className="btn btn-primary" onClick={() => { setEditingUser(null); setIsFormOpen(true); }}>
+              <UserPlus size={16} /> Add Employee
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Location Filter Indicator Banner */}
@@ -254,16 +257,18 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
                       </td>
                       <td className="text-right" onClick={e => e.stopPropagation()}>
                         <div className="table-actions">
-                          <button
-                            className="icon-btn"
-                            title="Edit Employee & Password"
-                            onClick={() => {
-                              setEditingUser(u);
-                              setIsFormOpen(true);
-                            }}
-                          >
-                            <Edit2 size={16} />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              className="icon-btn"
+                              title="Edit Employee & Password"
+                              onClick={() => {
+                                setEditingUser(u);
+                                setIsFormOpen(true);
+                              }}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          )}
                           <button
                             className="icon-btn"
                             title="View Full Profile & Timeline"
@@ -271,13 +276,15 @@ export default function UsersView({ onSelectAsset, selectedLocation = 'All' }) {
                           >
                             <Eye size={16} />
                           </button>
-                          <button
-                            className="icon-btn"
-                            title={u.Status === 'Active' ? 'Deactivate User' : 'Activate User'}
-                            onClick={(e) => handleToggleStatus(e, u.UserID)}
-                          >
-                            <Power size={16} className={u.Status === 'Active' ? 'text-muted' : 'text-emerald'} />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              className="icon-btn"
+                              title={u.Status === 'Active' ? 'Deactivate User' : 'Activate User'}
+                              onClick={(e) => handleToggleStatus(e, u.UserID)}
+                            >
+                              <Power size={16} className={u.Status === 'Active' ? 'text-muted' : 'text-emerald'} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -12,7 +12,8 @@ import { formatDisplayDate } from '../../utils/dateUtils';
 import RepairModal from './RepairModal';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
-export default function RepairsView({ onOpenAsset: _onOpenAsset }) {
+export default function RepairsView({ role = 'admin', onOpenAsset: _onOpenAsset }) {
+  const isAdmin = role === 'admin';
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,11 +72,13 @@ export default function RepairsView({ onOpenAsset: _onOpenAsset }) {
             Permanent ledger of all equipment breakdowns, vendor services, actions taken, warranties, and component replacements.
           </p>
         </div>
-        <div className="view-header-actions">
-          <button className="btn btn-primary" onClick={() => { setSelectedAssetId(null); setIsModalOpen(true); }}>
-            <Plus size={16} /> Log Repair / Issue
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button className="btn btn-primary" onClick={() => { setSelectedAssetId(null); setIsModalOpen(true); }}>
+              <Plus size={16} /> Log Repair / Issue
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter / Search Bar */}

@@ -20,8 +20,9 @@ import {
 } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 
-export default function AssetProfileModal({ assetId, isOpen, onClose, onReassign, onLogRepair }) {
+export default function AssetProfileModal({ assetId, isOpen, onClose, onReassign, onLogRepair, role = 'admin' }) {
   const [activeTab, setActiveTab] = useState('timeline'); // 'timeline', 'structure', 'history', 'repairs', 'parts'
+  const isAdmin = role === 'admin';
 
   if (!isOpen || !assetId) return null;
 
@@ -137,17 +138,19 @@ export default function AssetProfileModal({ assetId, isOpen, onClose, onReassign
                   </span>
                 </div>
               </div>
-              <button
-                className="btn btn-outline btn-xs shrink-0"
-                title="Mark this machine as fully resolved and healthy"
-                onClick={async () => {
-                  if (confirm('Mark this device as resolved and clear the daily check warning?')) {
-                    await assetService.clearAssetWarning(asset.AssetID);
-                  }
-                }}
-              >
-                <ShieldCheck size={12} className="text-emerald" /> Clear Warning (Mark Healthy)
-              </button>
+              {isAdmin && (
+                <button
+                  className="btn btn-outline btn-xs shrink-0"
+                  title="Mark this machine as fully resolved and healthy"
+                  onClick={async () => {
+                    if (confirm('Mark this device as resolved and clear the daily check warning?')) {
+                      await assetService.clearAssetWarning(asset.AssetID);
+                    }
+                  }}
+                >
+                  <ShieldCheck size={12} className="text-emerald" /> Clear Warning (Mark Healthy)
+                </button>
+              )}
             </div>
           </div>
         )}

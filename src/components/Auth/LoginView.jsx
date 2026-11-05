@@ -172,8 +172,8 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
             onClick={() => handleProfileSelect('user')}
           >
             <User size={14} />
-            <span>User Profile</span>
-            {activeProfileTab === 'user' && <span className="tab-pill-badge">Viewer Mode</span>}
+            <span>Viewer Profile</span>
+            {activeProfileTab === 'user' && <span className="tab-pill-badge">View Only</span>}
           </button>
         </div>
 
@@ -272,7 +272,7 @@ export default function LoginView({ onLoginSuccess, theme, onToggleTheme }) {
             ) : (
               <span className="flex items-center justify-center gap-2">
                 <KeyRound size={16} />
-                <span>Sign In as {activeProfileTab === 'admin' ? 'Administrator' : 'User'}</span>
+                <span>Sign In as {activeProfileTab === 'admin' ? 'Administrator' : 'Staff Viewer'}</span>
                 <ArrowRight size={16} />
               </span>
             )}

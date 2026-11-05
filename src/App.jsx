@@ -45,7 +45,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
   const [role, setRole] = useState(() => {
     const user = authService.getCurrentUser();
-    return user ? user.role : (localStorage.getItem(STORAGE_ROLE) || 'admin');
+    return user ? user.role : 'viewer';
   });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedLocation, setSelectedLocation] = useState(() => locationService.getSelectedLocation());
@@ -158,6 +158,8 @@ export default function App() {
   };
 
   const toggleRole = () => {
+    // Only authenticated administrator can toggle between admin view and preview-as-viewer
+    if (currentUser?.role !== 'admin') return;
     setRole(prev => (prev === 'admin' ? 'viewer' : 'admin'));
   };
 
@@ -172,6 +174,7 @@ export default function App() {
   const handleLogout = () => {
     authService.logout();
     setCurrentUser(null);
+    setRole('viewer');
   };
 
   // Entity selection handler from Global Search
@@ -261,6 +264,7 @@ export default function App() {
 
           {activeTab === 'users' && (
             <UsersView
+              role={role}
               onSelectAsset={(id) => { setViewingAssetId(id); setIsAssetProfileOpen(true); }}
               selectedLocation={selectedLocation}
             />
@@ -268,6 +272,7 @@ export default function App() {
 
           {activeTab === 'assets' && (
             <AssetsView
+              role={role}
               onSelectUser={(id) => { setViewingUserId(id); setIsUserProfileOpen(true); }}
               selectedLocation={selectedLocation}
             />
@@ -275,50 +280,55 @@ export default function App() {
 
           {activeTab === 'assignments' && (
             <AssignmentsView
+              role={role}
               selectedLocation={selectedLocation}
             />
           )}
 
           {activeTab === 'printers' && (
             <PrintersView
+              role={role}
               selectedLocation={selectedLocation}
             />
           )}
 
           {activeTab === 'repairs' && (
             <RepairsView
+              role={role}
               onOpenAsset={(id) => { setViewingAssetId(id); setIsAssetProfileOpen(true); }}
             />
           )}
 
           {activeTab === 'parts' && (
-            <PartsView />
+            <PartsView role={role} />
           )}
 
           {activeTab === 'ac' && (
-            <ACView />
+            <ACView role={role} />
           )}
 
           {activeTab === 'cctv' && (
             <CCTVView
+              role={role}
               selectedLocation={selectedLocation}
             />
           )}
 
           {activeTab === 'expenses' && (
-            <ExpensesView />
+            <ExpensesView role={role} />
           )}
 
           {activeTab === 'invoices' && (
-            <InvoicesView />
+            <InvoicesView role={role} />
           )}
 
           {activeTab === 'reports' && (
-            <ReportsView />
+            <ReportsView role={role} />
           )}
 
           {activeTab === 'locations' && (
             <LocationsDepartmentsView
+              role={role}
               selectedLocation={selectedLocation}
             />
           )}
@@ -344,6 +354,7 @@ export default function App() {
       <DatabaseSyncModal
         isOpen={isDbHubOpen}
         onClose={() => setIsDbHubOpen(false)}
+        role={role}
       />
 
       {/* Global Entity Inspection Modals */}
@@ -353,6 +364,7 @@ export default function App() {
         onClose={() => setIsAssetProfileOpen(false)}
         onReassign={() => { setIsAssetProfileOpen(false); setActiveTab('assignments'); }}
         onLogRepair={() => { setIsAssetProfileOpen(false); setActiveTab('repairs'); }}
+        role={role}
       />
 
       <UserProfileModal

@@ -6,7 +6,8 @@ import { formatDisplayDate } from '../../utils/dateUtils';
 import ExpenseModal from './ExpenseModal';
 import InvoiceViewerModal from '../Invoices/InvoiceViewerModal';
 
-export default function ExpensesView() {
+export default function ExpensesView({ role = 'admin' }) {
+  const isAdmin = role === 'admin';
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,11 +48,13 @@ export default function ExpensesView() {
             Tracking every hardware purchase, repair charge, consumable transaction, and vendor payment with strict relational attribution.
           </p>
         </div>
-        <div className="view-header-actions">
-          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-            <Plus size={16} /> Record Expense
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="view-header-actions">
+            <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+              <Plus size={16} /> Record Expense
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Financial KPI Summary Cards */}
