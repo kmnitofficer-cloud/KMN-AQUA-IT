@@ -74,13 +74,29 @@ export const userService = {
     const users = dbRepository.getTable('Users');
     let updated;
 
+    const userEmail = user.Email !== undefined ? String(user.Email || '').trim() : '';
+    const userPcPassword = user.PCPassword !== undefined ? String(user.PCPassword || '').trim() : '';
+
     if (user.UserID) {
       // Update existing
-      updated = users.map(u => u.UserID === user.UserID ? {
-        ...u,
-        ...user,
-        PCPassword: user.PCPassword !== undefined ? user.PCPassword : (u.PCPassword || u.MachinePassword || '')
-      } : u);
+      const targetId = String(user.UserID || '').trim();
+      let matched = false;
+      updated = users.map(u => {
+        if (String(u.UserID || '').trim() === targetId) {
+          matched = true;
+          return {
+            ...u,
+            ...user,
+            Email: userEmail !== undefined ? userEmail : (u.Email || ''),
+            PCPassword: userPcPassword || u.PCPassword || u.MachinePassword || ''
+          };
+        }
+        return u;
+      });
+
+      if (!matched) {
+        updated = [user, ...users];
+      }
     } else {
       // Create new
       const nextNum = users.length + 1;
@@ -90,7 +106,8 @@ export const userService = {
         ...user,
         UserID: newId,
         EmployeeID: newEmpId,
-        PCPassword: user.PCPassword || user.MachinePassword || '',
+        Email: userEmail,
+        PCPassword: userPcPassword || user.MachinePassword || '',
         Status: user.Status || 'Active',
         JoinDate: user.JoinDate || new Date().toISOString().split('T')[0]
       };
@@ -103,7 +120,8 @@ export const userService = {
 
   async updatePCPassword(userId, pcPassword) {
     const users = dbRepository.getTable('Users');
-    const updated = users.map(u => u.UserID === userId ? { ...u, PCPassword: pcPassword } : u);
+    const targetId = String(userId || '').trim();
+    const updated = users.map(u => String(u.UserID || '').trim() === targetId ? { ...u, PCPassword: pcPassword } : u);
     await dbRepository.updateTable('Users', updated);
     return { success: true, userId, pcPassword };
   },

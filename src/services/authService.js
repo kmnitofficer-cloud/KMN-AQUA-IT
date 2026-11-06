@@ -131,9 +131,19 @@ class AuthService {
   constructor() {
     this.currentUser = this.loadInitialUser();
 
+    // Immediately synchronize authenticated session with Python backend
+    if (this.currentUser) {
+      this.syncWithBackend(this.currentUser);
+    }
+
     // Listen for authenticated user updates from Streamlit parent iframe
     if (typeof window !== 'undefined') {
       streamlitBridge.onData((args) => {
+        // If client already has a session but Streamlit has none, ensure backend is synced
+        if (this.currentUser && (!args || !args.user)) {
+          this.syncWithBackend(this.currentUser);
+        }
+
         // Only accept user sync if Python sent an explicitly logged-in user
         if (args && args.user && typeof args.user === 'object' && args.user.username && this.currentUser) {
           const role = (args.user.role || '').toLowerCase().includes('viewer') ? 'viewer' : 'admin';

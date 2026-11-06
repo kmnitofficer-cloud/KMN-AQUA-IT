@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Search, Shield, Laptop, Eye, EyeOff, Power, Key, Copy, Check, Edit2 } from 'lucide-react';
 import { userService } from '../../services/userService';
 import { locationService } from '../../services/locationService';
+import { dbRepository } from '../../services/dbRepository';
 import UserProfileModal from './UserProfileModal';
 import UserFormModal from './UserFormModal';
 
@@ -15,6 +16,13 @@ export default function UsersView({ role = 'admin', onSelectAsset, selectedLocat
   const [editingUser, setEditingUser] = useState(null);
   const [revealedPasswords, setRevealedPasswords] = useState({});
   const [copiedUserId, setCopiedUserId] = useState(null);
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    return dbRepository.subscribe(() => {
+      setVersion(v => v + 1);
+    });
+  }, []);
 
   const allUsers = userService.getUsers(filter);
   const locationUsers = allUsers.filter(u => locationService.matchesUser(u, selectedLocation));
@@ -312,6 +320,7 @@ export default function UsersView({ role = 'admin', onSelectAsset, selectedLocat
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         user={editingUser}
+        onSaved={() => setVersion(v => v + 1)}
         defaultLocationId={locationService.getDefaultLocationId(selectedLocation)}
       />
     </div>

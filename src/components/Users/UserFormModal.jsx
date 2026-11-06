@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Save, Key, Eye, EyeOff } from 'lucide-react';
+import { X, UserPlus, Save, Key, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { userService } from '../../services/userService';
 
 export default function UserFormModal({ isOpen, onClose, user = null, onSaved, defaultLocationId = 'LOC-0001' }) {
@@ -17,9 +17,13 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
     Notes: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setShowPassword(false);
+    setError('');
+    setIsSaving(false);
     if (user) {
       setFormData({
         UserID: user.UserID,
@@ -57,12 +61,21 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.Name.trim()) {
-      alert('Please enter a user or employee name.');
+      setError('Please enter a user or employee name.');
       return;
     }
-    await userService.saveUser(formData);
-    if (onSaved) onSaved();
-    onClose();
+    setError('');
+    setIsSaving(true);
+    try {
+      await userService.saveUser(formData);
+      if (onSaved) onSaved();
+      onClose();
+    } catch (err) {
+      console.error('[UserFormModal] Failed to save user:', err);
+      setError(err.message || 'Failed to update employee details. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -77,6 +90,13 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
         </div>
 
         <form onSubmit={handleSubmit} className="form-modal-body">
+          {error && (
+            <div className="login-error-alert mb-4" style={{ padding: '0.65rem 0.9rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <div className="form-grid">
             <div className="form-group">
               <label>Full Name *</label>
@@ -248,9 +268,18 @@ export default function UserFormModal({ isOpen, onClose, user = null, onSaved, d
           </div>
 
           <div className="form-modal-footer">
-            <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">
-              <Save size={16} /> Save Employee Record
+            <button type="button" className="btn btn-outline" onClick={onClose} disabled={isSaving}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={isSaving}>
+              {isSaving ? (
+                <span className="flex items-center gap-2">
+                  <span className="spinner-border spinner-border-sm"></span>
+                  <span>Saving to Google Sheets...</span>
+                </span>
+              ) : (
+                <>
+                  <Save size={16} /> Save Employee Record
+                </>
+              )}
             </button>
           </div>
         </form>
