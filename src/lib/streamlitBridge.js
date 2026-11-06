@@ -107,6 +107,19 @@ if (typeof window !== "undefined") {
 
 export const streamlitBridge = {
   /**
+   * Checks whether the application is running inside a live Streamlit iframe host
+   */
+  isStreamlit() {
+    if (renderAcknowledged) return true;
+    if (typeof window === "undefined") return false;
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true; // restricted cross-origin iframe
+    }
+  },
+
+  /**
    * Registers a listener for Streamlit render events.
    * Immediately sends componentReady and setFrameHeight to Streamlit.
    */
@@ -150,6 +163,10 @@ export const streamlitBridge = {
    * Executes an action and waits for the Python response matching the event id.
    */
   callAction(action, data = {}, timeoutMs = 45000) {
+    if (!this.isStreamlit()) {
+      return Promise.reject(new Error("Streamlit host not available (standalone mode)"));
+    }
+
     return new Promise((resolve, reject) => {
       const id = typeof crypto !== "undefined" && crypto.randomUUID 
         ? crypto.randomUUID() 

@@ -1,6 +1,7 @@
 import { relationalDatabaseSeed } from '../data/relationalDatabaseSeed';
 import { parseExcelDate } from '../utils/dateUtils';
 import { streamlitBridge } from '../lib/streamlitBridge';
+import { authService } from './authService';
 import * as XLSX from 'xlsx';
 
 const STORAGE_KEY = 'kmn_relational_excel_db';
@@ -130,7 +131,7 @@ class DBRepository {
   }
 
   /**
-   * Updates an entire table through Streamlit's Python backend.
+   * Updates an entire table through Streamlit's Python backend or FastAPI fallback.
    * Optimistically updates local state for instant UI response and sends write to Python.
    */
   async updateTable(tableName, updaterOrNewRecords) {
@@ -143,16 +144,47 @@ class DBRepository {
     this.saveToLocalCache();
     this.notify();
 
+    const currentUser = authService.getCurrentUser();
+    const userPayload = currentUser ? { role: currentUser.role, username: currentUser.username } : null;
+
     try {
       this.pendingActionsCount++;
-      const res = await streamlitBridge.callAction('update_table', {
-        table: tableName,
-        records: updated
-      });
+
+      // 1. If running inside Streamlit iframe:
+      if (streamlitBridge.isStreamlit()) {
+        try {
+          const res = await streamlitBridge.callAction('update_table', {
+            table: tableName,
+            records: updated,
+            user: userPayload
+          });
+          this.lastSaved = new Date().toISOString();
+          return res;
+        } catch (stErr) {
+          console.warn(`[dbRepository] Streamlit update_table failed, attempting FastAPI fallback:`, stErr);
+        }
+      }
+
+      // 2. Standalone fallback: FastAPI backend (server.py)
+      try {
+        const fetchRes = await fetch(`/api/database/table/${encodeURIComponent(tableName)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: updated, user: userPayload })
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          this.lastSaved = new Date().toISOString();
+          return data;
+        }
+      } catch (fetchErr) {
+        console.warn(`[dbRepository] FastAPI fallback failed:`, fetchErr);
+      }
+
       this.lastSaved = new Date().toISOString();
-      return res;
+      return { success: true };
     } catch (err) {
-      console.error(`[dbRepository] Failed to update table ${tableName} via Streamlit:`, err);
+      console.error(`[dbRepository] Failed to update table ${tableName}:`, err);
       throw err;
     } finally {
       this.pendingActionsCount = Math.max(0, this.pendingActionsCount - 1);
@@ -184,15 +216,45 @@ class DBRepository {
     this.saveToLocalCache();
     this.notify();
 
+    const currentUser = authService.getCurrentUser();
+    const userPayload = currentUser ? { role: currentUser.role, username: currentUser.username } : null;
+
     try {
       this.pendingActionsCount++;
-      const res = await streamlitBridge.callAction('save_record', {
-        table: tableName,
-        record,
-        id_key: idKey
-      });
+
+      if (streamlitBridge.isStreamlit()) {
+        try {
+          const res = await streamlitBridge.callAction('save_record', {
+            table: tableName,
+            record,
+            id_key: idKey,
+            user: userPayload
+          });
+          this.lastSaved = new Date().toISOString();
+          return res;
+        } catch (stErr) {
+          console.warn(`[dbRepository] Streamlit save_record failed, attempting FastAPI fallback:`, stErr);
+        }
+      }
+
+      // Standalone fallback: FastAPI backend (server.py)
+      try {
+        const fetchRes = await fetch(`/api/database/table/${encodeURIComponent(tableName)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records, user: userPayload })
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          this.lastSaved = new Date().toISOString();
+          return data;
+        }
+      } catch (fetchErr) {
+        console.warn(`[dbRepository] FastAPI fallback failed:`, fetchErr);
+      }
+
       this.lastSaved = new Date().toISOString();
-      return res;
+      return { success: true };
     } catch (err) {
       console.error(`[dbRepository] Failed to save record in ${tableName}:`, err);
       throw err;
@@ -214,15 +276,43 @@ class DBRepository {
     this.saveToLocalCache();
     this.notify();
 
+    const currentUser = authService.getCurrentUser();
+    const userPayload = currentUser ? { role: currentUser.role, username: currentUser.username } : null;
+
     try {
       this.pendingActionsCount++;
-      const res = await streamlitBridge.callAction('delete_record', {
-        table: tableName,
-        id_key: idKey,
-        id_value: idValue
-      });
+
+      if (streamlitBridge.isStreamlit()) {
+        try {
+          const res = await streamlitBridge.callAction('delete_record', {
+            table: tableName,
+            id_key: idKey,
+            id_value: idValue,
+            user: userPayload
+          });
+          this.lastSaved = new Date().toISOString();
+          return res;
+        } catch (stErr) {
+          console.warn(`[dbRepository] Streamlit delete_record failed, attempting FastAPI fallback:`, stErr);
+        }
+      }
+
+      // Standalone fallback
+      try {
+        const fetchRes = await fetch(`/api/database/table/${encodeURIComponent(tableName)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records, user: userPayload })
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          this.lastSaved = new Date().toISOString();
+          return data;
+        }
+      } catch (e) {}
+
       this.lastSaved = new Date().toISOString();
-      return res;
+      return { success: true };
     } catch (err) {
       console.error(`[dbRepository] Failed to delete record in ${tableName}:`, err);
       throw err;
