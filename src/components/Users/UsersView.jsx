@@ -230,7 +230,7 @@ export default function UsersView({ role = 'admin', onSelectAsset, selectedLocat
                               {isCopied ? <Check size={13} className="text-emerald" /> : <Copy size={13} />}
                             </button>
                           </div>
-                        ) : (
+                        ) : isAdmin ? (
                           <button
                             type="button"
                             className="text-xs text-muted hover:text-primary flex items-center gap-1 italic"
@@ -244,6 +244,8 @@ export default function UsersView({ role = 'admin', onSelectAsset, selectedLocat
                             <Key size={12} />
                             <span>Set password</span>
                           </button>
+                        ) : (
+                          <span className="text-muted text-xs italic">Not set</span>
                         )}
                       </td>
                       <td>
@@ -309,6 +311,7 @@ export default function UsersView({ role = 'admin', onSelectAsset, selectedLocat
         userId={selectedUserId}
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
+        role={role}
         onSelectAsset={(assetId) => {
           setIsProfileOpen(false);
           if (onSelectAsset) onSelectAsset(assetId);

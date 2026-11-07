@@ -371,6 +371,7 @@ export default function App() {
         userId={viewingUserId}
         isOpen={isUserProfileOpen}
         onClose={() => setIsUserProfileOpen(false)}
+        role={role}
         onSelectAsset={(id) => {
           setIsUserProfileOpen(false);
           setViewingAssetId(id);
@@ -382,6 +383,7 @@ export default function App() {
         printerId={viewingPrinterId}
         isOpen={isPrinterProfileOpen}
         onClose={() => setIsPrinterProfileOpen(false)}
+        role={role}
       />
 
       {/* Direct Google Drive Connecting Splash Screen */}

@@ -139,23 +139,24 @@ class AuthService {
     // Listen for authenticated user updates from Streamlit parent iframe
     if (typeof window !== 'undefined') {
       streamlitBridge.onData((args) => {
-        // If client already has a session but Streamlit has none, ensure backend is synced
-        if (this.currentUser && (!args || !args.user)) {
+        // 1. If client already has an active session, React is the authority. Re-sync to Streamlit backend.
+        if (this.currentUser) {
           this.syncWithBackend(this.currentUser);
+          return;
         }
 
-        // Only accept user sync if Python sent an explicitly logged-in user
-        if (args && args.user && typeof args.user === 'object' && args.user.username && this.currentUser) {
-          const role = (args.user.role || '').toLowerCase().includes('viewer') ? 'viewer' : 'admin';
-          if (this.currentUser.role !== role) {
-            this.currentUser = {
-              ...this.currentUser,
-              role,
-              displayName: role === 'admin' ? 'System Administrator' : 'Staff Viewer'
-            };
-            this.persistUser(this.currentUser);
-            this.notify();
-          }
+        // 2. If client has NO session but Streamlit sent an explicitly authenticated user, initialize session
+        if (!this.currentUser && args && args.user && typeof args.user === 'object' && args.user.username) {
+          const role = (args.user.role || '').toLowerCase().includes('admin') ? 'admin' : 'viewer';
+          this.currentUser = {
+            username: args.user.username,
+            role,
+            displayName: role === 'admin' ? 'System Administrator' : 'Staff Viewer',
+            authProvider: 'streamlit_bridge',
+            loginTime: new Date().toISOString()
+          };
+          this.persistUser(this.currentUser);
+          this.notify();
         }
       });
     }

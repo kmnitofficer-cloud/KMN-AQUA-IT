@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { X, Printer, DollarSign, Clock, Wrench, FileText, Wifi, Plus } from 'lucide-react';
 import { printerService } from '../../services/printerService';
+import { authService } from '../../services/authService';
 import { formatDisplayDate } from '../../utils/dateUtils';
 import TonerModal from './TonerModal';
 
-export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogRepair }) {
+export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogRepair, role }) {
+  const isAdmin = (role || authService.getCurrentUser()?.role) === 'admin';
   const [isTonerModalOpen, setIsTonerModalOpen] = useState(false);
 
   if (!isOpen || !printerId) return null;
@@ -40,9 +42,11 @@ export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogR
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="btn btn-primary btn-sm" onClick={() => setIsTonerModalOpen(true)}>
-              <Plus size={14} /> Record Toner / Ink
-            </button>
+            {isAdmin && (
+              <button className="btn btn-primary btn-sm" onClick={() => setIsTonerModalOpen(true)}>
+                <Plus size={14} /> Record Toner / Ink
+              </button>
+            )}
             <button className="icon-btn" onClick={onClose}><X size={20} /></button>
           </div>
         </div>
@@ -115,9 +119,11 @@ export default function PrinterProfileModal({ printerId, isOpen, onClose, onLogR
               <Clock size={18} className="text-cyan" />
               <h3>Toner & Cartridge Replacement History ({tonerHistory.length})</h3>
             </div>
-            <button className="btn btn-outline btn-xs" onClick={() => setIsTonerModalOpen(true)}>
-              + Add Transaction
-            </button>
+            {isAdmin && (
+              <button className="btn btn-outline btn-xs" onClick={() => setIsTonerModalOpen(true)}>
+                + Add Transaction
+              </button>
+            )}
           </div>
 
           {tonerHistory.length === 0 ? (

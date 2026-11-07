@@ -159,6 +159,7 @@ export default function PrintersView({ role = 'admin', selectedLocation = 'All' 
         printerId={selectedPrinterId}
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
+        role={role}
       />
 
       {/* Toner Modal */}
