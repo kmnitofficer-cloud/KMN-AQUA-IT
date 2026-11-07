@@ -183,11 +183,11 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 kmn_ui = components.declare_component("kmn_ui", path=str(frontend_dir))
 
-# Session state defaults (default to least privilege: Viewer)
+# Session state defaults
 if "user_role" not in st.session_state:
-    st.session_state.user_role = "Viewer"
+    st.session_state.user_role = None
 if "username" not in st.session_state:
-    st.session_state.username = USER_USERNAME or "Viewer"
+    st.session_state.username = None
 if "last_event_id" not in st.session_state:
     st.session_state.last_event_id = None
 if "last_result" not in st.session_state:
@@ -259,7 +259,7 @@ if event and isinstance(event, dict) and event.get("id"):
                 st.session_state.user_role = "Viewer"
                 st.session_state.username = user_info.get("username", "User")
 
-        is_admin = (st.session_state.user_role != "Viewer")
+        is_admin = (st.session_state.user_role == "Administrator")
 
         try:
             # Sync user session state from React frontend
@@ -270,8 +270,8 @@ if event and isinstance(event, dict) and event.get("id"):
                     st.session_state.user_role = "Administrator" if "admin" in role_str else "Viewer"
                     st.session_state.username = u_info.get("username", "User")
                 else:
-                    st.session_state.user_role = "Viewer"
-                    st.session_state.username = "Viewer"
+                    st.session_state.user_role = None
+                    st.session_state.username = None
                 st.session_state.last_result = {
                     "id": event_id,
                     "success": True
@@ -411,4 +411,6 @@ if event and isinstance(event, dict) and event.get("id"):
                 "error": str(exc)
             }
 
-        st.rerun()
+        # Only rerun Streamlit for actions that mutate tables or refresh
+        if action != "set_user_session":
+            st.rerun()

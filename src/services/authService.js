@@ -131,34 +131,9 @@ class AuthService {
   constructor() {
     this.currentUser = this.loadInitialUser();
 
-    // Immediately synchronize authenticated session with Python backend
+    // Immediately synchronize authenticated session with Python backend on startup
     if (this.currentUser) {
       this.syncWithBackend(this.currentUser);
-    }
-
-    // Listen for authenticated user updates from Streamlit parent iframe
-    if (typeof window !== 'undefined') {
-      streamlitBridge.onData((args) => {
-        // 1. If client already has an active session, React is the authority. Re-sync to Streamlit backend.
-        if (this.currentUser) {
-          this.syncWithBackend(this.currentUser);
-          return;
-        }
-
-        // 2. If client has NO session but Streamlit sent an explicitly authenticated user, initialize session
-        if (!this.currentUser && args && args.user && typeof args.user === 'object' && args.user.username) {
-          const role = (args.user.role || '').toLowerCase().includes('admin') ? 'admin' : 'viewer';
-          this.currentUser = {
-            username: args.user.username,
-            role,
-            displayName: role === 'admin' ? 'System Administrator' : 'Staff Viewer',
-            authProvider: 'streamlit_bridge',
-            loginTime: new Date().toISOString()
-          };
-          this.persistUser(this.currentUser);
-          this.notify();
-        }
-      });
     }
   }
 
