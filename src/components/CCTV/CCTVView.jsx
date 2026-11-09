@@ -513,6 +513,7 @@ export default function CCTVView({ role = 'admin', selectedLocation = 'All' }) {
         isOpen={isViewerOpen}
         onClose={() => setIsViewerOpen(false)}
         bill={selectedBill}
+        isAdmin={isAdmin}
         onDelete={handleDeleteBill}
       />
     </div>

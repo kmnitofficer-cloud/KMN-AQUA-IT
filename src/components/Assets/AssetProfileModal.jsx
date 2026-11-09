@@ -63,12 +63,12 @@ export default function AssetProfileModal({ assetId, isOpen, onClose, onReassign
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {onReassign && (
+            {isAdmin && onReassign && (
               <button className="btn btn-outline btn-sm" onClick={() => onReassign(asset.AssetID)}>
                 Reassign / Handover
               </button>
             )}
-            {onLogRepair && (
+            {isAdmin && onLogRepair && (
               <button className="btn btn-outline btn-sm" onClick={() => onLogRepair(asset.AssetID)}>
                 <Wrench size={14} /> Log Repair
               </button>

@@ -185,9 +185,9 @@ kmn_ui = components.declare_component("kmn_ui", path=str(frontend_dir))
 
 # Session state defaults
 if "user_role" not in st.session_state:
-    st.session_state.user_role = "Administrator"
+    st.session_state.user_role = None
 if "username" not in st.session_state:
-    st.session_state.username = ADMIN_USERNAME or "Administrator"
+    st.session_state.username = None
 if "last_event_id" not in st.session_state:
     st.session_state.last_event_id = None
 if "last_result" not in st.session_state:
@@ -252,14 +252,14 @@ if event and isinstance(event, dict) and event.get("id"):
         user_info = event.get("user")
         if user_info and isinstance(user_info, dict):
             role_str = (user_info.get("role") or "").lower()
-            if "viewer" in role_str:
-                st.session_state.user_role = "Viewer"
-                st.session_state.username = user_info.get("username", "User")
-            elif "admin" in role_str:
+            if "admin" in role_str:
                 st.session_state.user_role = "Administrator"
                 st.session_state.username = user_info.get("username", ADMIN_USERNAME or "Administrator")
+            else:
+                st.session_state.user_role = "Viewer"
+                st.session_state.username = user_info.get("username", "User")
 
-        is_admin = (st.session_state.user_role != "Viewer")
+        is_admin = (st.session_state.user_role == "Administrator")
 
         try:
             # Sync user session state from React frontend
@@ -267,11 +267,11 @@ if event and isinstance(event, dict) and event.get("id"):
                 u_info = event.get("user")
                 if u_info and isinstance(u_info, dict):
                     role_str = (u_info.get("role") or "").lower()
-                    st.session_state.user_role = "Viewer" if "viewer" in role_str else "Administrator"
+                    st.session_state.user_role = "Administrator" if "admin" in role_str else "Viewer"
                     st.session_state.username = u_info.get("username", "User")
                 else:
-                    st.session_state.user_role = "Administrator"
-                    st.session_state.username = ADMIN_USERNAME or "Administrator"
+                    st.session_state.user_role = None
+                    st.session_state.username = None
                 st.session_state.last_result = {
                     "id": event_id,
                     "success": True
@@ -411,4 +411,6 @@ if event and isinstance(event, dict) and event.get("id"):
                 "error": str(exc)
             }
 
-        st.rerun()
+        # Only rerun Streamlit for actions that mutate tables or refresh
+        if action != "set_user_session":
+            st.rerun()

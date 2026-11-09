@@ -2,7 +2,7 @@ import React from 'react';
 import { X, FileText, Download, Building2, Calendar, Tag, DollarSign, CheckCircle2, Clock, Trash2, ExternalLink, ArrowLeftRight } from 'lucide-react';
 import { formatDisplayDate } from '../../utils/dateUtils';
 
-export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete }) {
+export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete, isAdmin = false }) {
   if (!isOpen || !bill) return null;
 
   const isPaid = (bill.PaymentStatus || '').toLowerCase() === 'paid';
@@ -188,9 +188,11 @@ export default function CCTVBillViewerModal({ isOpen, onClose, bill, onDelete })
 
         {/* Footer Actions */}
         <div className="form-modal-actions border-t border-subtle pt-3 flex justify-between">
-          <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete}>
-            <Trash2 size={14} /> Delete Bill
-          </button>
+          {isAdmin ? (
+            <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete}>
+              <Trash2 size={14} /> Delete Bill
+            </button>
+          ) : <div />}
           <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>
             Close
           </button>

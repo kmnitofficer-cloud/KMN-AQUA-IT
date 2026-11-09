@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, User, Laptop, Printer, FileText, Wrench, Cctv, Wind, ArrowRight } from 'lucide-react';
+import { Search, X, User, Laptop, Printer, FileText, Wrench, Cctv, Wind, Sun, ArrowRight } from 'lucide-react';
 import { assetService } from '../../services/assetService';
 import { userService } from '../../services/userService';
 import { invoiceService } from '../../services/invoiceService';
@@ -18,13 +18,14 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
     invoices: [],
     repairs: [],
     cctv: [],
-    ac: []
+    ac: [],
+    solar: []
   });
 
   useEffect(() => {
     if (!isOpen) {
       setQuery('');
-      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [], cctv: [] });
+      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [], cctv: [], ac: [], solar: [] });
       return;
     }
   }, [isOpen]);
@@ -32,7 +33,7 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
   useEffect(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
-      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [], cctv: [] });
+      setResults({ users: [], assets: [], printers: [], invoices: [], repairs: [], cctv: [], ac: [], solar: [] });
       return;
     }
 
@@ -103,6 +104,16 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
       (u.Floor && u.Floor.toLowerCase().includes(q))
     ).slice(0, 5);
 
+    // 8. Solar System
+    const matchedSolar = [];
+    if ('solar system solax cloud inverter power pv green energy station'.includes(q) || '1790651479335497733'.includes(q)) {
+      matchedSolar.push({
+        id: 'solar',
+        title: 'Solax Cloud Solar Energy System',
+        description: 'Live Inverter Telemetry, Power Generation Curves & Station Overview (Station: 1790651479335497733)'
+      });
+    }
+
     setResults({
       users: matchedUsers,
       assets: matchedAssets,
@@ -110,7 +121,8 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
       invoices: matchedInvoices,
       repairs: matchedRepairs,
       cctv: matchedCctv,
-      ac: matchedAC
+      ac: matchedAC,
+      solar: matchedSolar
     });
   }, [query]);
 
@@ -123,7 +135,8 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
     results.invoices.length +
     results.repairs.length +
     results.cctv.length +
-    results.ac.length;
+    results.ac.length +
+    results.solar.length;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -327,6 +340,32 @@ export default function GlobalSearchModal({ isOpen, onClose, onSelectEntity }) {
                         </span>
                         <span className="search-item-secondary">
                           📍 {u.RoomName} • {u.Floor} • {u.CapacityBTU} • LKR {Number(u.PurchasePrice || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <ArrowRight size={14} className="search-item-arrow" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Solar Energy System */}
+              {results.solar.length > 0 && (
+                <div className="search-group">
+                  <div className="search-group-title">
+                    <Sun size={14} style={{ color: '#f59e0b' }} /> Solar Energy System ({results.solar.length})
+                  </div>
+                  {results.solar.map(s => (
+                    <div
+                      key={s.id}
+                      className="search-item"
+                      onClick={() => { onSelectEntity('solar', s.id); onClose(); }}
+                    >
+                      <div className="search-item-info">
+                        <span className="search-item-primary" style={{ color: '#f59e0b', fontWeight: 700 }}>
+                          {s.title}
+                        </span>
+                        <span className="search-item-secondary">
+                          {s.description}
                         </span>
                       </div>
                       <ArrowRight size={14} className="search-item-arrow" />

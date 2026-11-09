@@ -3,10 +3,12 @@ import { X, User, Laptop, Clock, DollarSign, Shield, Phone, Mail, MapPin, Buildi
 import { userService } from '../../services/userService';
 import { assetService } from '../../services/assetService';
 import { dbRepository } from '../../services/dbRepository';
+import { authService } from '../../services/authService';
 import ReassignModal from '../Assignments/ReassignModal';
 import UserFormModal from './UserFormModal';
 
-export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsset }) {
+export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsset, role }) {
+  const isAdmin = (role || authService.getCurrentUser()?.role) === 'admin';
   const [refreshKey, setRefreshKey] = useState(0);
   const [reassignAssetId, setReassignAssetId] = useState(null);
   const [reassignMode, setReassignMode] = useState('return');
@@ -88,14 +90,16 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-outline btn-sm flex items-center gap-1.5"
-              onClick={() => setIsEditUserOpen(true)}
-              title="Edit Employee & Password"
-            >
-              <Edit2 size={14} /> Edit Profile
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm flex items-center gap-1.5"
+                onClick={() => setIsEditUserOpen(true)}
+                title="Edit Employee & Password"
+              >
+                <Edit2 size={14} /> Edit Profile
+              </button>
+            )}
             <button className="icon-btn" onClick={onClose} title="Close Profile">
               <X size={20} />
             </button>
@@ -164,16 +168,18 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                         </button>
                       </>
                     )}
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-xs"
-                      style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--brand-primary)' }}
-                      onClick={() => setIsEditUserOpen(true)}
-                      title="Update PC Password"
-                    >
-                      <Edit2 size={12} />
-                      <span>{user.PCPassword ? "Change" : "Set Password"}</span>
-                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-xs"
+                        style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--brand-primary)' }}
+                        onClick={() => setIsEditUserOpen(true)}
+                        title="Update PC Password"
+                      >
+                        <Edit2 size={12} />
+                        <span>{user.PCPassword ? "Change" : "Set Password"}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -183,7 +189,7 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                     </span>
                   ) : (
                     <span className="text-muted text-xs italic">
-                      No PC password recorded for this user. Click "Set Password" to add.
+                      {isAdmin ? 'No PC password recorded for this user. Click "Set Password" to add.' : 'No PC password recorded for this user.'}
                     </span>
                   )}
                 </div>
@@ -233,13 +239,15 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                 <Laptop size={18} className="text-primary" />
                 <h3>Current Active Assets ({currentAssets.length})</h3>
               </div>
-              <button 
-                type="button" 
-                className="btn btn-primary btn-sm flex items-center gap-1.5"
-                onClick={handleOpenAssignNew}
-              >
-                <Plus size={15} /> Hand Over / Assign Equipment
-              </button>
+              {isAdmin && (
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-sm flex items-center gap-1.5"
+                  onClick={handleOpenAssignNew}
+                >
+                  <Plus size={15} /> Hand Over / Assign Equipment
+                </button>
+              )}
             </div>
 
             {currentAssets.length === 0 ? (
@@ -259,17 +267,19 @@ export default function UserProfileModal({ userId, isOpen, onClose, onSelectAsse
                     <div className="asset-card-footer flex justify-between items-center mt-3 pt-2 border-t border-slate-700/30">
                       <span>Status: <strong className="text-emerald">{a.Status}</strong></span>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-xs flex items-center gap-1 text-cyan hover:bg-cyan/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenReturn(a.AssetID);
-                          }}
-                          title="Remove desktop/device, return to storage, and make available for others"
-                        >
-                          <RefreshCw size={12} /> Return / Swap
-                        </button>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-xs flex items-center gap-1 text-cyan hover:bg-cyan/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReturn(a.AssetID);
+                            }}
+                            title="Remove desktop/device, return to storage, and make available for others"
+                          >
+                            <RefreshCw size={12} /> Return / Swap
+                          </button>
+                        )}
                         <span className="text-cyan text-xs cursor-pointer hover:underline">Timeline ➔</span>
                       </div>
                     </div>

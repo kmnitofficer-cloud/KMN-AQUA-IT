@@ -178,7 +178,7 @@ export default function ACView({ role = 'admin' }) {
   }, [allServicesList, searchQuery]);
 
   const handleTempAdjust = async delta => {
-    if (!selectedUnit) return;
+    if (!isAdmin || !selectedUnit) return;
     const newTemp = Math.min(Math.max(16, (Number(selectedUnit.TargetTemp) || 22) + delta), 28);
     // Instant optimistic local update (zero flicker)
     setSelectedUnit(prev => (prev ? { ...prev, TargetTemp: newTemp } : null));
@@ -187,7 +187,7 @@ export default function ACView({ role = 'admin' }) {
   };
 
   const handleModeChange = async newMode => {
-    if (!selectedUnit) return;
+    if (!isAdmin || !selectedUnit) return;
     // Instant optimistic local update (zero flicker)
     setSelectedUnit(prev => (prev ? { ...prev, WorkMode: newMode } : null));
     setUnits(prev => prev.map(u => u.UnitID === selectedUnit.UnitID ? { ...u, WorkMode: newMode } : u));
@@ -500,23 +500,25 @@ export default function ACView({ role = 'admin' }) {
                     </div>
                   </div>
 
-                  {/* Buttons - / + */}
-                  <div className="ac-temp-stepper">
-                    <button
-                      onClick={() => handleTempAdjust(-1)}
-                      className="ac-temp-btn"
-                      title="Lower temperature"
-                    >
-                      -
-                    </button>
-                    <button
-                      onClick={() => handleTempAdjust(1)}
-                      className="ac-temp-btn"
-                      title="Increase temperature"
-                    >
-                      +
-                    </button>
-                  </div>
+                  {/* Buttons - / + (Admin Only) */}
+                  {isAdmin && (
+                    <div className="ac-temp-stepper">
+                      <button
+                        onClick={() => handleTempAdjust(-1)}
+                        className="ac-temp-btn"
+                        title="Lower temperature"
+                      >
+                        -
+                      </button>
+                      <button
+                        onClick={() => handleTempAdjust(1)}
+                        className="ac-temp-btn"
+                        title="Increase temperature"
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mode Selector */}
@@ -530,6 +532,8 @@ export default function ACView({ role = 'admin' }) {
                       <button
                         key={mode}
                         onClick={() => handleModeChange(mode)}
+                        disabled={!isAdmin}
+                        style={!isAdmin ? { cursor: 'default', opacity: selectedUnit.WorkMode === mode ? 1 : 0.6 } : undefined}
                         className={`ac-mode-btn ${selectedUnit.WorkMode === mode ? 'active' : ''}`}
                       >
                         {mode.split(' ')[0]}
@@ -682,19 +686,21 @@ export default function ACView({ role = 'admin' }) {
                       </p>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.25rem' }}>
-                      <button
-                        onClick={() => {
-                          setUnitToEdit(selectedUnit);
-                          setIsUnitModalOpen(true);
-                        }}
-                        className="btn btn-outline"
-                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
-                      >
-                        <Edit2 size={13} />
-                        <span>Edit Unit Details</span>
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.25rem' }}>
+                        <button
+                          onClick={() => {
+                            setUnitToEdit(selectedUnit);
+                            setIsUnitModalOpen(true);
+                          }}
+                          className="btn btn-outline"
+                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+                        >
+                          <Edit2 size={13} />
+                          <span>Edit Unit Details</span>
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
 
