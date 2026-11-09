@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Sun, 
   ExternalLink, 
@@ -19,6 +19,18 @@ export default function SolarView({ role = 'admin' }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
+  const viewRef = useRef(null);
+
+  // Auto scroll to top on mount so header and controls are instantly in full view
+  useEffect(() => {
+    if (viewRef.current) {
+      viewRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+    }
+    const contentArea = document.querySelector('.app-content-area');
+    if (contentArea) {
+      contentArea.scrollTop = 0;
+    }
+  }, []);
 
   const handleRefresh = () => {
     setIsLoading(true);
@@ -30,28 +42,35 @@ export default function SolarView({ role = 'admin' }) {
   };
 
   return (
-    <div className={`view-container ${isFullscreen ? 'solar-fullscreen-active' : ''}`} style={isFullscreen ? {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: '100vw',
-      height: '100vh',
-      zIndex: 99999,
-      backgroundColor: 'var(--bg-canvas, #0f172a)',
-      padding: '1rem',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    } : undefined}>
+    <div 
+      ref={viewRef}
+      className={`view-container ${isFullscreen ? 'solar-fullscreen-active' : ''}`} 
+      style={{
+        gap: '0.65rem',
+        ...(isFullscreen ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 99999,
+          backgroundColor: '#0f172a',
+          padding: '1rem',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        } : {})
+      }}
+    >
       {/* Header Bar */}
-      <div className="view-header" style={{ marginBottom: '1rem' }}>
+      <div className="view-header" style={{ marginBottom: '0.25rem' }}>
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <div style={{
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
               borderRadius: 'var(--radius-md, 8px)',
               background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
               display: 'flex',
@@ -60,11 +79,11 @@ export default function SolarView({ role = 'admin' }) {
               color: '#ffffff',
               boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)'
             }}>
-              <Sun size={22} className="animate-spin-slow" />
+              <Sun size={20} className="animate-spin-slow" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+                <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
                   Solax Cloud Solar System
                 </h2>
                 <span className="badge badge-success flex items-center gap-1 font-semibold text-xs">
@@ -74,7 +93,7 @@ export default function SolarView({ role = 'admin' }) {
               </div>
             </div>
           </div>
-          <p className="text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+          <p className="text-muted" style={{ margin: 0, fontSize: '0.82rem' }}>
             Live photovoltaic energy generation, station yield, power curves & inverter telemetry from Solax Cloud.
           </p>
         </div>
@@ -83,21 +102,21 @@ export default function SolarView({ role = 'admin' }) {
         <div className="view-header-actions flex items-center gap-2">
           <button 
             type="button"
-            className="btn btn-outline flex items-center gap-1.5"
+            className="btn btn-outline btn-sm flex items-center gap-1.5"
             onClick={handleRefresh}
             title="Reload Solar Dashboard Frame"
           >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
             <span>Reload</span>
           </button>
 
           <button 
             type="button"
-            className="btn btn-outline flex items-center gap-1.5"
+            className="btn btn-outline btn-sm flex items-center gap-1.5"
             onClick={toggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen" : "Expand to Fullscreen"}
           >
-            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
             <span>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
           </button>
 
@@ -105,10 +124,10 @@ export default function SolarView({ role = 'admin' }) {
             href={SOLAX_CLOUD_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-primary flex items-center gap-1.5"
+            className="btn btn-primary btn-sm flex items-center gap-1.5"
             title="Open Solax Cloud Portal in a new browser tab"
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
             <span>Open in Solax Cloud</span>
           </a>
         </div>
@@ -120,13 +139,13 @@ export default function SolarView({ role = 'admin' }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '0.75rem',
-        padding: '0.65rem 1rem',
-        marginBottom: '0.85rem',
+        gap: '0.5rem',
+        padding: '0.5rem 0.85rem',
+        marginBottom: '0.35rem',
         borderRadius: 'var(--radius-md, 8px)',
         backgroundColor: 'rgba(245, 158, 11, 0.08)',
         border: '1px solid rgba(245, 158, 11, 0.22)',
-        fontSize: '0.8rem'
+        fontSize: '0.78rem'
       }}>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 font-medium text-primary">
@@ -145,25 +164,25 @@ export default function SolarView({ role = 'admin' }) {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.75rem' }}>
+        <div className="flex items-center gap-2 text-muted" style={{ fontSize: '0.73rem' }}>
           <Clock size={12} />
           <span>Real-time station metrics</span>
         </div>
       </div>
 
-      {/* Embedded Solax Cloud iFrame Card */}
+      {/* Embedded Solax Cloud iFrame Card - Full Height Frame */}
       <div 
         ref={containerRef}
         style={{
           position: 'relative',
-          flex: 1,
           width: '100%',
-          minHeight: isFullscreen ? 'calc(100vh - 120px)' : 'calc(100vh - 220px)',
+          height: isFullscreen ? 'calc(100vh - 100px)' : 'calc(100vh - 200px)',
+          minHeight: '760px',
           borderRadius: 'var(--radius-lg, 12px)',
           overflow: 'hidden',
-          backgroundColor: '#0a0f1d',
-          border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.28)'
+          backgroundColor: '#ffffff',
+          border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.12))',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)'
         }}
       >
         {/* Loading Spinner Indicator */}
@@ -179,33 +198,36 @@ export default function SolarView({ role = 'admin' }) {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.85rem',
-            backgroundColor: 'rgba(10, 15, 29, 0.92)',
+            backgroundColor: 'rgba(255, 255, 255, 0.96)',
             zIndex: 10,
             color: '#f59e0b'
           }}>
             <Sun size={38} className="animate-spin" style={{ color: '#f59e0b' }} />
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary, #ffffff)', display: 'block' }}>
+              <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#1e293b', display: 'block' }}>
                 Connecting to Solax Cloud...
               </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                 Loading live plant overview & inverter metrics
               </span>
             </div>
           </div>
         )}
 
-        {/* Live iFrame */}
+        {/* Live iFrame - Absolutely positioned to guarantee 100% height and width expansion */}
         <iframe
           key={iframeKey}
           src={SOLAX_CLOUD_URL}
           title="Solax Cloud Solar System Overview"
           style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
             width: '100%',
             height: '100%',
             border: 'none',
             display: 'block',
-            backgroundColor: '#0a0f1d'
+            backgroundColor: '#ffffff'
           }}
           allow="fullscreen; clipboard-read; clipboard-write"
           loading="eager"
@@ -219,9 +241,9 @@ export default function SolarView({ role = 'admin' }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginTop: '0.65rem',
-          padding: '0.5rem 0.85rem',
-          fontSize: '0.74rem',
+          marginTop: '0.4rem',
+          padding: '0.4rem 0.85rem',
+          fontSize: '0.73rem',
           color: 'var(--text-muted, #94a3b8)',
           borderRadius: 'var(--radius-sm, 6px)',
           backgroundColor: 'var(--bg-surface-elevated, rgba(255, 255, 255, 0.02))'
