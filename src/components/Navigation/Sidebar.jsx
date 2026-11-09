@@ -14,6 +14,7 @@ import {
   Database,
   Cctv,
   Wind,
+  Sun,
   X,
   LogOut,
   Shield,
@@ -51,6 +52,7 @@ export default function Sidebar({
     {
       title: 'MAINTENANCE & FINANCIALS',
       items: [
+        { id: 'solar', label: 'Solar System', icon: Sun },
         { id: 'ac', label: 'AC & Floor Plan', icon: Wind },
         { id: 'repairs', label: 'Repairs & Services', icon: Wrench },
         { id: 'parts', label: 'Part Replacements', icon: Cpu },

@@ -14,6 +14,7 @@ import RepairsView from './components/Repairs/RepairsView';
 import PartsView from './components/Repairs/PartsView';
 import CCTVView from './components/CCTV/CCTVView';
 import ACView from './components/AC/ACView';
+import SolarView from './components/Solar/SolarView';
 import ExpensesView from './components/Expenses/ExpensesView';
 import InvoicesView from './components/Invoices/InvoicesView';
 import ReportsView from './components/Reports/ReportsView';
@@ -196,6 +197,8 @@ export default function App() {
       setActiveTab('cctv');
     } else if (type === 'ac') {
       setActiveTab('ac');
+    } else if (type === 'solar') {
+      setActiveTab('solar');
     }
   };
 
@@ -301,6 +304,10 @@ export default function App() {
 
           {activeTab === 'parts' && (
             <PartsView role={role} />
+          )}
+
+          {activeTab === 'solar' && (
+            <SolarView role={role} />
           )}
 
           {activeTab === 'ac' && (
